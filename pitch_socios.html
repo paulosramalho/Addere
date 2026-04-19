@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Addere On — Produto Ads Intelligence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0a0a0f;
+    --dark: #13131a;
+    --card: #1a1a24;
+    --border: #2a2a38;
+    --accent: #6c63ff;
+    --accent2: #ff6b35;
+    --green: #00d97e;
+    --text: #e8e8f0;
+    --muted: #8888a0;
+    --white: #ffffff;
+  }
+
+  html { font-size: 15px; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--black);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── COVER ── */
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 60px 72px;
+    background: var(--black);
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(108,99,255,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cover::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -80px;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,107,53,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cover-top { display: flex; align-items: center; gap: 14px; }
+
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 16px var(--accent2);
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .cover-center { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 60px 0; }
+
+  .cover-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(108,99,255,0.4);
+    border-radius: 4px;
+    padding: 4px 10px;
+    margin-bottom: 28px;
+    width: fit-content;
+  }
+
+  .cover-title {
+    font-size: 3.6rem;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--white);
+    margin-bottom: 24px;
+  }
+
+  .cover-title span { color: var(--accent); }
+
+  .cover-sub {
+    font-size: 1.05rem;
+    font-weight: 400;
+    color: var(--muted);
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  .cover-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .cover-meta { font-size: 0.78rem; color: var(--muted); line-height: 1.8; }
+  .cover-meta strong { color: var(--text); font-weight: 600; }
+
+  .cover-confidential {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(136,136,160,0.5);
+    border: 1px solid rgba(136,136,160,0.2);
+    padding: 5px 10px;
+    border-radius: 4px;
+  }
+
+  /* ── PAGES ── */
+  .page {
+    min-height: 100vh;
+    padding: 64px 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    page-break-after: always;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-number {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .page-brand { display: flex; align-items: center; gap: 8px; }
+  .page-brand .logo-dot { width: 7px; height: 7px; }
+  .page-brand span { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(136,136,160,0.5); }
+
+  /* ── SECTION TITLE ── */
+  .section-tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .section-title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--white);
+    line-height: 1.15;
+    margin-bottom: 32px;
+  }
+
+  /* ── PAIN TABLE ── */
+  .pain-grid { display: flex; flex-direction: column; gap: 12px; }
+
+  .pain-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .pain-left {
+    padding: 16px 20px;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+  }
+
+  .pain-right {
+    padding: 16px 20px;
+    background: var(--dark);
+  }
+
+  .pain-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .pain-left .pain-label { color: var(--accent2); }
+  .pain-right .pain-label { color: var(--green); }
+
+  .pain-text { font-size: 0.86rem; color: var(--text); line-height: 1.5; }
+
+  /* ── VALUE PROPS ── */
+  .value-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .value-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+  }
+
+  .value-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    margin-bottom: 14px;
+  }
+
+  .value-card h4 { font-size: 0.92rem; font-weight: 700; color: var(--white); margin-bottom: 6px; }
+  .value-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+
+  /* ── PLANS ── */
+  .plans-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+  .plan-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .plan-card.featured {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(108,99,255,0.12), var(--card));
+  }
+
+  .plan-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(108,99,255,0.15);
+    padding: 3px 8px;
+    border-radius: 4px;
+    width: fit-content;
+  }
+
+  .plan-name { font-size: 1rem; font-weight: 800; color: var(--white); }
+
+  .plan-price { display: flex; align-items: baseline; gap: 4px; }
+  .plan-price .currency { font-size: 0.9rem; font-weight: 700; color: var(--accent); }
+  .plan-price .amount { font-size: 2rem; font-weight: 900; color: var(--white); letter-spacing: -0.03em; }
+  .plan-price .period { font-size: 0.78rem; color: var(--muted); }
+
+  .plan-setup { font-size: 0.75rem; color: var(--muted); }
+  .plan-setup strong { color: var(--text); }
+
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .plan-features li { font-size: 0.8rem; color: var(--muted); display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
+  .plan-features li::before { content: '→'; color: var(--accent); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── NUMBERS ── */
+  .numbers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .numbers-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+  }
+
+  .numbers-card h4 {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  .cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.83rem;
+  }
+
+  .cost-row:last-child { border-bottom: none; }
+  .cost-row .cost-label { color: var(--muted); }
+  .cost-row .cost-value { color: var(--text); font-weight: 600; }
+  .cost-row.total .cost-label { color: var(--text); font-weight: 700; }
+  .cost-row.total .cost-value { color: var(--green); font-weight: 800; }
+
+  /* ── PROJECTION TABLE ── */
+  .proj-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+
+  .proj-table th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .proj-table td { padding: 12px 16px; border-bottom: 1px solid rgba(42,42,56,0.5); color: var(--text); }
+
+  .proj-table tr:last-child td { border-bottom: none; }
+  .proj-table tr:hover td { background: rgba(108,99,255,0.04); }
+
+  .proj-table .highlight { color: var(--green); font-weight: 700; }
+  .proj-table .arr { color: var(--accent); font-weight: 700; }
+
+  /* ── NEXT STEPS ── */
+  .steps-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .step-item {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 16px 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(108,99,255,0.15);
+    border: 1px solid rgba(108,99,255,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .step-content h4 { font-size: 0.88rem; font-weight: 700; color: var(--white); margin-bottom: 3px; }
+  .step-content p { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+
+  /* ── HIGHLIGHT BOX ── */
+  .highlight-box {
+    background: linear-gradient(135deg, rgba(108,99,255,0.1), rgba(255,107,53,0.05));
+    border: 1px solid rgba(108,99,255,0.3);
+    border-radius: 14px;
+    padding: 28px 32px;
+  }
+
+  .highlight-box .hl-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .highlight-box p {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  .highlight-box strong { color: var(--white); font-weight: 700; }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: var(--black); }
+    .cover, .page { page-break-after: always; min-height: auto; }
+    .cover { min-height: 100vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="logo-dot"></div>
+    <span class="logo-text">Addere On — Documento Interno</span>
+  </div>
+
+  <div class="cover-center">
+    <div class="cover-tag">Produto · Modelo de Negócio</div>
+    <h1 class="cover-title">
+      Inteligência de<br>
+      <span>Tráfego Pago</span><br>
+      como Produto
+    </h1>
+    <p class="cover-sub">
+      Transformamos a infraestrutura que construímos para nossas próprias campanhas
+      em um produto SaaS recorrente — vendido para clientes que investem em anúncios
+      e precisam saber o que está funcionando.
+    </p>
+  </div>
+
+  <div class="cover-bottom">
+    <div class="cover-meta">
+      <strong>Para:</strong> Amanda Ramalho · Davi Raiol · Paulo Ramalho<br>
+      <strong>Data:</strong> 18/04/2026<br>
+      <strong>Empresa:</strong> Addere On Comunicação, Treinamentos e Eventos Corporativos Ltda.
+    </div>
+    <div class="cover-confidential">Confidencial</div>
+  </div>
+</div>
+
+<!-- PAGE 1 — NÚCLEO DO NEGÓCIO -->
+<div class="page">
+  <div class="page-header">
+    <span class="section-tag" style="margin:0">Núcleo do Negócio</span>
+    <div class="page-brand">
+      <div class="logo-dot"></div>
+      <span>Addere On · @addereon</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-tag">O Produto</div>
+    <div class="section-title">O que entregamos</div>
+
+    <div class="highlight-box">
+      <div class="hl-label">Proposta central</div>
+      <p>
+        Uma plataforma que <strong>conecta as contas de Google Ads e Meta Ads do cliente</strong>,
+        coleta dados diariamente e entrega, toda segunda-feira, um relatório executivo com
+        três respostas objetivas: <strong>o que funcionou, o que pausar e onde escalar</strong>.
+        Com alerta imediato quando dinheiro está sendo desperdiçado.
+      </p>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-tag">O Problema</div>
+    <div class="section-title">Por que existe demanda</div>
+
+    <div class="pain-grid">
+      <div class="pain-item">
+        <div class="pain-left">
+          <div class="pain-label">Dor do cliente</div>
+          <div class="pain-text">Investiu em ads este mês. Não sabe se gerou resultado.</div>
+        </div>
+        <div class="pain-right">
+          <div class="pain-label">O que entregamos</div>
+          <div class="pain-text">Dashboard com CPL, leads e gasto — atualizado todo dia.</div>
+        </div>
+      </div>
+      <div class="pain-item">
+        <div class="pain-left">
+          <div class="pain-label">Dor do cliente</div>
+          <div class="pain-text">Continua pagando por campanhas que nunca geraram um lead.</div>
+        </div>
+        <div class="pain-right">
+          <div class="pain-label">O que entregamos</div>
+          <div class="pain-text">Relatório semanal que indica exatamente qual campanha pausar.</div>
+        </div>
+      </div>
+      <div class="pain-item">
+        <div class="pain-left">
+          <div class="pain-label">Dor do cliente</div>
+          <div class="pain-text">Gasto triplicou num dia. Só descobriu uma semana depois.</div>
+        </div>
+        <div class="pain-right">
+          <div class="pain-label">O que entregamos</div>
+          <div class="pain-text">Alerta por email no mesmo dia que a anomalia acontece.</div>
+        </div>
+      </div>
+      <div class="pain-item">
+        <div class="pain-left">
+          <div class="pain-label">Dor do cliente</div>
+          <div class="pain-text">Relatório da agência é um PDF bonito sem nenhuma ação clara.</div>
+        </div>
+        <div class="pain-right">
+          <div class="pain-label">O que entregamos</div>
+          <div class="pain-text">Análise automática com recomendações priorizadas por impacto.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-tag">Público-Alvo</div>
+    <div class="value-grid" style="margin-top: 10px;">
+      <div class="value-card">
+        <div class="value-icon" style="background:rgba(108,99,255,0.15)">⚖️</div>
+        <h4>Profissional liberal</h4>
+        <p>Advogados, médicos, dentistas, contadores. Investem R$ 1.500–15.000/mês em ads. Precisam de clareza, não de mais dados.</p>
+      </div>
+      <div class="value-card">
+        <div class="value-icon" style="background:rgba(255,107,53,0.15)">🏢</div>
+        <h4>Agência de tráfego</h4>
+        <p>Gerencia 10–50 clientes. Perde tempo gerando relatórios manuais. Precisa de uma ferramenta que imponha profissionalismo e reduza churn.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 2 — PLANOS -->
+<div class="page">
+  <div class="page-header">
+    <span class="section-tag" style="margin:0">Modelo de Receita</span>
+    <div class="page-brand">
+      <div class="logo-dot"></div>
+      <span>Addere On · @addereon</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-tag">Planos e Preços</div>
+    <div class="section-title">Três caminhos de entrada</div>
+
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div>
+          <div class="plan-name">Solo</div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:3px;">1 empresa, até 2 canais de ads</div>
+        </div>
+        <div class="plan-price">
+          <span class="currency">R$</span>
+          <span class="amount">197</span>
+          <span class="period">/mês</span>
+        </div>
+        <div class="plan-setup">+ Setup único: <strong>R$ 497</strong></div>
+        <ul class="plan-features">
+          <li>Google Ads + Meta Ads conectados</li>
+          <li>Dashboard com KPIs em tempo real</li>
+          <li>Relatório semanal por email</li>
+          <li>Alertas de anomalia diários</li>
+          <li>Até 100 leads registrados/mês</li>
+        </ul>
+      </div>
+
+      <div class="plan-card featured">
+        <div>
+          <div class="plan-badge">Mais vendido</div>
+          <div class="plan-name" style="margin-top:8px">Business</div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:3px;">Até 3 empresas</div>
+        </div>
+        <div class="plan-price">
+          <span class="currency">R$</span>
+          <span class="amount">397</span>
+          <span class="period">/mês</span>
+        </div>
+        <div class="plan-setup">+ Setup único: <strong>R$ 797</strong></div>
+        <ul class="plan-features">
+          <li>Tudo do Solo</li>
+          <li>Meta mensal com barra de progresso</li>
+          <li>Histórico de 12 semanas de relatórios</li>
+          <li>Detalhe diário por campanha</li>
+          <li>Suporte prioritário</li>
+        </ul>
+      </div>
+
+      <div class="plan-card">
+        <div>
+          <div class="plan-name">Agência</div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:3px;">Clientes ilimitados</div>
+        </div>
+        <div class="plan-price">
+          <span class="currency">R$</span>
+          <span class="amount">997</span>
+          <span class="period">/mês</span>
+        </div>
+        <div class="plan-setup">+ Setup único: <strong>R$ 1.997</strong></div>
+        <ul class="plan-features">
+          <li>Tudo do Business</li>
+          <li>White-label com marca da agência</li>
+          <li>Acesso multi-usuário por cliente</li>
+          <li>Relatórios sob demanda</li>
+          <li>Onboarding dedicado</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 3 — NÚMEROS -->
+<div class="page">
+  <div class="page-header">
+    <span class="section-tag" style="margin:0">Números que Sustentam</span>
+    <div class="page-brand">
+      <div class="logo-dot"></div>
+      <span>Addere On · @addereon</span>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-tag">Estrutura de Custos</div>
+    <div class="section-title">O que custa manter</div>
+
+    <div class="numbers-grid">
+      <div class="numbers-card">
+        <h4>Custo de infraestrutura / mês</h4>
+        <div class="cost-row">
+          <span class="cost-label">Render (backend)</span>
+          <span class="cost-value">R$ 30–80</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-label">Neon PostgreSQL</span>
+          <span class="cost-value">R$ 0–50</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-label">Vercel (frontend)</span>
+          <span class="cost-value">R$ 0</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-label">Resend (emails)</span>
+          <span class="cost-value">R$ 0</span>
+        </div>
+        <div class="cost-row total">
+          <span class="cost-label">Total fixo inicial</span>
+          <span class="cost-value">~R$ 80/mês</span>
+        </div>
+      </div>
+
+      <div class="numbers-card">
+        <h4>Margem bruta por plano</h4>
+        <div class="cost-row">
+          <span class="cost-label">Solo — R$ 197/mês</span>
+          <span class="cost-value" style="color:var(--green)">~60% margem</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-label">Business — R$ 397/mês</span>
+          <span class="cost-value" style="color:var(--green)">~80% margem</span>
+        </div>
+        <div class="cost-row">
+          <span class="cost-label">Agência — R$ 997/mês</span>
+          <span class="cost-value" style="color:var(--green)">~92% margem</span>
+        </div>
+        <div class="cost-row total">
+          <span class="cost-label">Break-even</span>
+          <span class="cost-value">1 Agência ou 5 Solo</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-tag">Projeção de MRR</div>
+
+    <table class="proj-table">
+      <thead>
+        <tr>
+          <th>Cenário</th>
+          <th>Mix de clientes</th>
+          <th>MRR</th>
+          <th>ARR</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Arranque</td>
+          <td>5 Solo + 2 Business</td>
+          <td class="highlight">R$ 1.779</td>
+          <td class="arr">R$ 21.348</td>
+        </tr>
+        <tr>
+          <td>Crescimento</td>
+          <td>10 Solo + 5 Business + 1 Agência</td>
+          <td class="highlight">R$ 5.952</td>
+          <td class="arr">R$ 71.424</td>
+        </tr>
+        <tr>
+          <td>Maturidade</td>
+          <td>20 Solo + 10 Business + 3 Agências</td>
+          <td class="highlight">R$ 10.894</td>
+          <td class="arr">R$ 130.728</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-size:0.75rem;color:var(--muted);margin-top:12px;line-height:1.8;">
+      * <strong style="color:var(--text)">MRR</strong> (Monthly Recurring Revenue) — receita recorrente mensal: o que entra garantido todo mês de assinaturas ativas.<br>
+      * <strong style="color:var(--text)">ARR</strong> (Annual Recurring Revenue) — MRR × 12: representa a receita anual se nenhum cliente cancelar. É o número que investidores usam para avaliar um SaaS.<br>
+      * Receita de setup não recorrente adiciona R$ 500–2.000 por novo cliente. Custo variável de infra escala lentamente — margem bruta aumenta com volume.
+    </p>
+  </div>
+
+  <div>
+    <div class="section-tag">Próximos Passos</div>
+
+    <div class="steps-list">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Definir nome comercial do produto</h4>
+          <p>"Addere Ads Control" ou identidade própria sob a Addere On — algo que carregue o @addereon.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Cliente piloto — a definir</h4>
+          <p>Faz todo sentido a Addere On ser a cobaia. Você aprende o onboarding na prática, documenta cada fricção e chega no primeiro cliente externo com um processo testado. A partir daí, o processo é replicável.</p>
+          <p style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">A única ressalva: escolha um cliente que já invista regularmente em ads e tenha uma relação de confiança — não o mais complexo, nem o mais sensível. O piloto ideal é aquele que vai tolerar um "estamos ajustando" sem entrar em pânico.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Landing page + contrato de serviço</h4>
+          <p>Página de captação (lista de espera ou venda direta) e minuta de contrato com escopo, SLA e política de dados.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
