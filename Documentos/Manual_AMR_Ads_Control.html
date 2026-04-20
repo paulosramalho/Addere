@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMR Ads Control — Manual de Utilização</title>
+<style>
+  /* ── Reset & Base ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; background: #fff; font-size: 14px; line-height: 1.6; }
+  a { color: #2563eb; }
+
+  /* ── Print ────────────────────────────────────────────────── */
+  @media print {
+    .page-break { page-break-before: always; }
+    .no-print   { display: none !important; }
+    body        { font-size: 12px; }
+    .cover      { height: 100vh; }
+  }
+
+  /* ── Cover ────────────────────────────────────────────────── */
+  .cover {
+    background: linear-gradient(160deg, #0f172a 60%, #1e3a5f);
+    color: white;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 60px 72px;
+  }
+  .cover-logo   { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; }
+  .cover-dot    { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; margin-right: 8px; }
+  .cover-title  { font-size: 48px; font-weight: 700; line-height: 1.15; margin-top: 120px; }
+  .cover-title span { color: #60a5fa; }
+  .cover-sub    { font-size: 20px; color: #94a3b8; margin-top: 16px; }
+  .cover-meta   { display: flex; gap: 40px; margin-top: auto; padding-top: 60px; border-top: 1px solid #334155; }
+  .cover-meta-item label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: #64748b; margin-bottom: 4px; }
+  .cover-meta-item span  { font-size: 14px; color: #e2e8f0; }
+  .cover-badge  { display: inline-block; background: #1e3a5f; border: 1px solid #2563eb; color: #60a5fa; font-size: 11px; padding: 4px 12px; border-radius: 20px; letter-spacing: .06em; margin-top: 24px; }
+
+  /* ── TOC ──────────────────────────────────────────────────── */
+  .toc { max-width: 760px; margin: 60px auto; padding: 0 40px; }
+  .toc h2 { font-size: 22px; font-weight: 700; color: #0f172a; margin-bottom: 28px; padding-bottom: 12px; border-bottom: 2px solid #e2e8f0; }
+  .toc-list { list-style: none; }
+  .toc-list li { display: flex; align-items: baseline; gap: 0; margin-bottom: 10px; font-size: 14px; }
+  .toc-list li .num { color: #2563eb; font-weight: 700; min-width: 28px; }
+  .toc-list li .dots { flex: 1; border-bottom: 1px dotted #cbd5e1; margin: 0 8px; }
+  .toc-list li .pg { color: #64748b; font-size: 12px; }
+
+  /* ── Section ──────────────────────────────────────────────── */
+  .section { max-width: 760px; margin: 0 auto; padding: 56px 40px; }
+  .section + .section { border-top: 1px solid #f1f5f9; }
+  .section-num { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: #3b82f6; margin-bottom: 6px; }
+  .section h2  { font-size: 26px; font-weight: 700; color: #0f172a; margin-bottom: 20px; }
+  .section h3  { font-size: 16px; font-weight: 700; color: #1e293b; margin: 28px 0 10px; }
+  .section p   { color: #334155; margin-bottom: 14px; }
+  .section ul, .section ol { color: #334155; padding-left: 20px; margin-bottom: 14px; }
+  .section li  { margin-bottom: 6px; }
+
+  /* ── Callout boxes ────────────────────────────────────────── */
+  .callout      { border-radius: 10px; padding: 16px 20px; margin: 20px 0; font-size: 13px; }
+  .callout-blue { background: #eff6ff; border-left: 4px solid #2563eb; color: #1e40af; }
+  .callout-green{ background: #f0fdf4; border-left: 4px solid #059669; color: #065f46; }
+  .callout-amber{ background: #fffbeb; border-left: 4px solid #d97706; color: #92400e; }
+  .callout-red  { background: #fef2f2; border-left: 4px solid #dc2626; color: #991b1b; }
+  .callout strong { font-weight: 700; }
+
+  /* ── Screen mockups ───────────────────────────────────────── */
+  .mockup       { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin: 24px 0; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+  .mockup-bar   { background: #0f172a; padding: 10px 18px; display: flex; align-items: center; justify-content: space-between; }
+  .mockup-brand { display: flex; align-items: center; gap: 8px; color: white; font-size: 13px; font-weight: 700; }
+  .mockup-dot   { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; }
+  .mockup-tabs  { display: flex; gap: 4px; }
+  .mockup-tab   { font-size: 11px; padding: 4px 10px; border-radius: 4px; color: #94a3b8; }
+  .mockup-tab.active { background: #1e3a5f; color: white; }
+  .mockup-period{ font-size: 10px; color: #64748b; }
+  .mockup-body  { background: #f8fafc; padding: 20px; }
+
+  /* KPI Row */
+  .kpi-row  { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .kpi-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 100px; }
+  .kpi-card.hi { border-top: 3px solid #059669; }
+  .kpi-label{ font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 4px; }
+  .kpi-value{ font-size: 20px; font-weight: 700; display: block; }
+  .kpi-sub  { font-size: 10px; color: #94a3b8; display: block; margin-top: 2px; }
+
+  /* Goal bar */
+  .goal-box   { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+  .goal-title { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #64748b; margin-bottom: 10px; font-weight: 700; }
+  .goal-row   { margin-bottom: 10px; }
+  .goal-head  { display: flex; justify-content: space-between; font-size: 12px; color: #334155; margin-bottom: 5px; }
+  .goal-track { background: #e2e8f0; border-radius: 4px; height: 8px; }
+  .goal-fill  { height: 8px; border-radius: 4px; }
+
+  /* Platform cards */
+  .plat-row  { display: flex; gap: 10px; margin-bottom: 12px; }
+  .plat-card { background: white; border: 1px solid #e2e8f0; border-top: 3px solid; border-radius: 8px; padding: 12px 14px; flex: 1; }
+  .plat-name { font-size: 11px; font-weight: 700; margin-bottom: 8px; }
+  .plat-stats{ display: flex; gap: 12px; font-size: 11px; color: #64748b; }
+  .plat-stats strong { display: block; font-size: 13px; color: #1e293b; font-weight: 700; }
+
+  /* Chart placeholder */
+  .chart-ph   { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .chart-title{ font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 10px; }
+  .chart-area { background: #f8fafc; border-radius: 6px; height: 120px; display: flex; align-items: flex-end; padding: 12px; gap: 4px; }
+  .bar-g { background: #10b981; border-radius: 3px 3px 0 0; flex: 1; opacity: .85; }
+  .line-ph { position: relative; }
+
+  /* Table mockups */
+  .mock-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; font-size: 11px; }
+  .mock-table th { background: #f8fafc; padding: 8px 10px; text-align: left; color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #e2e8f0; }
+  .mock-table td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+  .mock-table tr:last-child td { border-bottom: none; }
+  .badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight: 700; }
+  .score-dots { display: flex; gap: 2px; }
+  .dot-on  { width: 7px; height: 7px; border-radius: 50%; background: #059669; }
+  .dot-off { width: 7px; height: 7px; border-radius: 50%; background: #e2e8f0; }
+
+  /* Agent status */
+  .agent-ok   { background: #059669; }
+  .agent-err  { background: #dc2626; }
+  .agent-pend { background: #d97706; }
+  .agent-run  { background: #2563eb; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+
+  /* Weekly report mock */
+  .wr-grid   { display: flex; gap: 10px; margin: 10px 0; }
+  .wr-block  { flex: 1; background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; }
+  .wr-head   { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+  .wr-text   { font-size: 11px; color: #334155; line-height: 1.5; }
+  .wr-meta   { display: flex; gap: 10px; margin-bottom: 12px; }
+  .wr-num    { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 11px; }
+  .wr-num strong { display: block; font-size: 16px; font-weight: 700; }
+
+  /* Notification block */
+  .notif-card { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin: 16px 0; }
+  .notif-head { background: #0f172a; color: white; padding: 12px 18px; font-size: 13px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+  .notif-head .trigger { font-size: 11px; color: #94a3b8; font-weight: 400; }
+  .notif-body { padding: 16px 18px; font-size: 13px; color: #334155; }
+  .notif-body strong { color: #0f172a; }
+  .notif-dest { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .tag { display: inline-flex; align-items: center; gap: 5px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #475569; }
+  .tag.email { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+  .tag.wa    { background: #f0fdf4; border-color: #bbf7d0; color: #065f46; }
+  .tag.tele  { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+
+  /* Separator / page title */
+  .chapter { background: #0f172a; color: white; padding: 40px 72px; margin-top: 0; }
+  .chapter .num { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #60a5fa; }
+  .chapter h2  { font-size: 30px; font-weight: 700; margin-top: 8px; }
+  .chapter sub { font-size: 14px; color: #94a3b8; margin-top: 6px; display: block; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ CAPA ═══════════════════════════════════ -->
+<div class="cover">
+  <div>
+    <div class="cover-logo"><span class="cover-dot"></span>Addere On — Produto de Gestão Digital</div>
+    <div class="cover-badge">MANUAL DE UTILIZAÇÃO</div>
+  </div>
+  <div>
+    <div class="cover-title">AMR Ads<br><span>Control</span></div>
+    <div class="cover-sub">Painel de controle de campanhas, leads e conteúdo digital para @amandamramalho</div>
+  </div>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <label>Versão</label>
+      <span>1.0 — Abril 2026</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Destinatários</label>
+      <span>Amanda Ramalho · Davi</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Acesso</label>
+      <span>amr-ads.vercel.app</span>
+    </div>
+    <div class="cover-meta-item">
+      <label>Suporte</label>
+      <span>paulosramalho@gmail.com</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SUMÁRIO ════════════════════════════════ -->
+<div class="toc page-break">
+  <h2>Sumário</h2>
+  <ul class="toc-list">
+    <li><span class="num">1.</span><span>Visão Geral do Sistema</span><span class="dots"></span><span class="pg">3</span></li>
+    <li><span class="num">2.</span><span>Como Acessar</span><span class="dots"></span><span class="pg">4</span></li>
+    <li><span class="num">3.</span><span>Painel Principal — Visão Geral</span><span class="dots"></span><span class="pg">5</span></li>
+    <li><span class="num">4.</span><span>Relatório Semanal com IA</span><span class="dots"></span><span class="pg">8</span></li>
+    <li><span class="num">5.</span><span>Gestão de Leads</span><span class="dots"></span><span class="pg">10</span></li>
+    <li><span class="num">6.</span><span>Análise de Conteúdo Instagram</span><span class="dots"></span><span class="pg">12</span></li>
+    <li><span class="num">7.</span><span>Sugestão de Conteúdo</span><span class="dots"></span><span class="pg">15</span></li>
+    <li><span class="num">8.</span><span>Agentes de IA</span><span class="dots"></span><span class="pg">17</span></li>
+    <li><span class="num">9.</span><span>Notificações Automáticas</span><span class="dots"></span><span class="pg">19</span></li>
+  </ul>
+</div>
+
+<!-- ═══════════════════ 1. VISÃO GERAL ════════════════════════ -->
+<div class="chapter page-break">
+  <div class="num">Seção 1</div>
+  <h2>Visão Geral do Sistema</h2>
+  <sub>O que é, para que serve e como tudo funciona junto</sub>
+</div>
+
+<div class="section">
+  <p>O <strong>AMR Ads Control</strong> é um painel de gestão digital criado exclusivamente para Amanda Ramalho. Ele reúne em um único lugar todas as informações das campanhas de anúncios (Google Ads e Meta Ads), os leads gerados, a análise do Instagram e sugestões de conteúdo produzidas por Inteligência Artificial.</p>
+
+  <p>O sistema opera de forma <strong>automática e contínua</strong>, sem que ninguém precise intervir diariamente. Os agentes de IA coletam dados, analisam resultados e enviam relatórios no horário certo. O painel está disponível 24 horas, todos os dias, pelo endereço:</p>
+
+  <div class="callout callout-blue">
+    <strong>Endereço de acesso:</strong> <a href="https://amr-ads.vercel.app">amr-ads.vercel.app</a> — funciona em qualquer navegador ou celular, sem instalação.
+  </div>
+
+  <h3>O que o sistema faz automaticamente</h3>
+  <ul>
+    <li><strong>Todo dia às 00h BRT</strong> — coleta os dados atualizados de Google Ads e Meta Ads</li>
+    <li><strong>Todo dia às 01h BRT</strong> — analisa os posts do Instagram e gera sugestões de conteúdo</li>
+    <li><strong>Toda segunda-feira às 09h BRT</strong> — gera o Relatório Semanal com análise de IA e envia por e-mail</li>
+    <li><strong>Quando detecta anomalias</strong> — envia alerta imediato por e-mail se uma campanha sair do padrão</li>
+  </ul>
+
+  <h3>Estrutura do painel</h3>
+  <p>O painel é organizado em 5 abas principais, acessíveis pelo menu no topo da tela:</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-brand"><div class="mockup-dot"></div> AMR Ads Control</div>
+      <div class="mockup-tabs">
+        <div class="mockup-tab active">Visão Geral</div>
+        <div class="mockup-tab">Relatório Semanal</div>
+        <div class="mockup-tab">Leads (12)</div>
+        <div class="mockup-tab">Conteúdo (48)</div>
+        <div class="mockup-tab">Agentes</div>
+      </div>
+      <div class="mockup-period">Sair</div>
+    </div>
+    <div class="mockup-body" style="padding:12px 20px; background: #0f172a;">
+      <p style="color:#94a3b8; font-size:12px; text-align:center;">↑ Menu de navegação principal — sempre visível no topo da tela</p>
+    </div>
+  </div>
+
+  <table style="width:100%; border-collapse:collapse; margin-top:8px;">
+    <thead>
+      <tr style="background:#f8fafc;">
+        <th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Aba</th>
+        <th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Para que serve</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Visão Geral</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">KPIs, gráfico de evolução, desempenho por campanha e meta do mês</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Relatório Semanal</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Análise semanal gerada por IA: o que funcionou, o que pausar, onde escalar</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Leads</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Lista de potenciais clientes com controle de status do funil</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Conteúdo</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Posts do Instagram com análise de performance e recomendação por IA</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px;"><strong>Agentes</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569;">Status dos robôs de IA — mostra quando cada um rodou e se houve erro</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════ 2. ACESSO ══════════════════════════════ -->
+<div class="chapter page-break">
+  <div class="num">Seção 2</div>
+  <h2>Como Acessar</h2>
+  <sub>Login, sessão e como sair</sub>
+</div>
+
+<div class="section">
+  <p>O acesso é protegido por senha. Abra o endereço <strong>amr-ads.vercel.app</strong> em qualquer navegador e você verá a tela de login:</p>
+
+  <div class="mockup" style="max-width:380px; margin:24px auto;">
+    <div class="mockup-bar">
+      <div class="mockup-brand"><div class="mockup-dot"></div> AMR Ads Control</div>
+    </div>
+    <div class="mockup-body" style="text-align:center; padding:32px 40px; background:white;">
+      <p style="font-size:12px; color:#64748b; margin-bottom:6px;">Senha de acesso</p>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px; font-size:13px; color:#94a3b8; margin-bottom:16px;">••••••••</div>
+      <div style="background:#2563eb; color:white; border-radius:6px; padding:10px; font-size:13px; font-weight:700;">Entrar</div>
+    </div>
+  </div>
+
+  <div class="callout callout-amber">
+    <strong>A senha de acesso</strong> é fornecida pelo gestor do sistema (Paulo). Não a compartilhe com terceiros. Se precisar trocar, entre em contato pelo e-mail <strong>paulosramalho@gmail.com</strong>.
+  </div>
+
+  <h3>Sessão e desconexão automática</h3>
+  <p>A sessão fica ativa no navegador enquanto você não sair. Se ficar inativo por um longo período, o sistema desconecta automaticamente e exibe a mensagem <em>"Desconectado por inatividade"</em>. Basta digitar a senha novamente.</p>
+  <p>Para sair manualmente, clique em <strong>Sair</strong> no canto superior direito do menu.</p>
+
+  <div class="callout callout-blue">
+    <strong>Dica:</strong> o sistema funciona bem em celular e tablet. Salve o endereço na tela inicial do seu smartphone para acesso rápido.
+  </div>
+</div>
+
+<!-- ═══════════════════ 3. VISÃO GERAL ════════════════════════ -->
+<div class="chapter page-break">
+  <div class="num">Seção 3</div>
+  <h2>Painel Principal — Visão Geral</h2>
+  <sub>KPIs, gráfico de evolução, campanhas e meta do mês</sub>
+</div>
+
+<div class="section">
+  <p>A aba <strong>Visão Geral</strong> é a primeira tela ao fazer login. Ela mostra um resumo de tudo que está acontecendo com as campanhas pagas no período selecionado.</p>
+
+  <h3>Período de análise</h3>
+  <p>No canto superior direito há três botões para selecionar o período de análise: <strong>7 dias</strong>, <strong>14 dias</strong> ou <strong>30 dias</strong>. Os números e gráficos na tela atualizam imediatamente para o período escolhido.</p>
+
+  <h3>Indicadores principais (KPIs)</h3>
+  <p>Os seis cartões no topo da tela mostram os números mais importantes das campanhas:</p>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-brand"><div class="mockup-dot"></div> AMR Ads Control</div>
+      <div class="mockup-tabs">
+        <div class="mockup-tab active">Visão Geral</div>
+        <div class="mockup-tab">Relatório Semanal</div>
+        <div class="mockup-tab">Leads</div>
+        <div class="mockup-tab">Conteúdo</div>
+        <div class="mockup-tab">Agentes</div>
+      </div>
+      <div style="display:flex;gap:4px;">
+        <div class="mockup-tab">7 dias</div>
+        <div class="mockup-tab">14 dias</div>
+        <div class="mockup-tab active">30 dias</div>
+      </div>
+    </div>
+    <div class="mockup-body">
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <span class="kpi-label">Gasto Total</span>
+          <span class="kpi-value">R$ 4.280,00</span>
+          <span class="kpi-sub">30 dias</span>
+        </div>
+        <div class="kpi-card hi">
+          <span class="kpi-label">Leads</span>
+          <span class="kpi-value">23</span>
+          <span class="kpi-sub">conversões</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">CPL Médio</span>
+          <span class="kpi-value">R$ 186,09</span>
+          <span class="kpi-sub">custo por lead</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Impressões</span>
+          <span class="kpi-value">94.210</span>
+          <span class="kpi-sub">alcance</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">CTR</span>
+          <span class="kpi-value">2,14%</span>
+          <span class="kpi-sub">taxa de clique</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Cliques</span>
+          <span class="kpi-value">2.016</span>
+          <span class="kpi-sub">total</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table style="width:100%; border-collapse:collapse; margin:8px 0 20px;">
+    <thead><tr style="background:#f8fafc;"><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Indicador</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">O que significa</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Referência</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Gasto Total</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Total investido em Google Ads + Meta Ads no período</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Comparar com a meta do mês</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Leads</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Quantidade de pessoas que demonstraram interesse (formulários, cliques em contato)</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Quanto maior, melhor</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>CPL Médio</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Custo por Lead — quanto foi gasto para cada pessoa interessada</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Quanto menor, mais eficiente</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Impressões</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Quantas vezes os anúncios foram exibidos no total</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Indica alcance da marca</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>CTR</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Taxa de clique: % dos que viram o anúncio e clicaram</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Acima de 2% é bom para advocacia</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px;"><strong>Cliques</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569;">Total de cliques nos anúncios</td><td style="padding:8px 12px; font-size:12px; color:#475569;">Monitorar evolução ao longo do tempo</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Meta do Mês</h3>
+  <p>Logo abaixo dos KPIs aparece o progresso da meta definida para o mês atual. A barra verde mostra os Leads alcançados versus a meta; a barra laranja mostra o gasto versus o orçamento planejado.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar"><div class="mockup-brand"><div class="mockup-dot"></div> Meta do Mês</div><div class="mockup-tab active" style="font-size:11px;">Editar</div></div>
+    <div class="mockup-body" style="background:white;">
+      <div class="goal-box">
+        <div class="goal-row">
+          <div class="goal-head"><span>Gasto (R$)</span><span><strong>R$ 4.280 / R$ 5.000</strong> (86%)</span></div>
+          <div class="goal-track"><div class="goal-fill" style="width:86%; background:#ea580c;"></div></div>
+        </div>
+        <div class="goal-row" style="margin-bottom:0;">
+          <div class="goal-head"><span>Leads</span><span><strong>23 / 30</strong> (77%)</span></div>
+          <div class="goal-track"><div class="goal-fill" style="width:77%; background:#10b981;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p>Para <strong>definir ou editar a meta</strong>, clique no botão <strong>Editar</strong> ao lado do título "Meta do Mês". Digite o orçamento (em R$) e/ou a quantidade de leads desejada e clique em Salvar. A barra de progresso atualiza imediatamente.</p>
+
+  <h3>Desempenho por Canal</h3>
+  <p>Dois cartões mostram o desempenho separado de <strong>Google Ads</strong> e <strong>Meta Ads</strong>, com gasto, leads, CPL e cliques de cada plataforma:</p>
+
+  <div class="mockup">
+    <div class="mockup-bar"><div class="mockup-brand"><div class="mockup-dot"></div> Desempenho por canal</div></div>
+    <div class="mockup-body" style="background:white;">
+      <div class="plat-row">
+        <div class="plat-card" style="border-top-color:#1d4ed8;">
+          <div class="plat-name" style="color:#1d4ed8;">Google Ads</div>
+          <div class="plat-stats">
+            <div><span>Gasto</span><strong>R$ 2.100,00</strong></div>
+            <div><span>Leads</span><strong>14</strong></div>
+            <div><span>CPL</span><strong>R$ 150,00</strong></div>
+            <div><span>Cliques</span><strong>1.240</strong></div>
+          </div>
+        </div>
+        <div class="plat-card" style="border-top-color:#7c3aed;">
+          <div class="plat-name" style="color:#7c3aed;">Meta Ads</div>
+          <div class="plat-stats">
+            <div><span>Gasto</span><strong>R$ 2.180,00</strong></div>
+            <div><span>Leads</span><strong>9</strong></div>
+            <div><span>CPL</span><strong>R$ 242,22</strong></div>
+            <div><span>Cliques</span><strong>776</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Gráfico de Evolução</h3>
+  <p>O gráfico mostra a evolução diária de Gasto (linha laranja) e Leads (barras verdes) no período selecionado. Passe o mouse sobre qualquer ponto para ver os valores exatos daquele dia.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar"><div class="mockup-brand"><div class="mockup-dot"></div> Gasto e Leads — 30 dias</div></div>
+    <div class="mockup-body" style="background:white;">
+      <div class="chart-ph">
+        <div class="chart-area">
+          <div class="bar-g" style="height:30%"></div><div class="bar-g" style="height:20%"></div>
+          <div class="bar-g" style="height:60%"></div><div class="bar-g" style="height:40%"></div>
+          <div class="bar-g" style="height:70%"></div><div class="bar-g" style="height:35%"></div>
+          <div class="bar-g" style="height:80%"></div><div class="bar-g" style="height:55%"></div>
+          <div class="bar-g" style="height:45%"></div><div class="bar-g" style="height:90%"></div>
+          <div class="bar-g" style="height:65%"></div><div class="bar-g" style="height:50%"></div>
+        </div>
+        <p style="font-size:10px;color:#94a3b8;text-align:center;margin-top:6px;">Barras verdes = Leads · Linha laranja = Gasto diário</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Tabela de Campanhas</h3>
+  <p>Abaixo do gráfico, a tabela lista todas as campanhas ativas no período. Cada linha mostra o canal, gasto, impressões, cliques, CTR, leads e CPL por campanha. <strong>Clique em qualquer campanha</strong> para ver o gráfico detalhado daquela campanha ao longo do tempo.</p>
+
+  <div class="callout callout-blue">
+    <strong>CPL em vermelho</strong> significa que o custo por lead está acima de R$ 200. Isso indica que aquela campanha precisa de revisão — considere pausa ou ajuste de público.
+  </div>
+</div>
+
+<!-- ═══════════════════ 4. RELATÓRIO SEMANAL ══════════════════ -->
+<div class="chapter page-break">
+  <div class="num">Seção 4</div>
+  <h2>Relatório Semanal com IA</h2>
+  <sub>Análise automática gerada toda segunda-feira às 09h BRT</sub>
+</div>
+
+<div class="section">
+  <p>A aba <strong>Relatório Semanal</strong> exibe os relatórios de análise gerados automaticamente pelo sistema toda segunda-feira às 09h. Cada relatório cobre os 7 dias anteriores e é produzido por Inteligência Artificial (Claude da Anthropic) com base nos dados reais das campanhas.</p>
+
+  <div class="callout callout-green">
+    <strong>Automático:</strong> você não precisa fazer nada. Toda segunda-feira o relatório é gerado e enviado por e-mail para <strong>amandaramalhoadv@gmail.com</strong>. Ele também fica salvo aqui no painel para consulta a qualquer momento.
+  </div>
+
+  <h3>O que o relatório contém</h3>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-brand"><div class="mockup-dot"></div> Relatório Semanal</div>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <div class="mockup-tab">‹ Anterior</div>
+        <div class="mockup-tab active">1 / 8</div>
+        <div class="mockup-tab">Próxima ›</div>
+      </div>
+    </div>
+    <div class="mockup-body">
+      <div class="wr-meta">
+        <div class="wr-num"><span style="font-size:10px;color:#64748b;display:block;">GASTO</span><strong>R$ 980,00</strong></div>
+        <div class="wr-num"><span style="font-size:10px;color:#64748b;display:block;">LEADS</span><strong>6</strong></div>
+        <div class="wr-num"><span style="font-size:10px;color:#64748b;display:block;">CPL</span><strong>R$ 163,33</strong></div>
+        <div class="wr-num" style="background:#f0fdf4;border-color:#bbf7d0;"><span style="font-size:10px;color:#065f46;display:block;">LEADS VS ANTERIOR</span><strong style="color:#059669;">+20%</strong></div>
+        <div class="wr-num" style="background:#fff7ed;border-color:#fed7aa;"><span style="font-size:10px;color:#92400e;display:block;">GASTO VS ANTERIOR</span><strong style="color:#d97706;">+5%</strong></div>
+      </div>
+      <div class="wr-grid">
+        <div class="wr-block">
+          <div class="wr-head" style="color:#059669;">O que funcionou</div>
+          <div class="wr-text">Campanha "Família — Google" gerou 4 leads com CPL de R$120, abaixo da média. O criativo com depoimento de cliente teve CTR 3,2% — dobro da média.</div>
+        </div>
+        <div class="wr-block">
+          <div class="wr-head" style="color:#dc2626;">Pausar / revisar</div>
+          <div class="wr-text">Meta Ads — campanha "Trabalhista BR" sem nenhum lead na semana com R$320 gastos. CPL acima de R$400. Recomenda-se pausar e revisar o público-alvo.</div>
+        </div>
+        <div class="wr-block">
+          <div class="wr-head" style="color:#2563eb;">Escalar</div>
+          <div class="wr-text">Aumentar orçamento de "Família — Google" em 30%. Testar variação do criativo de depoimento no Meta Ads com público semelhante.</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0f172a;margin-bottom:6px;">Recomendações</div>
+        <div style="border-left:3px solid #dc2626;padding:6px 10px;background:#f8fafc;border-radius:0 6px 6px 0;font-size:11px;margin-bottom:5px;"><span style="color:#dc2626;font-weight:700;font-size:10px;">ALTA</span> Pausar campanha "Trabalhista BR" e redirecionar R$320 para "Família — Google"</div>
+        <div style="border-left:3px solid #d97706;padding:6px 10px;background:#f8fafc;border-radius:0 6px 6px 0;font-size:11px;margin-bottom:5px;"><span style="color:#d97706;font-weight:700;font-size:10px;">MÉDIA</span> Criar variação de criativo com depoimento de cliente para testes A/B</div>
+        <div style="border-left:3px solid #2563eb;padding:6px 10px;background:#f8fafc;border-radius:0 6px 6px 0;font-size:11px;"><span style="color:#2563eb;font-weight:700;font-size:10px;">INFO</span> CTR médio subiu 0,3% — sinal positivo de relevância dos anúncios</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Como interpretar e o que fazer</h3>
+  <ul>
+    <li><strong>O que funcionou (verde):</strong> campanhas, criativos ou estratégias que tiveram bom desempenho. Considere ampliar o investimento ou replicar a abordagem.</li>
+    <li><strong>Pausar / revisar (vermelho):</strong> itens com desempenho abaixo do esperado que consomem orçamento sem retorno. Avalie com a gestora de tráfego.</li>
+    <li><strong>Escalar (azul):</strong> oportunidades identificadas pela IA para crescimento. São sugestões concretas de onde aumentar investimento.</li>
+    <li><strong>Recomendações:</strong> lista priorizada de ações. Prioridade ALTA deve ser avaliada na semana; MÉDIA pode ir para o backlog; INFO é observacional.</li>
+  </ul>
+
+  <h3>Navegar entre relatórios</h3>
+  <p>Use os botões <strong>‹ Anterior</strong> e <strong>Próxima ›</strong> para navegar entre os relatórios das semanas passadas. O primeiro da lista é sempre o mais recente.</p>
+
+  <div class="callout callout-amber">
+    <strong>Importante:</strong> o relatório é uma ferramenta de apoio à decisão, não uma ordem. Sempre valide com a gestora de tráfego antes de pausar campanhas ou redistribuir orçamento.
+  </div>
+</div>
+
+<!-- ═══════════════════ 5. LEADS ═══════════════════════════════ -->
+<div class="chapter page-break">
+  <div class="num">Seção 5</div>
+  <h2>Gestão de Leads</h2>
+  <sub>Controle do funil de potenciais clientes</sub>
+</div>
+
+<div class="section">
+  <p>A aba <strong>Leads</strong> centraliza todos os potenciais clientes captados pelas campanhas ou registrados manualmente. Para cada lead é possível acompanhar o estágio no funil de atendimento e atualizar o status conforme o relacionamento avança.</p>
+
+  <h3>Tabela de leads</h3>
+
+  <div class="mockup">
+    <div class="mockup-bar"><div class="mockup-brand"><div class="mockup-dot"></div> Leads (12)</div><div class="mockup-tab active" style="background:#2563eb;color:white;border-radius:6px;">+ Novo Lead</div></div>
+    <div class="mockup-body" style="background:white; padding:0;">
+      <table class="mock-table">
+        <thead>
+          <tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Urgência</th><th>Origem</th><th>Campanha</th><th>Status</th><th>Data</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Carlos Medeiros</strong></td>
+            <td>carlos@email.com</td>
+            <td>(91) 99834-2211</td>
+            <td>Alta</td>
+            <td><span class="badge" style="background:#eff6ff;color:#1d4ed8;">Google Ads</span></td>
+            <td>Família — Google</td>
+            <td><span style="color:#d97706;font-weight:600;font-size:11px;">Contactado</span></td>
+            <td>18/04/2026</td>
+          </tr>
+          <tr>
+            <td><strong>Fernanda Leal</strong></td>
+            <td>fernanda@emp.com</td>
+            <td>(91) 98712-4455</td>
+            <td>Média</td>
+            <td><span class="badge" style="background:#f5f3ff;color:#7c3aed;">Meta Ads</span></td>
+            <td>Trabalhista SP</td>
+            <td><span style="color:#7c3aed;font-weight:600;font-size:11px;">Qualificado</span></td>
+            <td>15/04/2026</td>
+          </tr>
+          <tr>
+            <td><strong>Roberto Alves</strong></td>
+            <td>—</td>
+            <td>(91) 99001-8823</td>
+            <td>—</td>
+            <td><span class="badge" style="background:#f1f5f9;color:#475569;">Instagram</span></td>
+            <td>—</td>
+            <td><span style="color:#2563eb;font-weight:600;font-size:11px;">Novo</span></td>
+            <td>20/04/2026</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>Status do funil</h3>
+  <p>Cada lead percorre um funil de 6 etapas. Para atualizar o status, clique no menu dropdown na coluna <strong>Status</strong> da linha do lead:</p>
+
+  <table style="width:100%; border-collapse:collapse; margin:8px 0 20px;">
+    <thead><tr style="background:#f8fafc;"><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Status</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Significado</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Quando usar</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span style="color:#2563eb;font-weight:700;">Novo</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Acabou de entrar</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Ainda não foi contatado</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span style="color:#d97706;font-weight:700;">Contactado</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Já houve primeiro contato</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Após o primeiro retorno por WhatsApp ou e-mail</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span style="color:#7c3aed;font-weight:700;">Qualificado</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Lead confirmou interesse real</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Após triagem — caso viável e com intenção de contratar</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span style="color:#059669;font-weight:700;">Convertido</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Virou cliente</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Após assinatura de contrato ou início do serviço</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span style="color:#dc2626;font-weight:700;">Perdido</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Não vai fechar</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Recusou proposta, desapareceu ou escolheu outro escritório</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px;"><span style="color:#94a3b8;font-weight:700;">Arquivado</span></td><td style="padding:8px 12px; font-size:12px; color:#475569;">Fora da lista ativa</td><td style="padding:8px 12px; font-size:12px; color:#475569;">Casos sem definição por longo tempo</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Cadastrar um novo lead manualmente</h3>
+  <p>Clique no botão <strong>+ Novo Lead</strong> no canto superior direito da aba. Preencha os campos disponíveis — apenas o <strong>nome</strong> é obrigatório. Os campos mais relevantes são:</p>
+  <ul>
+    <li><strong>Origem:</strong> como o lead chegou (Google Ads, Meta Ads, Instagram, Orgânico, Indicação, Site)</li>
+    <li><strong>Urgência:</strong> use o campo Observações para anotar urgência e a necessidade do lead (ex: "Urgência: Alta")</li>
+    <li><strong>Fee mensal potencial:</strong> estimativa do contrato em R$ — ajuda a priorizar atendimento</li>
+  </ul>
+
+  <div class="callout callout-blue">
+    <strong>Dica:</strong> mantenha os status atualizados. Leads "Novos" parados há mais de 3 dias devem ser contactados ou arquivados para manter a lista limpa e confiável.
+  </div>
+</div>
+
+<!-- ═══════════════════ 6. CONTEÚDO INSTAGRAM ═════════════════ -->
+<div class="chapter page-break">
+  <div class="num">Seção 6</div>
+  <h2>Análise de Conteúdo Instagram</h2>
+  <sub>Posts coletados, métricas e recomendações por IA</sub>
+</div>
+
+<div class="section">
+  <p>A aba <strong>Conteúdo</strong> mostra todos os posts do Instagram de @amandamramalho com suas métricas de performance e a análise feita pela IA. Ela ajuda a entender quais tipos de conteúdo engajam mais o público e quais devem ser repensados.</p>
+
+  <div class="callout callout-green">
+    <strong>Automático:</strong> todo dia às 01h BRT o sistema coleta os posts mais recentes e roda a análise de IA automaticamente. Os dados ficam atualizados sem que nenhuma ação seja necessária.
+  </div>
+
+  <h3>Tabela de posts</h3>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-brand"><div class="mockup-dot"></div> Conteúdo (48)</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div style="background:#1e3a5f;color:#94a3b8;font-size:11px;padding:4px 8px;border-radius:4px;">Todas as ações ▾</div>
+        <div class="mockup-tab" style="font-size:11px;">Coletar posts</div>
+        <div class="mockup-tab" style="font-size:11px;">Analisar</div>
+      </div>
+    </div>
+    <div class="mockup-body" style="background:white;padding:0;">
+      <table class="mock-table">
+        <thead>
+          <tr><th>Post</th><th>Tipo</th><th class="num">Curtidas</th><th class="num">Coment.</th><th class="num">Alcance</th><th>Ação</th><th>Score</th><th>Sugestão</th><th>Data</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a style="color:#2563eb;font-size:11px;text-decoration:none;">Você sabia que o INSS pode ser…</a></td>
+            <td><span class="badge" style="background:#f1f5f9;color:#475569;">Reel</span></td>
+            <td style="text-align:right;">1.240</td>
+            <td style="text-align:right;">38</td>
+            <td style="text-align:right;">8.420</td>
+            <td><span class="badge" style="background:#05996922;color:#059669;">Investir mais</span></td>
+            <td><div class="score-dots"><div class="dot-on"></div><div class="dot-on"></div><div class="dot-on"></div><div class="dot-on"></div><div class="dot-on"></div><div class="dot-on"></div><div class="dot-on"></div><div class="dot-on"></div><div class="dot-off"></div><div class="dot-off"></div></div></td>
+            <td style="font-size:10px;color:#475569;max-width:200px;">Criar série: 3 reels com dicas práticas de benefícios INSS</td>
+            <td>10/04</td>
+          </tr>
+          <tr>
+            <td><a style="color:#2563eb;font-size:11px;text-decoration:none;">Meus direitos trabalhistas…</a></td>
+            <td><span class="badge" style="background:#f1f5f9;color:#475569;">Carrossel</span></td>
+            <td style="text-align:right;">312</td>
+            <td style="text-align:right;">7</td>
+            <td style="text-align:right;">2.100</td>
+            <td><span class="badge" style="background:#d9770622;color:#d97706;">Redirecionar</span></td>
+            <td><div class="score-dots"><div class="dot-on"></div><div class="dot-on"></div><div class="dot-on"></div><div class="dot-on"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div></div></td>
+            <td style="font-size:10px;color:#475569;max-width:200px;">Reformular como vídeo curto — carrossel teve baixo alcance orgânico</td>
+            <td>05/04</td>
+          </tr>
+          <tr>
+            <td><a style="color:#2563eb;font-size:11px;text-decoration:none;">Bom dia! Hoje é dia de…</a></td>
+            <td><span class="badge" style="background:#f1f5f9;color:#475569;">Foto</span></td>
+            <td style="text-align:right;">89</td>
+            <td style="text-align:right;">3</td>
+            <td style="text-align:right;">620</td>
+            <td><span class="badge" style="background:#dc262622;color:#dc2626;">Remover</span></td>
+            <td><div class="score-dots"><div class="dot-on"></div><div class="dot-on"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div><div class="dot-off"></div></div></td>
+            <td style="font-size:10px;color:#475569;max-width:200px;">Conteúdo sem valor educativo ou emocional — substitua por conteúdo de autoridade</td>
+            <td>02/04</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>O que cada coluna significa</h3>
+  <table style="width:100%; border-collapse:collapse; margin:8px 0 20px;">
+    <thead><tr style="background:#f8fafc;"><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Coluna</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Descrição</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Post</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Trecho da legenda. Clique para abrir o post original no Instagram</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Tipo</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Formato do conteúdo: Foto, Vídeo, Carrossel ou Reel</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Curtidas / Comentários / Alcance</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Métricas diretas do Instagram (atualizadas diariamente)</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Ação</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Recomendação da IA para aquele post (ver tabela abaixo)</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Score</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Pontuação de 0 a 10 dada pela IA. 10 pontos = excelente performance</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px;"><strong>Sugestão</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569;">Orientação específica da IA para explorar ou corrigir aquele tipo de conteúdo</td></tr>
+    </tbody>
+  </table>
+
+  <h3>O que cada "Ação" significa</h3>
+  <table style="width:100%; border-collapse:collapse; margin:8px 0 20px;">
+    <thead><tr style="background:#f8fafc;"><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Ação</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Significado</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">O que fazer</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span style="color:#059669;font-weight:700;">Investir mais</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Post com alta performance — engajamento e alcance acima da média</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Criar mais conteúdo com este tema/formato; considerar impulsionar</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span style="color:#d97706;font-weight:700;">Redirecionar</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Performance mediana — o tema tem potencial mas o formato não funcionou</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Reusar o tema em outro formato (ex: carrossel → reel)</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span style="color:#dc2626;font-weight:700;">Remover</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Baixa performance — prejudica o alcance orgânico do perfil</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Avaliar arquivamento do post</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span style="color:#2563eb;font-weight:700;">Monitorar</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Post recente com dados ainda insuficientes</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Aguardar mais alguns dias antes de decidir</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px;"><span style="color:#64748b;font-weight:700;">Manter</span></td><td style="padding:8px 12px; font-size:12px; color:#475569;">Performance dentro do esperado</td><td style="padding:8px 12px; font-size:12px; color:#475569;">Continuar no mesmo ritmo</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Filtro por ação</h3>
+  <p>Use o menu suspenso <strong>"Todas as ações"</strong> para filtrar e ver somente os posts com uma determinada recomendação. Por exemplo: selecione <em>"Investir mais"</em> para identificar rapidamente todos os conteúdos de alto desempenho.</p>
+
+  <h3>Coletar e Analisar manualmente</h3>
+  <p>Os botões <strong>Coletar posts</strong> e <strong>Analisar</strong> permitem disparar os processos fora do horário automático. Use quando quiser atualizar os dados imediatamente, por exemplo após publicar um novo post importante.</p>
+</div>
+
+<!-- ═══════════════════ 7. SUGESTÃO DE CONTEÚDO ═══════════════ -->
+<div class="chapter page-break">
+  <div class="num">Seção 7</div>
+  <h2>Sugestão de Conteúdo</h2>
+  <sub>Ideias geradas por IA para os próximos posts do Instagram</sub>
+</div>
+
+<div class="section">
+  <p>A sub-aba <strong>Sugestão de Conteúdo</strong> (acessada dentro de Conteúdo) apresenta ideias de posts geradas pela IA com base nos posts de melhor desempenho, tendências do nicho jurídico e padrões identificados no perfil.</p>
+
+  <div class="callout callout-green">
+    <strong>Automático:</strong> novas sugestões são geradas toda madrugada às 01h BRT. A lista é acumulativa — sugestões anteriores ficam guardadas até serem marcadas como feitas ou descartadas.
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-bar">
+      <div class="mockup-brand"><div class="mockup-dot"></div> Conteúdo</div>
+      <div class="mockup-tabs">
+        <div class="mockup-tab">Conteúdo (48)</div>
+        <div class="mockup-tab active">Sugestão de Conteúdo (5)</div>
+      </div>
+    </div>
+    <div class="mockup-body" style="background:white;padding:0;">
+      <table class="mock-table">
+        <thead>
+          <tr><th>Tema</th><th>Formato</th><th>Justificativa</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:700;">5 sinais de que você precisa de um advogado trabalhista agora</td>
+            <td><span class="badge" style="background:#ea580c22;color:#ea580c;font-weight:700;">Reel</span></td>
+            <td style="font-size:11px;color:#475569;">Tema de alta busca orgânica; reels com lista têm 2x mais alcance no perfil</td>
+            <td><span style="color:#2563eb;font-weight:600;font-size:11px;">Pendente</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;">O que é e para que serve o habeas corpus — desmistificando o direito</td>
+            <td><span class="badge" style="background:#7c3aed22;color:#7c3aed;font-weight:700;">Carrossel</span></td>
+            <td style="font-size:11px;color:#475569;">Conteúdo educativo de alto salvamento — seguidores guardam para referência futura</td>
+            <td><span style="color:#2563eb;font-weight:600;font-size:11px;">Pendente</span></td>
+          </tr>
+          <tr style="opacity:0.5;">
+            <td style="font-weight:700;">Bom dia jurídico — motivação da semana</td>
+            <td><span class="badge" style="background:#db277722;color:#db2777;font-weight:700;">Stories</span></td>
+            <td style="font-size:11px;color:#475569;">Conteúdo de baixo impacto estratégico — não gera autoridade no nicho</td>
+            <td><span style="color:#94a3b8;font-weight:600;font-size:11px;">Descartado</span></td>
+          </tr>
+          <tr>
+            <td style="font-weight:700;">Caso real (anônimo): como um cliente recuperou 3 anos de INSS</td>
+            <td><span class="badge" style="background:#ea580c22;color:#ea580c;font-weight:700;">Reel</span></td>
+            <td style="font-size:11px;color:#475569;">Depoimentos geram confiança e convertem seguidores em leads — tendência no nicho jurídico</td>
+            <td><span style="color:#059669;font-weight:600;font-size:11px;">Feito</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>Gerenciar as sugestões</h3>
+  <p>Para cada sugestão, utilize o menu dropdown na coluna <strong>Status</strong> para registrar o que foi feito:</p>
+  <ul>
+    <li><strong>Pendente</strong> (azul): ideia ainda não executada. Estado inicial de toda sugestão nova.</li>
+    <li><strong>Feito</strong> (verde): conteúdo já publicado. Marque assim que o post for ao ar.</li>
+    <li><strong>Descartado</strong> (cinza): ideia que não faz sentido para o momento. O item fica apagado visualmente mas não é deletado.</li>
+  </ul>
+
+  <p>O número entre parênteses no título da aba — ex: <strong>Sugestão de Conteúdo (5)</strong> — mostra quantas sugestões estão com status <em>Pendente</em>. Use esse número como indicador: se estiver alto, há oportunidades de conteúdo não aproveitadas.</p>
+
+  <div class="callout callout-amber">
+    <strong>Sugestão de uso:</strong> revise a lista de sugestões na segunda-feira, junto com o Relatório Semanal. Selecione 2 ou 3 para produzir na semana e marque as demais como Descartado ou deixe Pendente para a próxima rodada.
+  </div>
+</div>
+
+<!-- ═══════════════════ 8. AGENTES ════════════════════════════ -->
+<div class="chapter page-break">
+  <div class="num">Seção 8</div>
+  <h2>Agentes de IA</h2>
+  <sub>Robôs automáticos — monitoramento de status e execução manual</sub>
+</div>
+
+<div class="section">
+  <p>A aba <strong>Agentes</strong> mostra os robôs de Inteligência Artificial que operam por trás do sistema. Cada agente executa uma tarefa específica no horário programado, de forma completamente automática. Esta aba serve para acompanhar o status de cada um e forçar uma execução manual quando necessário.</p>
+
+  <div class="mockup">
+    <div class="mockup-bar"><div class="mockup-brand"><div class="mockup-dot"></div> Agentes (5)</div></div>
+    <div class="mockup-body" style="background:white;padding:0;">
+      <table class="mock-table">
+        <thead><tr><th>Agente</th><th>Função</th><th>Status</th><th>Última execução</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Coletor de Anúncios</strong></td>
+            <td style="color:#475569;font-size:11px;">Busca dados de campanhas no Google Ads e Meta Ads</td>
+            <td><span class="status-dot agent-ok"></span><span class="badge" style="background:#05996922;color:#059669;font-weight:700;">OK</span></td>
+            <td style="color:#64748b;font-size:11px;">20/04/2026 00:15</td>
+            <td><div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:3px 9px;font-size:11px;color:#475569;display:inline-block;cursor:pointer;">Executar</div></td>
+          </tr>
+          <tr>
+            <td><strong>Coletor Instagram</strong></td>
+            <td style="color:#475569;font-size:11px;">Coleta posts e métricas do Instagram @amandamramalho</td>
+            <td><span class="status-dot agent-ok"></span><span class="badge" style="background:#05996922;color:#059669;font-weight:700;">OK</span></td>
+            <td style="color:#64748b;font-size:11px;">20/04/2026 01:00</td>
+            <td><div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:3px 9px;font-size:11px;color:#475569;display:inline-block;cursor:pointer;">Executar</div></td>
+          </tr>
+          <tr>
+            <td><strong>Analisador de Posts</strong></td>
+            <td style="color:#475569;font-size:11px;">Analisa cada post e gera score, ação e sugestão via IA</td>
+            <td><span class="status-dot agent-ok"></span><span class="badge" style="background:#05996922;color:#059669;font-weight:700;">OK</span></td>
+            <td style="color:#64748b;font-size:11px;">20/04/2026 01:05</td>
+            <td><div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:3px 9px;font-size:11px;color:#475569;display:inline-block;cursor:pointer;">Executar</div></td>
+          </tr>
+          <tr>
+            <td><strong>Sugestor de Conteúdo</strong></td>
+            <td style="color:#475569;font-size:11px;">Gera novas sugestões de posts baseadas em performance e tendências</td>
+            <td><span class="status-dot agent-ok"></span><span class="badge" style="background:#05996922;color:#059669;font-weight:700;">OK</span></td>
+            <td style="color:#64748b;font-size:11px;">20/04/2026 01:10</td>
+            <td><div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:3px 9px;font-size:11px;color:#475569;display:inline-block;cursor:pointer;">Executar</div></td>
+          </tr>
+          <tr>
+            <td><strong>Tendências</strong></td>
+            <td style="color:#475569;font-size:11px;">Pesquisa tendências de conteúdo no nicho jurídico</td>
+            <td><span class="status-dot agent-ok"></span><span class="badge" style="background:#05996922;color:#059669;font-weight:700;">OK</span></td>
+            <td style="color:#64748b;font-size:11px;">20/04/2026 01:15</td>
+            <td><div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:3px 9px;font-size:11px;color:#475569;display:inline-block;cursor:pointer;">Executar</div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>Interpretando os status</h3>
+  <table style="width:100%; border-collapse:collapse; margin:8px 0 20px;">
+    <thead><tr style="background:#f8fafc;"><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Status</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Significado</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">O que fazer</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span class="status-dot agent-ok"></span><span style="color:#059669;font-weight:700;">OK</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Última execução concluída com sucesso</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Nenhuma ação necessária</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span class="status-dot agent-run"></span><span style="color:#2563eb;font-weight:700;">Rodando</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Em execução agora</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Aguardar — não acione novamente</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><span class="status-dot agent-err"></span><span style="color:#dc2626;font-weight:700;">Erro</span></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Falha na última execução — a mensagem de erro aparece em vermelho</td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Reportar ao suporte com a mensagem de erro</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px;"><span class="status-dot agent-pend"></span><span style="color:#d97706;font-weight:700;">Pendente</span></td><td style="padding:8px 12px; font-size:12px; color:#475569;">Agendado mas ainda não iniciou</td><td style="padding:8px 12px; font-size:12px; color:#475569;">Normal — aguardar a janela de execução</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Executar um agente manualmente</h3>
+  <p>Cada agente tem um botão <strong>Executar</strong>. Ao clicar, o agente inicia imediatamente fora do horário programado. Use quando:</p>
+  <ul>
+    <li>Precisar dos dados atualizados antes do horário automático</li>
+    <li>Um agente ficou com status <em>Erro</em> e você quer tentar novamente após a correção</li>
+    <li>Após publicar um post importante e quiser a análise imediata</li>
+  </ul>
+
+  <div class="callout callout-amber">
+    <strong>Atenção:</strong> não clique em Executar várias vezes seguidas. Aguarde o status mudar de <em>Rodando</em> para <em>OK</em> antes de executar novamente. Execuções duplicadas não trazem dados a mais, apenas consomem créditos da IA.
+  </div>
+</div>
+
+<!-- ═══════════════════ 9. NOTIFICAÇÕES ═══════════════════════ -->
+<div class="chapter page-break">
+  <div class="num">Seção 9</div>
+  <h2>Notificações Automáticas</h2>
+  <sub>O que é enviado, quando, para qual e-mail</sub>
+</div>
+
+<div class="section">
+  <p>O sistema envia notificações automáticas por <strong>e-mail</strong> em três situações distintas. Não há nenhuma ação necessária para receber — tudo acontece automaticamente.</p>
+
+  <!-- Notif 1 -->
+  <div class="notif-card">
+    <div class="notif-head">
+      Relatório Semanal de Campanhas
+      <span class="trigger">Toda segunda-feira às 09h BRT</span>
+    </div>
+    <div class="notif-body">
+      <p><strong>O que contém:</strong> resumo dos números da semana (gasto, leads, CPL), comparativo com a semana anterior, análise de IA dividida em três blocos (o que funcionou / pausar / escalar) e lista priorizada de recomendações.</p>
+      <p><strong>Para quem é enviado:</strong></p>
+      <div class="notif-dest">
+        <span class="tag email">✉ amandaramalhoadv@gmail.com</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notif 2 -->
+  <div class="notif-card">
+    <div class="notif-head">
+      Alerta de Anomalia em Campanha
+      <span class="trigger">Automático — quando detectado</span>
+    </div>
+    <div class="notif-body">
+      <p><strong>O que contém:</strong> descrição do problema detectado (ex: gasto subiu 40% sem aumento de leads; CPL triplicou em 24h; campanha zerou impressões). Inclui o nome da campanha afetada e a variação identificada.</p>
+      <p><strong>Quando é enviado:</strong> o sistema monitora diariamente os dados e dispara o alerta automaticamente quando alguma métrica sai do padrão histórico — sem necessidade de nenhuma configuração manual.</p>
+      <p><strong>Para quem é enviado:</strong></p>
+      <div class="notif-dest">
+        <span class="tag email">✉ amandaramalhoadv@gmail.com</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notif 3 -->
+  <div class="notif-card">
+    <div class="notif-head">
+      Análise de Posts Instagram
+      <span class="trigger">Após cada análise — automático ou manual</span>
+    </div>
+    <div class="notif-body">
+      <p><strong>O que contém:</strong> resumo dos posts analisados, destaques de performance (os de maior e menor score), recomendações individuais por post e sugestões de próximos conteúdos.</p>
+      <p><strong>Quando é enviado:</strong> após cada execução do Analisador de Posts — automático diariamente às 01h BRT ou ao clicar em "Analisar" na aba Conteúdo.</p>
+      <p><strong>Para quem é enviado:</strong></p>
+      <div class="notif-dest">
+        <span class="tag email">✉ amandaramalhoadv@gmail.com</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-blue" style="margin-top:28px;">
+    <strong>Não está recebendo os e-mails?</strong> Verifique a pasta de spam/lixo eletrônico de <em>amandaramalhoadv@gmail.com</em>. Se o problema persistir, entre em contato com o suporte: <strong>paulosramalho@gmail.com</strong>.
+  </div>
+
+  <h3>Resumo de horários automáticos</h3>
+  <table style="width:100%; border-collapse:collapse; margin:8px 0;">
+    <thead><tr style="background:#f8fafc;"><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">Horário (BRT)</th><th style="padding:8px 12px; text-align:left; font-size:11px; color:#64748b; border-bottom:1px solid #e2e8f0;">O que acontece</th></tr></thead>
+    <tbody>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Todo dia 00h</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Coleta de dados de campanhas (Google Ads + Meta Ads)</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px; border-bottom:1px solid #f1f5f9;"><strong>Todo dia 01h</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569; border-bottom:1px solid #f1f5f9;">Coleta de posts do Instagram + análise de IA + novas sugestões de conteúdo</td></tr>
+      <tr><td style="padding:8px 12px; font-size:12px;"><strong>Segunda-feira 09h</strong></td><td style="padding:8px 12px; font-size:12px; color:#475569;">Geração do Relatório Semanal e envio por e-mail</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════ RODAPÉ ═════════════════════════════════ -->
+<div style="background:#0f172a; color:#64748b; text-align:center; padding:32px; font-size:12px; margin-top:60px;">
+  <div style="color:white; font-size:14px; font-weight:700; margin-bottom:6px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:8px;"></span>AMR Ads Control</div>
+  <div>Desenvolvido pela <strong style="color:#e2e8f0;">Addere On</strong> · Produto de gestão digital para escritórios jurídicos</div>
+  <div style="margin-top:8px;">Suporte técnico: paulosramalho@gmail.com · Versão 1.0 — Abril 2026</div>
+</div>
+
+</body>
+</html>
