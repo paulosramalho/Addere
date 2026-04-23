@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Addere On — Inteligência em Tráfego Pago</title>
+<meta name="description" content="Saiba toda segunda-feira se seus anúncios estão funcionando. Dashboard em tempo real, relatório semanal automático e alertas de anomalia para Google Ads e Meta Ads.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #0a0a0f;
+  --dark: #13131a;
+  --card: #1a1a24;
+  --border: #2a2a38;
+  --accent: #6c63ff;
+  --accent-dim: rgba(108,99,255,0.12);
+  --orange: #ff6b35;
+  --orange-dim: rgba(255,107,53,0.12);
+  --green: #00d97e;
+  --green-dim: rgba(0,217,126,0.12);
+  --text: #e8e8f0;
+  --muted: #8888a0;
+  --white: #ffffff;
+  --radius: 14px;
+  --container: 1160px;
+}
+
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', system-ui, sans-serif; background: var(--black); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+.container { max-width: var(--container); margin: 0 auto; padding: 0 28px; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 18px 0;
+  transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+  border-bottom: 1px solid transparent;
+}
+nav.scrolled { background: rgba(10,10,15,0.88); backdrop-filter: blur(20px); border-color: var(--border); }
+
+.nav-inner { display: flex; align-items: center; justify-content: space-between; }
+
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 14px var(--orange); flex-shrink: 0; }
+.nav-wordmark { font-size: 1rem; font-weight: 800; color: var(--white); letter-spacing: -0.02em; }
+.nav-wordmark span { color: var(--accent); }
+
+.nav-links { display: flex; align-items: center; gap: 28px; list-style: none; }
+.nav-links a { font-size: 0.88rem; font-weight: 500; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+.nav-links a:hover { color: var(--white); }
+
+.btn-nav {
+  background: var(--accent); color: var(--white) !important;
+  padding: 9px 20px; border-radius: 8px;
+  font-weight: 700 !important; font-size: 0.85rem !important;
+  transition: opacity 0.2s, transform 0.2s !important;
+}
+.btn-nav:hover { opacity: 0.85; transform: translateY(-1px); }
+
+.hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; background: none; border: none; }
+.hamburger span { display: block; width: 22px; height: 2px; background: var(--text); border-radius: 2px; }
+
+/* ── MOBILE MENU ── */
+.mobile-menu {
+  display: none; position: fixed;
+  inset: 0; z-index: 99;
+  background: rgba(10,10,15,0.97);
+  flex-direction: column; align-items: center; justify-content: center; gap: 36px;
+}
+.mobile-menu.open { display: flex; }
+.mobile-menu a { font-size: 1.5rem; font-weight: 700; color: var(--text); text-decoration: none; }
+.mobile-menu-close { position: absolute; top: 24px; right: 28px; background: none; border: none; color: var(--muted); font-size: 1.6rem; cursor: pointer; }
+
+/* ── BUTTONS ── */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: var(--white);
+  text-decoration: none; font-size: 0.92rem; font-weight: 700;
+  padding: 14px 28px; border-radius: 10px;
+  transition: opacity 0.2s, transform 0.2s;
+  border: none; cursor: pointer; font-family: inherit;
+}
+.btn-primary:hover { opacity: 0.85; transform: translateY(-2px); }
+
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--muted); text-decoration: none;
+  font-size: 0.9rem; font-weight: 500;
+  padding: 14px 22px; border-radius: 10px;
+  border: 1px solid var(--border);
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--white); }
+
+/* ── HERO ── */
+#inicio {
+  min-height: 100vh; display: flex; align-items: center;
+  padding: 120px 0 80px; position: relative; overflow: hidden;
+}
+.hero-glow-1 {
+  position: absolute; top: -200px; right: -100px;
+  width: 700px; height: 700px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(108,99,255,0.13) 0%, transparent 65%);
+}
+.hero-glow-2 {
+  position: absolute; bottom: -150px; left: -150px;
+  width: 580px; height: 580px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,107,53,0.08) 0%, transparent 65%);
+}
+.hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; position: relative; }
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--green); border: 1px solid rgba(0,217,126,0.35); border-radius: 100px;
+  padding: 5px 14px; margin-bottom: 28px; background: var(--green-dim);
+}
+.badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.7); } }
+
+.hero-title {
+  font-size: clamp(2.2rem, 4vw, 3.4rem); font-weight: 900;
+  line-height: 1.08; letter-spacing: -0.03em; color: var(--white); margin-bottom: 24px;
+}
+.hero-title .hi { color: var(--accent); }
+.hero-title .ho { color: var(--orange); }
+
+.hero-sub { font-size: 1.05rem; color: var(--muted); line-height: 1.75; margin-bottom: 40px; max-width: 500px; }
+.hero-sub strong { color: var(--text); }
+
+.hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+
+.hero-trust { display: flex; align-items: center; gap: 12px; margin-top: 32px; font-size: 0.8rem; color: var(--muted); }
+.trust-avatars { display: flex; }
+.trust-av {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid var(--black); background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.65rem; font-weight: 700; color: var(--accent);
+}
+.trust-av + .trust-av { margin-left: -8px; }
+
+/* ── DASHBOARD MOCKUP ── */
+.mock-wrap { position: relative; }
+.mock-float {
+  position: absolute; top: -16px; right: -18px;
+  background: var(--dark); border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 14px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.78rem; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.float-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.float-label { font-weight: 600; color: var(--text); }
+.float-sub { color: var(--muted); font-size: 0.68rem; margin-top: 1px; }
+
+.mock-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 22px; position: relative;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
+}
+.mock-card::before {
+  content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 60%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(108,99,255,0.6), transparent);
+}
+
+.mock-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.mock-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.mock-period {
+  font-size: 0.7rem; color: var(--muted);
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  padding: 3px 10px; border-radius: 6px;
+}
+
+.mock-kpis { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 18px; }
+.kpi { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 9px; padding: 11px 12px; }
+.kpi-label { font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+.kpi-value { font-size: 1.2rem; font-weight: 900; color: var(--white); letter-spacing: -0.03em; line-height: 1; margin-bottom: 4px; }
+.kpi-delta { font-size: 0.66rem; font-weight: 600; }
+.up { color: var(--green); } .down { color: #ff4d6d; } .flat { color: var(--muted); }
+
+.mock-chart-label { font-size: 0.64rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.mock-bars { display: flex; align-items: flex-end; gap: 4px; height: 56px; margin-bottom: 16px; }
+.bar { flex: 1; border-radius: 4px 4px 0 0; background: rgba(108,99,255,0.2); border: 1px solid rgba(108,99,255,0.25); }
+.bar.hi { background: linear-gradient(180deg, var(--accent) 0%, rgba(108,99,255,0.5) 100%); border-color: var(--accent); }
+
+.mock-alert {
+  background: rgba(255,107,53,0.07); border: 1px solid rgba(255,107,53,0.28);
+  border-radius: 8px; padding: 10px 13px;
+  display: flex; align-items: flex-start; gap: 9px; margin-bottom: 12px;
+}
+.alert-title { font-size: 0.73rem; font-weight: 700; color: var(--orange); margin-bottom: 2px; }
+.alert-body { font-size: 0.71rem; color: var(--muted); line-height: 1.4; }
+
+.mock-report {
+  background: rgba(0,217,126,0.05); border: 1px solid rgba(0,217,126,0.22);
+  border-radius: 8px; padding: 10px 13px;
+  display: flex; align-items: center; gap: 10px;
+}
+.report-icon {
+  width: 28px; height: 28px; border-radius: 6px;
+  background: var(--green-dim); display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; flex-shrink: 0;
+}
+.report-title { font-size: 0.73rem; font-weight: 700; color: var(--green); margin-bottom: 1px; }
+.report-body { font-size: 0.69rem; color: var(--muted); }
+
+/* ── SECTIONS ── */
+section { padding: 100px 0; }
+
+.sec-label { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+.sec-title { font-size: clamp(1.8rem, 3.2vw, 2.5rem); font-weight: 800; line-height: 1.12; letter-spacing: -0.025em; color: var(--white); margin-bottom: 16px; }
+.sec-sub { font-size: 1.02rem; color: var(--muted); line-height: 1.72; max-width: 560px; }
+
+.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); }
+
+/* ── PROBLEM ── */
+.pain-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; margin-top: 52px; }
+.pain-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px; position: relative; overflow: hidden;
+}
+.pain-card::before {
+  content: ''; position: absolute; top: 0; left: 0;
+  width: 3px; height: 100%; background: rgba(108,99,255,0.5);
+}
+.pain-num { font-size: 2.2rem; font-weight: 900; color: rgba(108,99,255,0.12); letter-spacing: -0.06em; line-height: 1; margin-bottom: 12px; }
+.pain-title { font-size: 0.97rem; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+.pain-text { font-size: 0.86rem; color: var(--muted); line-height: 1.65; }
+
+/* ── HOW IT WORKS ── */
+#como-funciona { background: var(--dark); }
+
+.steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 56px; position: relative; }
+.steps::before {
+  content: ''; position: absolute; top: 26px;
+  left: calc(16.7% + 14px); right: calc(16.7% + 14px);
+  height: 1px; background: linear-gradient(90deg, rgba(108,99,255,0.6), rgba(108,99,255,0.2), rgba(108,99,255,0.6));
+}
+.step {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px 24px; text-align: center;
+}
+.step-circle {
+  width: 50px; height: 50px; border-radius: 50%;
+  background: var(--accent-dim); border: 2px solid rgba(108,99,255,0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.05rem; font-weight: 900; color: var(--accent);
+  margin: 0 auto 20px;
+}
+.step-title { font-size: 0.95rem; font-weight: 700; color: var(--white); margin-bottom: 10px; }
+.step-desc { font-size: 0.84rem; color: var(--muted); line-height: 1.65; }
+
+/* ── FEATURES ── */
+.features { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 56px; }
+.feat {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.feat:hover { border-color: rgba(108,99,255,0.4); transform: translateY(-3px); }
+.feat-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; margin-bottom: 16px;
+}
+.ip { background: var(--accent-dim); }
+.ig { background: var(--green-dim); }
+.io { background: var(--orange-dim); }
+.feat-title { font-size: 0.95rem; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+.feat-desc { font-size: 0.84rem; color: var(--muted); line-height: 1.65; }
+
+/* ── FOR WHOM ── */
+#para-quem { background: var(--dark); }
+
+.audience { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; margin-top: 56px; }
+.aud-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px 26px; }
+.aud-icon { font-size: 2rem; margin-bottom: 16px; }
+.aud-title { font-size: 0.97rem; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+.aud-desc { font-size: 0.84rem; color: var(--muted); line-height: 1.65; margin-bottom: 20px; }
+.aud-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.atag {
+  font-size: 0.68rem; font-weight: 600; padding: 3px 10px; border-radius: 100px;
+  background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(108,99,255,0.2);
+}
+
+/* ── PRICING ── */
+.pricing { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 56px; align-items: start; }
+.plan {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px 26px; position: relative;
+}
+.plan.featured {
+  border-color: var(--accent); transform: scale(1.04);
+  background: linear-gradient(145deg, rgba(108,99,255,0.09), var(--card));
+}
+.plan-badge {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: var(--white);
+  font-size: 0.63rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 14px; border-radius: 100px; white-space: nowrap;
+}
+.plan-name { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.plan-price { display: flex; align-items: baseline; gap: 4px; margin-bottom: 4px; }
+.plan-value { font-size: 2.4rem; font-weight: 900; color: var(--white); letter-spacing: -0.04em; line-height: 1; }
+.plan-per { font-size: 0.82rem; color: var(--muted); }
+.plan-setup { font-size: 0.76rem; color: var(--muted); margin-bottom: 24px; }
+.plan-line { height: 1px; background: var(--border); margin-bottom: 22px; }
+.plan-feats { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.plan-feats li { display: flex; align-items: flex-start; gap: 9px; font-size: 0.84rem; color: var(--text); }
+.plan-feats li::before { content: '✓'; font-weight: 800; color: var(--green); flex-shrink: 0; font-size: 0.78rem; margin-top: 2px; }
+.plan-btn {
+  display: block; text-align: center; text-decoration: none;
+  font-size: 0.88rem; font-weight: 700;
+  padding: 13px; border-radius: 9px; transition: 0.2s;
+}
+.plan-btn-filled { background: var(--accent); color: var(--white); }
+.plan-btn-filled:hover { opacity: 0.85; transform: translateY(-1px); }
+.plan-btn-outline { border: 1px solid var(--border); color: var(--muted); }
+.plan-btn-outline:hover { border-color: var(--accent); color: var(--white); }
+
+/* ── FINAL CTA ── */
+#cta-final { background: var(--dark); }
+.cta-box {
+  background: linear-gradient(135deg, rgba(108,99,255,0.1), rgba(255,107,53,0.05));
+  border: 1px solid rgba(108,99,255,0.25); border-radius: 22px;
+  padding: 80px 40px; text-align: center; position: relative; overflow: hidden;
+}
+.cta-box::before {
+  content: ''; position: absolute; top: -100px; right: -100px;
+  width: 380px; height: 380px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(108,99,255,0.1) 0%, transparent 65%);
+}
+.cta-title { font-size: clamp(1.8rem, 3vw, 2.5rem); font-weight: 900; color: var(--white); letter-spacing: -0.03em; margin-bottom: 16px; }
+.cta-sub { font-size: 1rem; color: var(--muted); max-width: 500px; margin: 0 auto 40px; line-height: 1.72; }
+
+/* ── CONTACT ── */
+#contato { padding: 80px 0; }
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+.contact-form { display: flex; flex-direction: column; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); letter-spacing: 0.05em; }
+.form-input {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 16px;
+  font-size: 0.9rem; color: var(--text); font-family: inherit;
+  transition: border-color 0.2s; outline: none; width: 100%;
+}
+.form-input:focus { border-color: var(--accent); }
+.form-input::placeholder { color: rgba(136,136,160,0.45); }
+select.form-input { cursor: pointer; }
+
+.contact-info { display: flex; flex-direction: column; gap: 28px; }
+.ci-row { display: flex; align-items: flex-start; gap: 14px; }
+.ci-icon {
+  width: 42px; height: 42px; border-radius: 10px;
+  background: var(--accent-dim); border: 1px solid rgba(108,99,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+}
+.ci-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+.ci-value { font-size: 0.9rem; color: var(--text); }
+.ci-value a { color: var(--accent); text-decoration: none; }
+.ci-value a:hover { text-decoration: underline; }
+
+/* ── FOOTER ── */
+footer { background: var(--dark); border-top: 1px solid var(--border); padding: 40px 0; }
+.footer-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.footer-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.footer-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 10px var(--orange); }
+.footer-wordmark { font-size: 0.9rem; font-weight: 800; color: var(--white); }
+.footer-wordmark span { color: var(--accent); }
+.footer-copy { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 0.78rem; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+.footer-links a:hover { color: var(--white); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 52px; }
+  .mock-float { display: none; }
+  .pain-grid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; }
+  .steps::before { display: none; }
+  .features { grid-template-columns: repeat(2,1fr); }
+  .audience { grid-template-columns: 1fr; }
+  .pricing { grid-template-columns: 1fr; }
+  .plan.featured { transform: none; }
+  .contact-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  .hamburger { display: flex; }
+  .footer-inner { flex-direction: column; text-align: center; }
+  .footer-links { justify-content: center; }
+}
+@media (max-width: 600px) {
+  section { padding: 72px 0; }
+  .features { grid-template-columns: 1fr; }
+  .hero-actions { flex-direction: column; }
+  .btn-primary, .btn-ghost { width: 100%; justify-content: center; }
+  .cta-box { padding: 52px 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-menu-close" onclick="closeMenu()">✕</button>
+  <a href="#inicio" onclick="closeMenu()">Início</a>
+  <a href="#como-funciona" onclick="closeMenu()">Como funciona</a>
+  <a href="#funcionalidades" onclick="closeMenu()">Funcionalidades</a>
+  <a href="#planos" onclick="closeMenu()">Planos</a>
+  <a href="#contato" onclick="closeMenu()">Contato</a>
+</div>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#inicio" class="nav-logo">
+        <div class="nav-dot"></div>
+        <span class="nav-wordmark">Addere<span>On</span></span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#como-funciona">Como funciona</a></li>
+        <li><a href="#funcionalidades">Funcionalidades</a></li>
+        <li><a href="#planos">Planos</a></li>
+        <li><a href="#contato" class="btn-nav">Agendar demo</a></li>
+      </ul>
+      <button class="hamburger" onclick="openMenu()">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="inicio">
+  <div class="hero-glow-1"></div>
+  <div class="hero-glow-2"></div>
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          Inteligência em Tráfego Pago
+        </div>
+        <h1 class="hero-title">
+          Você investe<br>em anúncios.<br>
+          <span class="hi">Nós te dizemos</span><br>
+          o que está<br>
+          <span class="ho">funcionando.</span>
+        </h1>
+        <p class="hero-sub">
+          Toda <strong>segunda-feira</strong>, um relatório com recomendações claras sobre o que pausar, o que escalar e onde está cada real investido em Google Ads e Meta Ads.
+        </p>
+        <div class="hero-actions">
+          <a href="#contato" class="btn-primary">Agendar demonstração gratuita →</a>
+          <a href="#como-funciona" class="btn-ghost">Ver como funciona</a>
+        </div>
+        <div class="hero-trust">
+          <div class="trust-avatars">
+            <div class="trust-av">G</div>
+            <div class="trust-av">M</div>
+          </div>
+          <span>Google Ads · Meta Ads · Relatório semanal automático</span>
+        </div>
+      </div>
+
+      <!-- Dashboard mock -->
+      <div class="mock-wrap">
+        <div class="mock-float">
+          <div class="float-dot"></div>
+          <div>
+            <div class="float-label">Relatório enviado</div>
+            <div class="float-sub">Hoje, 06h00 · 12 campanhas analisadas</div>
+          </div>
+        </div>
+        <div class="mock-card">
+          <div class="mock-header">
+            <span class="mock-title">Dashboard Addere On</span>
+            <span class="mock-period">Semana 17 · Abr/2026</span>
+          </div>
+          <div class="mock-kpis">
+            <div class="kpi">
+              <div class="kpi-label">Leads</div>
+              <div class="kpi-value">42</div>
+              <div class="kpi-delta up">↑ 18% vs semana anterior</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">CPL</div>
+              <div class="kpi-value">R$127</div>
+              <div class="kpi-delta up">↓ R$23 (melhorou)</div>
+            </div>
+            <div class="kpi">
+              <div class="kpi-label">Gasto</div>
+              <div class="kpi-value">R$5,3k</div>
+              <div class="kpi-delta flat">↔ dentro da meta</div>
+            </div>
+          </div>
+          <div class="mock-chart-label">Leads por dia — últimos 7 dias</div>
+          <div class="mock-bars">
+            <div class="bar" style="height:44%"></div>
+            <div class="bar" style="height:60%"></div>
+            <div class="bar" style="height:35%"></div>
+            <div class="bar" style="height:72%"></div>
+            <div class="bar" style="height:50%"></div>
+            <div class="bar hi" style="height:88%"></div>
+            <div class="bar hi" style="height:100%"></div>
+          </div>
+          <div class="mock-alert">
+            <span style="font-size:0.9rem;flex-shrink:0;margin-top:1px">⚠</span>
+            <div>
+              <div class="alert-title">Anomalia detectada</div>
+              <div class="alert-body">Campanha "Pesquisa — Consulta" com gasto +340% acima do esperado ontem. Revisar limite de orçamento.</div>
+            </div>
+          </div>
+          <div class="mock-report">
+            <div class="report-icon">📧</div>
+            <div>
+              <div class="report-title">Relatório semanal enviado</div>
+              <div class="report-body">3 campanhas para pausar · 2 para escalar · Resumo com IA</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PROBLEM -->
+<section id="problema">
+  <div class="container">
+    <div class="sec-label">O Problema</div>
+    <h2 class="sec-title">Você reconhece algum desses cenários?</h2>
+    <p class="sec-sub">A maioria dos donos de negócio que investe em anúncios vive no escuro — não por falta de dados, mas por excesso de plataformas e falta de tempo.</p>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-num">01</div>
+        <div class="pain-title">Não sabe se está funcionando</div>
+        <div class="pain-text">Abre as plataformas raramente, não sabe interpretar os dados — e confia cegamente no relatório PDF da agência, sem saber o que fazer com ele.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-num">02</div>
+        <div class="pain-title">Continua pagando pelo que não funciona</div>
+        <div class="pain-text">Campanhas que nunca geraram um lead seguem ativas, consumindo orçamento mês após mês sem que ninguém perceba.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-num">03</div>
+        <div class="pain-title">Descobre o desperdício tarde demais</div>
+        <div class="pain-text">Gasto triplicou em um dia. Você só descobre na fatura — semanas depois. Sem alerta em tempo real, não há como agir.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-num">04</div>
+        <div class="pain-title">Perde a janela de escalar o que funciona</div>
+        <div class="pain-text">Tem campanhas com ótima performance, mas sem clareza sobre quais são — você não escala por medo de errar e perde a oportunidade.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="como-funciona">
+  <div class="container">
+    <div class="sec-label">Como funciona</div>
+    <h2 class="sec-title">Do setup ao primeiro relatório em 48 horas</h2>
+    <p class="sec-sub">Zero conhecimento técnico necessário. Cuidamos de toda a configuração e você começa a receber insights desde a primeira semana.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-circle">1</div>
+        <div class="step-title">Conectamos suas contas</div>
+        <div class="step-desc">Você nos dá acesso às suas contas de Google Ads e Meta Ads. Nossa equipe faz toda a configuração — leva menos de 48 horas.</div>
+      </div>
+      <div class="step">
+        <div class="step-circle">2</div>
+        <div class="step-title">A plataforma monitora tudo</div>
+        <div class="step-desc">Diariamente coletamos métricas de todas as campanhas — gasto, leads, CPL, CTR — e identificamos padrões e anomalias automaticamente.</div>
+      </div>
+      <div class="step">
+        <div class="step-circle">3</div>
+        <div class="step-title">Toda segunda, o relatório chega</div>
+        <div class="step-desc">Um email com o resumo da semana, as campanhas que performaram melhor e a recomendação clara: o que pausar e o que escalar.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="funcionalidades">
+  <div class="container">
+    <div class="sec-label">Funcionalidades</div>
+    <h2 class="sec-title">Tudo que você precisa para tomar decisões</h2>
+    <p class="sec-sub">Sem planilhas, sem acessar múltiplas plataformas, sem horas analisando dados. Nós fazemos isso por você.</p>
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon ip">📊</div>
+        <div class="feat-title">Dashboard executivo</div>
+        <div class="feat-desc">Visualize KPIs de Google Ads e Meta Ads em um único lugar. Leads, gasto, CPL e tendência semanal — em 30 segundos você sabe onde está.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon ig">📧</div>
+        <div class="feat-title">Relatório semanal automático</div>
+        <div class="feat-desc">Toda segunda-feira, um relatório em português com análise das campanhas e recomendações claras de ação — sem precisar abrir o painel.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon io">⚡</div>
+        <div class="feat-title">Alertas de anomalia</div>
+        <div class="feat-desc">Gasto fora do padrão, leads zerados, CPL disparando — você é notificado por email no mesmo dia em que a anomalia acontece.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon ip">👥</div>
+        <div class="feat-title">Gestão de leads</div>
+        <div class="feat-desc">Registre e acompanhe os leads gerados pelas campanhas, com histórico e status de follow-up integrado ao dashboard.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon ig">🎯</div>
+        <div class="feat-title">Meta mensal</div>
+        <div class="feat-desc">Defina uma meta de leads ou investimento e acompanhe o progresso semana a semana — com projeção de fechamento do mês.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon io">📈</div>
+        <div class="feat-title">Histórico e tendências</div>
+        <div class="feat-desc">Acesse relatórios anteriores e compare performance entre semanas para identificar sazonalidade e oportunidades de escala.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOR WHOM -->
+<section id="para-quem">
+  <div class="container">
+    <div class="sec-label">Para quem</div>
+    <h2 class="sec-title">Feito para quem investe em tráfego pago</h2>
+    <p class="sec-sub">Se você paga por anúncios e quer entender o retorno sem precisar virar analista de dados — o Addere On é para você.</p>
+    <div class="audience">
+      <div class="aud-card">
+        <div class="aud-icon">👨‍⚕️</div>
+        <div class="aud-title">Profissionais liberais</div>
+        <div class="aud-desc">Advogados, médicos, dentistas, psicólogos e contadores que investem entre R$ 1.500 e R$ 15.000/mês em ads e precisam de clareza — não de mais dados.</div>
+        <div class="aud-tags">
+          <span class="atag">Advocacia</span>
+          <span class="atag">Saúde</span>
+          <span class="atag">Contabilidade</span>
+          <span class="atag">Consultoria</span>
+        </div>
+      </div>
+      <div class="aud-card">
+        <div class="aud-icon">🏢</div>
+        <div class="aud-title">Donos de pequenos negócios</div>
+        <div class="aud-desc">Empresários que têm agência ou gestor de tráfego, mas precisam de uma visão independente para tomar decisões com confiança sobre onde investir.</div>
+        <div class="aud-tags">
+          <span class="atag">Educação</span>
+          <span class="atag">Imobiliário</span>
+          <span class="atag">Financeiro</span>
+          <span class="atag">Serviços</span>
+        </div>
+      </div>
+      <div class="aud-card">
+        <div class="aud-icon">📣</div>
+        <div class="aud-title">Agências de tráfego pago</div>
+        <div class="aud-desc">Agências que gerenciam 10 a 50 clientes e querem automatizar a geração de relatórios, impressionar seus clientes e reduzir churn com dados em tempo real.</div>
+        <div class="aud-tags">
+          <span class="atag">White-label</span>
+          <span class="atag">Multi-cliente</span>
+          <span class="atag">Relatório automático</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="planos">
+  <div class="container">
+    <div class="sec-label">Planos</div>
+    <h2 class="sec-title">Preço simples, resultado claro</h2>
+    <p class="sec-sub">Escolha o plano de acordo com o tamanho do seu negócio. Sem contrato de fidelidade — cancele quando quiser.</p>
+    <div class="pricing">
+      <div class="plan">
+        <div class="plan-name">Solo</div>
+        <div class="plan-price">
+          <span class="plan-value">R$ 197</span>
+          <span class="plan-per">/mês</span>
+        </div>
+        <div class="plan-setup">+ setup único de R$ 497</div>
+        <div class="plan-line"></div>
+        <ul class="plan-feats">
+          <li>1 empresa (até 2 contas de ads)</li>
+          <li>Google Ads + Meta Ads</li>
+          <li>Dashboard executivo completo</li>
+          <li>Relatório semanal por email</li>
+          <li>Alertas de anomalia</li>
+          <li>Até 100 leads registrados/mês</li>
+        </ul>
+        <a href="#contato" class="plan-btn plan-btn-outline">Agendar demonstração</a>
+      </div>
+      <div class="plan featured">
+        <div class="plan-badge">Mais escolhido</div>
+        <div class="plan-name">Business</div>
+        <div class="plan-price">
+          <span class="plan-value">R$ 397</span>
+          <span class="plan-per">/mês</span>
+        </div>
+        <div class="plan-setup">+ setup único de R$ 797</div>
+        <div class="plan-line"></div>
+        <ul class="plan-feats">
+          <li>Até 3 empresas / contas de ads</li>
+          <li>Tudo do plano Solo</li>
+          <li>Meta mensal por empresa</li>
+          <li>Histórico de 12 semanas de relatórios</li>
+          <li>Suporte prioritário</li>
+        </ul>
+        <a href="#contato" class="plan-btn plan-btn-filled">Agendar demonstração</a>
+      </div>
+      <div class="plan">
+        <div class="plan-name">Agência</div>
+        <div class="plan-price">
+          <span class="plan-value">R$ 997</span>
+          <span class="plan-per">/mês</span>
+        </div>
+        <div class="plan-setup">+ setup único de R$ 1.997</div>
+        <div class="plan-line"></div>
+        <ul class="plan-feats">
+          <li>Empresas ilimitadas</li>
+          <li>White-label (logo e cores do cliente)</li>
+          <li>Acesso multi-usuário por empresa</li>
+          <li>Relatórios com marca da agência</li>
+          <li>API de integração</li>
+          <li>Onboarding dedicado</li>
+        </ul>
+        <a href="#contato" class="plan-btn plan-btn-outline">Agendar demonstração</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section id="cta-final">
+  <div class="container">
+    <div class="cta-box">
+      <div class="cta-title">Pronto para saber onde vai cada real<br>investido em anúncios?</div>
+      <p class="cta-sub">Agende uma demonstração gratuita de 30 minutos. Mostramos a plataforma ao vivo e configuramos seu dashboard na mesma semana.</p>
+      <a href="#contato" class="btn-primary">Agendar demonstração gratuita →</a>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contato">
+  <div class="container">
+    <div class="sec-label">Contato</div>
+    <h2 class="sec-title">Agende sua demonstração</h2>
+    <div class="contact-grid">
+      <form class="contact-form" onsubmit="handleForm(event)">
+        <div class="form-group">
+          <label class="form-label">Nome completo</label>
+          <input class="form-input" type="text" name="nome" placeholder="Seu nome" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input class="form-input" type="email" name="email" placeholder="seu@email.com.br" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp</label>
+          <input class="form-input" type="tel" name="whatsapp" placeholder="(91) 99999-9999">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quanto investe por mês em ads?</label>
+          <select class="form-input" name="investimento">
+            <option value="" disabled selected>Selecione...</option>
+            <option>Até R$ 1.500</option>
+            <option>R$ 1.500 a R$ 5.000</option>
+            <option>R$ 5.000 a R$ 15.000</option>
+            <option>Acima de R$ 15.000</option>
+            <option>Sou agência / gestor de tráfego</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Enviar pedido de demonstração →</button>
+      </form>
+      <div class="contact-info">
+        <div>
+          <h3 style="font-size:1.1rem;font-weight:700;color:var(--white);margin-bottom:10px">Uma conversa de 30 minutos que vai mudar como você enxerga seus anúncios.</h3>
+          <p style="font-size:0.88rem;color:var(--muted);line-height:1.75">Mostramos a plataforma ao vivo, explicamos a configuração e você sai sabendo exatamente o que vai receber toda segunda-feira — sem compromisso.</p>
+        </div>
+        <div class="ci-row">
+          <div class="ci-icon">📧</div>
+          <div>
+            <div class="ci-label">E-mail</div>
+            <div class="ci-value"><a href="mailto:contato@addereon.com.br">contato@addereon.com.br</a></div>
+          </div>
+        </div>
+        <div class="ci-row">
+          <div class="ci-icon">📱</div>
+          <div>
+            <div class="ci-label">WhatsApp</div>
+            <!-- ATUALIZAR: substitua XXXXXXXXXXX pelo número real -->
+            <div class="ci-value"><a href="https://wa.me/55XXXXXXXXXXX?text=Olá%2C%20gostaria%20de%20agendar%20uma%20demonstração%20do%20Addere%20On." target="_blank">Chamar no WhatsApp</a></div>
+          </div>
+        </div>
+        <div class="ci-row">
+          <div class="ci-icon">📸</div>
+          <div>
+            <div class="ci-label">Instagram</div>
+            <div class="ci-value"><a href="https://instagram.com/addereon" target="_blank">@addereon</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-logo">
+          <div class="footer-dot"></div>
+          <span class="footer-wordmark">Addere<span>On</span></span>
+        </div>
+        <!-- ATUALIZAR: CNPJ real quando disponível -->
+        <div class="footer-copy">© 2026 Addere On Comunicação, Treinamentos e Eventos Corporativos Ltda.</div>
+      </div>
+      <div class="footer-links">
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#planos">Planos</a>
+        <a href="mailto:contato@addereon.com.br">Contato</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  window.addEventListener('scroll', () => {
+    document.getElementById('nav').classList.toggle('scrolled', window.scrollY > 40);
+  });
+
+  function openMenu() { document.getElementById('mobileMenu').classList.add('open'); }
+  function closeMenu() { document.getElementById('mobileMenu').classList.remove('open'); }
+
+  function handleForm(e) {
+    e.preventDefault();
+    const f = e.target;
+    const body = encodeURIComponent(
+      `Nome: ${f.nome.value}\nEmail: ${f.email.value}\nWhatsApp: ${f.whatsapp.value}\nInvestimento mensal em ads: ${f.investimento.value}\n\nGostaria de agendar uma demonstração gratuita do Addere On.`
+    );
+    const subject = encodeURIComponent(`Demo Addere On — ${f.nome.value}`);
+    window.location.href = `mailto:contato@addereon.com.br?subject=${subject}&body=${body}`;
+  }
+</script>
+</body>
+</html>
