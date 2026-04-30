@@ -11,6 +11,13 @@ import { sendEmail, buildWhatsAppLink, ADMIN_WHATSAPP } from "../lib/email.js";
 
 const router = Router();
 
+function maskEmailForLog(email) {
+  const value = String(email || "");
+  const [local, domain] = value.split("@");
+  if (!local || !domain) return "(email-invalido)";
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
 // ============================================================
 // AUTH
 // ============================================================
@@ -25,16 +32,19 @@ router.post("/api/auth/login", async (req, res) => {
     });
 
     if (!usuario) {
+      console.warn(`[auth] Login 401: usuario nao encontrado (${maskEmailForLog(emailNorm)})`);
       return res.status(401).json({ message: "Credenciais inválidas." });
     }
 
     if (!usuario.ativo) {
+      console.warn(`[auth] Login 401: usuario inativo (${maskEmailForLog(emailNorm)})`);
       return res.status(401).json({ message: "Usuário inativo." });
     }
 
     const senhaValida = await bcrypt.compare(senha, usuario.senhaHash);
 
     if (!senhaValida) {
+      console.warn(`[auth] Login 401: senha invalida (${maskEmailForLog(emailNorm)})`);
       return res.status(401).json({ message: "Credenciais inválidas." });
     }
 

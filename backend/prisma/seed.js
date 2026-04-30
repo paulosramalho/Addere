@@ -10,6 +10,7 @@ async function seedAdminInicial() {
   const shouldReset = String(process.env.SEED_ADMIN_RESET || "").toLowerCase() === "true";
 
   const adminCount = await prisma.usuario.count({ where: { role: "ADMIN" } });
+  console.log(`  Seed admin: email=${email ? "configurado" : "nao configurado"}, senha=${password ? "configurada" : "nao configurada"}, admins=${adminCount}, reset=${shouldReset}`);
 
   if (!email || !password) {
     if (adminCount === 0) {
