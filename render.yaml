@@ -15,6 +15,14 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: SEED_ADMIN_NAME
+        value: "Administrador Addere"
+      - key: SEED_ADMIN_RESET
+        value: "false"
       - key: FRONTEND_URL
         value: "https://addere.vercel.app"
       - key: BACKEND_URL

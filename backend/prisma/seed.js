@@ -1,9 +1,63 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+async function seedAdminInicial() {
+  const email = String(process.env.SEED_ADMIN_EMAIL || "").trim().toLowerCase();
+  const password = String(process.env.SEED_ADMIN_PASSWORD || "");
+  const nome = String(process.env.SEED_ADMIN_NAME || "Administrador Addere").trim();
+  const shouldReset = String(process.env.SEED_ADMIN_RESET || "").toLowerCase() === "true";
+
+  const adminCount = await prisma.usuario.count({ where: { role: "ADMIN" } });
+
+  if (!email || !password) {
+    if (adminCount === 0) {
+      console.warn("  Nenhum admin inicial criado. Configure SEED_ADMIN_EMAIL e SEED_ADMIN_PASSWORD no ambiente.");
+    }
+    return;
+  }
+
+  if (password.length < 8) {
+    throw new Error("SEED_ADMIN_PASSWORD deve ter no minimo 8 caracteres.");
+  }
+
+  const existente = await prisma.usuario.findUnique({ where: { email } });
+  const senhaHash = !existente || shouldReset ? await bcrypt.hash(password, 10) : null;
+
+  if (existente) {
+    await prisma.usuario.update({
+      where: { id: existente.id },
+      data: {
+        nome: existente.nome || nome,
+        role: "ADMIN",
+        tipoUsuario: existente.tipoUsuario || "USUARIO",
+        ativo: true,
+        ...(senhaHash ? { senhaHash, deveTrocarSenha: true } : {}),
+      },
+    });
+    console.log(`  Admin ${email} atualizado${senhaHash ? " com nova senha" : ""}.`);
+    return;
+  }
+
+  await prisma.usuario.create({
+    data: {
+      nome,
+      email,
+      senhaHash,
+      role: "ADMIN",
+      tipoUsuario: "USUARIO",
+      ativo: true,
+      deveTrocarSenha: true,
+    },
+  });
+  console.log(`  Admin ${email} criado.`);
+}
+
 async function main() {
   console.log("Iniciando seed do Addere Control...");
+
+  await seedAdminInicial();
 
   const contasAddere = [
     { nome: "Caixa Administrativo", tipo: "CAIXA", ordem: 1 },
