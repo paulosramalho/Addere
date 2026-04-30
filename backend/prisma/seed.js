@@ -14,6 +14,8 @@ async function seedAdminInicial() {
   if (!email || !password) {
     if (adminCount === 0) {
       console.warn("  Nenhum admin inicial criado. Configure SEED_ADMIN_EMAIL e SEED_ADMIN_PASSWORD no ambiente.");
+    } else {
+      console.log(`  Admin inicial nao configurado; ${adminCount} admin(s) ja existem.`);
     }
     return;
   }

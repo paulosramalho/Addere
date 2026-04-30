@@ -18,9 +18,10 @@ const router = Router();
 router.post("/api/auth/login", async (req, res) => {
   try {
     const { email, senha } = req.body;
+    const emailNorm = String(email || "").trim().toLowerCase();
 
     const usuario = await prisma.usuario.findUnique({
-      where: { email },
+      where: { email: emailNorm },
     });
 
     if (!usuario) {
