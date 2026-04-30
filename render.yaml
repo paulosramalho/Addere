@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: addere
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm run start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: "https://addere.vercel.app"
+      - key: BACKEND_URL
+        value: "https://addere.onrender.com"
+      - key: CORS_ORIGINS
+        value: "https://addere.vercel.app,https://addere-paulosramalho.vercel.app,http://localhost:5173,http://localhost:4173"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: "Addere <noreply@addere.com.br>"
+      - key: ADMIN_WHATSAPP
+        sync: false
+      - key: SENTRY_DSN
+        sync: false

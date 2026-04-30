@@ -1,0 +1,16 @@
+.vercel
+.env
+.env.*
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+backend/.tmp/
+backend/.tmp*
+logs/
+recibos/
+dist/
+build/
+*.log

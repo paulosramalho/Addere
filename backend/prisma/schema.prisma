@@ -1,0 +1,1171 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Usuario {
+  id                  Int                  @id @default(autoincrement())
+  nome                String
+  email               String               @unique
+  senhaHash           String
+  role                String               @default("USER")
+  ativo               Boolean              @default(true)
+  tipoUsuario         String               @default("USUARIO")
+  cpf                 String?
+  telefone            String?
+  whatsapp            String?
+  avatarUrl           String?
+  advogadoId          Int?                 @unique
+  deveTrocarSenha     Boolean              @default(false)
+  ghostAdmin          Boolean              @default(false)
+  totpSecret          String?
+  totpEnabled         Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  advogado            Advogado?            @relation(fields: [advogadoId], references: [id])
+  mensagensEnviadas   MensagemChat[]       @relation("MensagensEnviadas")
+  mensagensRecebidas  MensagemChat[]       @relation("MensagensRecebidas")
+  presenca            PresencaUsuario?
+  leituras            MensagemLeitura[]
+  reacoes             MensagemReacao[]
+  auditoriaLogs       AuditoriaLog[]
+  eventosAgenda        AgendaEvento[]
+  participacoesAgenda  AgendaParticipante[]
+  lembretesAgenda      AgendaLembrete[]
+  googleCalendarToken  GoogleCalendarToken?
+
+  @@map("Usuario")
+}
+
+model Advogado {
+  id                    Int                            @id @default(autoincrement())
+  nome                  String
+  cpf                   String                         @unique
+  oab                   String                         @unique
+  email                 String
+  telefone              String?
+  whatsapp              String?
+  chavePix              String?
+  ativo                 Boolean                        @default(true)
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+  ehSocio               Boolean                        @default(false)
+  parcelaFixaAtiva      Boolean                        @default(false)
+  parcelaFixaNome       String?
+  parcelaFixaTipo       String?
+  parcelaFixaValor      Decimal?                       @db.Decimal(12, 2)
+  pjeSeed               String?
+  contratosPrincipal    ContratoPagamento[]            @relation("AdvogadoPrincipal")
+  contratosIndicacao    ContratoPagamento[]            @relation("AdvogadoIndicacao")
+  splitsContrato        ContratoRepasseSplitAdvogado[]
+  splitsParcela         ParcelaSplitAdvogado[]
+  repassesLinhaAdvogado RepasseLinhaAdvogado[]
+  repassesPagamento     RepassePagamento[]
+  usuario               Usuario?
+  lancamentosRepasse    RepasseLancamento[]
+  repassesRealizados    RepasseRealizado[]
+  saldo                 RepasseSaldo?
+  emprestimos           EmprestimoSocio[]
+  adiantamentos         AdiantamentoSocio[]
+
+  repassesManuais      RepasseManualLancamento[]
+  repasseOverrides     ParcelaRepasseOverride[]
+  processos            ProcessoJudicial[]
+  intimacoes           Intimacao[]
+  googleCalendarToken  GoogleCalendarToken?
+  pixPagamentos        PixPagamento[]
+
+  @@index([ativo])
+  @@map("Advogado")
+}
+
+model Cliente {
+  id                    Int                          @id @default(autoincrement())
+  cpfCnpj               String                       @unique
+  nomeRazaoSocial       String
+  email                 String?
+  telefone              String?
+  observacoes           String?
+  cep                   String?
+  endereco              String?
+  numero                String?
+  complemento           String?
+  bairro                String?
+  cidade                String?
+  uf                    String?
+  ativo                 Boolean                      @default(true)
+  naoEnviarEmails       Boolean                      @default(false)
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  tipo                  ClienteTipo                  @default(C)
+  saldoInicialCent      Int                          @default(0) // signed: + = firma deve ao cliente, - = cliente deve
+  dataAbertura          DateTime?
+  contratos             ContratoPagamento[]
+  repassesManuais       RepasseManualLancamento[]
+  contaCorrente         ContaCorrenteCliente[]
+  livroCaixaLancamentos LivroCaixaLancamento[]       @relation("LivroCaixaClienteConta")
+  comprovantes          ComprovanteRespostaCliente[]
+  adiantamentos         AdiantamentoSocio[]
+  whatsAppMensagens     WhatsAppMensagem[]
+  processos             ProcessoJudicial[]
+  boletos               BoletInter[]
+
+  @@index([tipo])
+  @@map("Cliente")
+}
+
+model Aliquota {
+  id           Int      @id @default(autoincrement())
+  mes          Int
+  ano          Int
+  percentualBp Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([mes, ano])
+  @@map("Aliquota")
+}
+
+model ModeloDistribuicao {
+  id            Int                      @id @default(autoincrement())
+  codigo        String                   @unique
+  descricao     String
+  ativo         Boolean                  @default(true)
+  origem        String                   @default("REPASSE")
+  periodicidade String                   @default("INCIDENTAL")
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+  contratos     ContratoPagamento[]
+  itens         ModeloDistribuicaoItem[]
+  parcelas      ParcelaContrato[]
+
+  @@map("ModeloDistribuicao")
+}
+
+model ModeloDistribuicaoItem {
+  id            Int                @id @default(autoincrement())
+  modeloId      Int
+  ordem         Int
+  origem        String
+  periodicidade String
+  destinoTipo   String
+  destinatario  String?
+  percentualBp  Int
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  modelo        ModeloDistribuicao @relation(fields: [modeloId], references: [id], onDelete: Cascade)
+
+  @@unique([modeloId, ordem])
+  @@map("ModeloDistribuicaoItem")
+}
+
+model ContratoPagamento {
+  id                         Int                            @id @default(autoincrement())
+  numeroContrato             String                         @unique
+  clienteId                  Int
+  valorTotal                 Decimal                        @db.Decimal(12, 2)
+  formaPagamento             String
+  observacoes                String?
+  ativo                      Boolean                        @default(true)
+  modeloDistribuicaoId       Int?
+  usaSplitSocio              Boolean                        @default(false)
+  repasseAdvogadoPrincipalId Int?
+  repasseIndicacaoAdvogadoId Int?
+  isentoTributacao           Boolean                        @default(false)
+  contratoOrigemId           Int?
+  createdAt                  DateTime                       @default(now())
+  updatedAt                  DateTime                       @updatedAt
+  cliente                    Cliente                        @relation(fields: [clienteId], references: [id])
+  contratoOrigem             ContratoPagamento?             @relation("CadeiaRenegociacao", fields: [contratoOrigemId], references: [id])
+  contratosFilhos            ContratoPagamento[]            @relation("CadeiaRenegociacao")
+  modeloDistribuicao         ModeloDistribuicao?            @relation(fields: [modeloDistribuicaoId], references: [id])
+  repasseAdvogadoPrincipal   Advogado?                      @relation("AdvogadoPrincipal", fields: [repasseAdvogadoPrincipalId], references: [id])
+  repasseIndicacaoAdvogado   Advogado?                      @relation("AdvogadoIndicacao", fields: [repasseIndicacaoAdvogadoId], references: [id])
+  splits                     ContratoRepasseSplitAdvogado[]
+  parcelas                   ParcelaContrato[]
+  repasseLinhas              RepasseLinha[]
+  lancamentosRepasse         RepasseLancamento[]
+
+  repassesManuais RepasseManualLancamento[]
+
+  @@map("ContratoPagamento")
+}
+
+model ContratoRepasseSplitAdvogado {
+  id           Int               @id @default(autoincrement())
+  contratoId   Int
+  advogadoId   Int
+  percentualBp Int
+  createdAt    DateTime          @default(now())
+  advogado     Advogado          @relation(fields: [advogadoId], references: [id])
+  contrato     ContratoPagamento @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+
+  @@unique([contratoId, advogadoId])
+  @@map("ContratoRepasseSplitAdvogado")
+}
+
+model ParcelaContrato {
+  id                   Int                    @id @default(autoincrement())
+  contratoId           Int
+  numero               Int
+  vencimento           DateTime
+  valorPrevisto        Decimal                @db.Decimal(12, 2)
+  status               String                 @default("PREVISTA")
+  dataRecebimento      DateTime?
+  valorRecebido        Decimal?               @db.Decimal(12, 2)
+  meioRecebimento      String?
+  observacoes          String?
+  canceladaEm          DateTime?
+  canceladaPorId       Int?
+  cancelamentoMotivo   String?
+  modeloDistribuicaoId Int?
+  excluirDoRepasse     Boolean                @default(false)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  contrato             ContratoPagamento      @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  modeloDistribuicao   ModeloDistribuicao?    @relation(fields: [modeloDistribuicaoId], references: [id])
+  splits               ParcelaSplitAdvogado[]
+  repasseLinhas        RepasseLinha[]
+  repasseLancamentos   RepasseLancamento[]
+
+  repassesManuais  RepasseManualLancamento[]
+  comprovantes     ComprovanteRespostaCliente[]
+  repasseOverrides ParcelaRepasseOverride[]
+  boletos          BoletInter[]
+
+  @@unique([contratoId, numero])
+  @@index([status])
+  @@index([status, vencimento])
+  @@map("ParcelaContrato")
+}
+
+model ParcelaSplitAdvogado {
+  id           Int             @id @default(autoincrement())
+  parcelaId    Int
+  advogadoId   Int
+  percentualBp Int
+  createdAt    DateTime        @default(now())
+  advogado     Advogado        @relation(fields: [advogadoId], references: [id])
+  parcela      ParcelaContrato @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+
+  @@unique([parcelaId, advogadoId])
+  @@map("ParcelaSplitAdvogado")
+}
+
+model ParcelaRepasseOverride {
+  id            Int             @id @default(autoincrement())
+  parcelaId     Int
+  advogadoId    Int
+  valorCentavos Int
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  parcela       ParcelaContrato @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+  advogado      Advogado        @relation(fields: [advogadoId], references: [id])
+
+  @@unique([parcelaId, advogadoId])
+  @@map("ParcelaRepasseOverride")
+}
+
+model RepasseCompetencia {
+  id         Int                @id @default(autoincrement())
+  ano        Int
+  mes        Int
+  fechadaEm  DateTime?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  linhas     RepasseLinha[]
+  pagamentos RepassePagamento[]
+
+  @@unique([ano, mes])
+  @@map("RepasseCompetencia")
+}
+
+model RepasseLinha {
+  id                   Int                    @id @default(autoincrement())
+  competenciaId        Int
+  contratoId           Int
+  parcelaId            Int
+  valorBrutoCentavos   Int
+  aliquotaUsadaBp      Int
+  impostoCentavos      Int
+  liquidoCentavos      Int
+  escritorioCentavos   Int
+  fundoReservaCentavos Int
+  socioTotalCentavos   Int
+  confirmadoEm         DateTime?
+  confirmadoPorId      Int?
+  createdAt            DateTime               @default(now())
+  competencia          RepasseCompetencia     @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
+  contrato             ContratoPagamento      @relation(fields: [contratoId], references: [id])
+  parcela              ParcelaContrato        @relation(fields: [parcelaId], references: [id])
+  advogados            RepasseLinhaAdvogado[]
+
+  @@unique([competenciaId, parcelaId])
+  @@map("RepasseLinha")
+}
+
+model RepasseLinhaAdvogado {
+  id             Int          @id @default(autoincrement())
+  repasseLinhaId Int
+  advogadoId     Int
+  percentualBp   Int
+  valorCentavos  Int
+  createdAt      DateTime     @default(now())
+  advogado       Advogado     @relation(fields: [advogadoId], references: [id])
+  repasseLinha   RepasseLinha @relation(fields: [repasseLinhaId], references: [id], onDelete: Cascade)
+
+  @@unique([repasseLinhaId, advogadoId])
+  @@map("RepasseLinhaAdvogado")
+}
+
+model RepassePagamento {
+  id             Int                @id @default(autoincrement())
+  competenciaId  Int
+  advogadoId     Int
+  status         String             @default("PENDENTE")
+  valorPrevisto  Decimal            @db.Decimal(12, 2)
+  valorEfetivado Decimal?           @db.Decimal(12, 2)
+  saldoGerado    Decimal            @default(0) @db.Decimal(12, 2)
+  saldoUsado     Decimal            @default(0) @db.Decimal(12, 2)
+  dataRepasse    DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  advogado       Advogado           @relation(fields: [advogadoId], references: [id])
+  competencia    RepasseCompetencia @relation(fields: [competenciaId], references: [id], onDelete: Cascade)
+
+  @@unique([competenciaId, advogadoId])
+  @@map("RepassePagamento")
+}
+
+model SaldoDestinatario {
+  id            Int      @id @default(autoincrement())
+  destinoTipo   String
+  destinoId     Int
+  saldoCentavos Int      @default(0)
+  updatedAt     DateTime @updatedAt
+
+  @@unique([destinoTipo, destinoId])
+  @@map("SaldoDestinatario")
+}
+
+model RepasseSaldo {
+  id                Int      @id @default(autoincrement())
+  advogadoId        Int      @unique
+  saldoCentavos     Int      @default(0)
+  ultimaAtualizacao DateTime @default(now()) @updatedAt
+  createdAt         DateTime @default(now())
+  advogado          Advogado @relation(fields: [advogadoId], references: [id])
+
+  @@map("repasses_saldos")
+}
+
+model RepasseRealizado {
+  id                         Int                 @id @default(autoincrement())
+  advogadoId                 Int
+  competenciaAno             Int
+  competenciaMes             Int
+  referenciaAno              Int
+  referenciaMes              Int
+  valorPrevistoTotalCentavos Int
+  valorEfetivadoCentavos     Int
+  dataRepasse                DateTime
+  observacoes                String?
+  saldoAnteriorCentavos      Int                 @default(0)
+  saldoGeradoCentavos        Int                 @default(0)
+  saldoConsumidoCentavos     Int                 @default(0)
+  saldoPosteriorCentavos     Int                 @default(0)
+  createdAt                  DateTime            @default(now())
+  descricaoRepasse           String?
+  lancamentos                RepasseLancamento[]
+
+  repassesManuais RepasseManualLancamento[]
+
+  advogado Advogado @relation(fields: [advogadoId], references: [id])
+
+  @@index([advogadoId])
+  @@index([competenciaAno, competenciaMes])
+  @@map("repasses_realizados")
+}
+
+model RepasseLancamento {
+  id                   Int                @id @default(autoincrement())
+  repasseRealizadoId   Int
+  parcelaId            Int?
+  contratoId           Int?
+  advogadoId           Int
+  valorBrutoCentavos   Int
+  impostoCentavos      Int
+  liquidoCentavos      Int
+  valorRepasseCentavos Int
+  createdAt            DateTime           @default(now())
+  observacoes          String?
+  advogado             Advogado           @relation(fields: [advogadoId], references: [id])
+  contrato             ContratoPagamento? @relation(fields: [contratoId], references: [id])
+  parcela              ParcelaContrato?   @relation(fields: [parcelaId], references: [id])
+  repasseRealizado     RepasseRealizado   @relation(fields: [repasseRealizadoId], references: [id])
+
+  @@index([repasseRealizadoId])
+  @@index([parcelaId])
+  @@index([contratoId])
+  @@index([advogadoId])
+  @@map("repasses_lancamentos")
+}
+
+enum RepasseManualTipo {
+  ADVOGADO
+  INDICACAO
+}
+
+// Lançamentos manuais de repasse (utilitário) – usados para registrar ajustes antigos
+// sem depender de modelo de distribuição/cálculos automáticos.
+model RepasseManualLancamento {
+  id         Int               @id @default(autoincrement())
+  contratoId Int
+  parcelaId  Int
+  clienteId  Int
+  advogadoId Int
+  tipo       RepasseManualTipo @default(ADVOGADO)
+
+  competenciaAno Int
+  competenciaMes Int
+
+  valorPrevistoCentavos  Int
+  valorEfetivadoCentavos Int? // preenche na efetivação
+
+  repasseRealizadoId Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  contrato         ContratoPagamento @relation(fields: [contratoId], references: [id], onDelete: Cascade)
+  parcela          ParcelaContrato   @relation(fields: [parcelaId], references: [id], onDelete: Cascade)
+  cliente          Cliente           @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  advogado         Advogado          @relation(fields: [advogadoId], references: [id], onDelete: Restrict)
+  repasseRealizado RepasseRealizado? @relation(fields: [repasseRealizadoId], references: [id], onDelete: SetNull)
+
+  @@index([competenciaAno, competenciaMes])
+  @@index([advogadoId])
+  @@index([parcelaId])
+  @@map("repasses_manuais_lancamentos")
+}
+
+model EmprestimoSocio {
+  id                Int       @id @default(autoincrement())
+  advogadoId        Int
+  competenciaAno    Int
+  competenciaMes    Int
+  valorCentavos     Int
+  descricao         String    @default("Empréstimo do sócio para despesas")
+  dataRegistro      DateTime  @default(now())
+  quitado           Boolean   @default(false)
+  dataQuitacao      DateTime?
+  valorPagoCentavos Int       @default(0)
+  referenciaOrigem  String?
+  createdAt         DateTime  @default(now())
+  advogado          Advogado  @relation(fields: [advogadoId], references: [id])
+
+  @@index([advogadoId])
+  @@index([competenciaAno, competenciaMes])
+  @@map("EmprestimoSocio")
+}
+
+model AdiantamentoSocio {
+  id                     Int       @id @default(autoincrement())
+  advogadoId             Int
+  clienteId              Int
+  competenciaAno         Int
+  competenciaMes         Int
+  valorPrevistoCentavos  Int
+  valorAdiantadoCentavos Int
+  valorDevolvidoCentavos Int       @default(0)
+  quitado                Boolean   @default(false)
+  dataRegistro           DateTime
+  dataQuitacao           DateTime?
+  observacoes            String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  advogado               Advogado  @relation(fields: [advogadoId], references: [id])
+  cliente                Cliente   @relation(fields: [clienteId], references: [id])
+
+  @@index([advogadoId])
+  @@index([competenciaAno, competenciaMes])
+  @@map("AdiantamentoSocio")
+}
+
+model LivroCaixaConta {
+  id               Int                    @id @default(autoincrement())
+  nome             String
+  tipo             String
+  ordem            Int                    @default(0)
+  ativa            Boolean                @default(true)
+  dataInicial      DateTime?
+  saldoInicialCent Int                    @default(0)
+  chavePix1        String?
+  chavePix2        String?
+  agencia          String?
+  conta            String?
+  interContaId     String?                // ID da conta corrente no Inter PJ (habilita Pix automático)
+  createdAt        DateTime               @default(now())
+  lancamentos        LivroCaixaLancamento[]
+  pixPagamentos      PixPagamento[]
+  pagamentosBoleto   PagamentoBoleto[]
+  pagamentosDarf     PagamentoDarf[]
+}
+
+model ConfigEscritorio {
+  id           Int    @id @default(autoincrement())
+  nome         String @default("")
+  nomeFantasia String @default("")
+  cnpj         String @default("")
+  oabRegistro  String @default("")
+  logradouro   String @default("")
+  numero       String @default("")
+  complemento  String @default("")
+  bairro       String @default("")
+  cidade       String @default("")
+  estado       String @default("")
+  cep          String @default("")
+  telefoneFix  String @default("")
+  celular      String @default("")
+  whatsapp     String @default("")
+}
+
+model WhatsAppConversa {
+  id            Int      @id @default(autoincrement())
+  phone         String   @unique
+  responsavelId Int? // userId do advogado assignado (null = admin/SV gerencia)
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+}
+
+model WhatsAppMensagem {
+  id            Int      @id @default(autoincrement())
+  wamid         String?  @unique
+  phone         String
+  clienteId     Int?
+  cliente       Cliente? @relation(fields: [clienteId], references: [id])
+  direcao       String // IN | OUT
+  conteudo      String
+  respondidoPor String? // BOT | BOT_ESCALOU | HUMANO
+  enviadoPorId  Int?
+  lida          Boolean  @default(false)
+  criadoEm      DateTime @default(now())
+  tipo          String   @default("text") // text | image | document | audio | video | sticker
+  mediaId       String? // Meta media ID (não armazenamos o binário)
+  mediaFilename String? // Nome original do arquivo
+
+  @@index([phone])
+  @@index([clienteId])
+}
+
+model LivroCaixaSaldoInicial {
+  id               Int      @id @default(autoincrement())
+  competenciaAno   Int
+  competenciaMes   Int
+  saldoInicialCent Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  @@unique([competenciaAno, competenciaMes])
+}
+
+model LivroCaixaLancamento {
+  id                 Int              @id @default(autoincrement())
+  competenciaAno     Int
+  competenciaMes     Int
+  data               DateTime
+  documento          String?
+  es                 String
+  clienteFornecedor  String?
+  historico          String
+  valorCentavos      Int
+  contaId            Int?
+  clienteContaId     Int?
+  ordemDia           Int              @default(0)
+  origem             LivroCaixaOrigem @default(MANUAL)
+  referenciaOrigem   String?
+  status             LivroCaixaStatus @default(OK)
+  localLabelFallback String?
+  createdAt          DateTime         @default(now())
+  statusFluxo        String           @default("PREVISTO")
+  conta              LivroCaixaConta? @relation(fields: [contaId], references: [id])
+  clienteConta       Cliente?         @relation("LivroCaixaClienteConta", fields: [clienteContaId], references: [id])
+
+  @@index([competenciaAno, competenciaMes])
+  @@index([data])
+  @@index([status])
+  @@index([clienteContaId])
+  @@index([origem])
+  @@index([referenciaOrigem])
+  @@index([es, statusFluxo, data])
+}
+
+enum ClienteTipo {
+  C
+  F
+  A
+}
+
+enum LivroCaixaOrigem {
+  MANUAL
+  REPASSES_REALIZADOS
+  PAGAMENTO_RECEBIDO
+  PARCELA_PREVISTA
+  IMPORT_PDF
+  EMPRESTIMO_SOCIO_PAGAMENTO
+  BOLETO_EMAIL
+  PARCELA_FIXA_AUTOMATICA
+  REPASSE
+  NFSE_EMAIL
+  PIX_EMAIL
+  GUIA_FISCAL_EMAIL
+  FATURA_EMAIL
+}
+
+enum LivroCaixaStatus {
+  OK
+  PENDENTE_CONTA
+}
+
+model ImportacaoPdfSessao {
+  id                Int                  @id @default(autoincrement())
+  fileHash          String
+  fileNome          String
+  competenciaAno    Int
+  competenciaMes    Int
+  totalLinhas       Int
+  linhasConfirmadas Int                  @default(0)
+  criadaEm          DateTime             @default(now())
+  linhas            ImportacaoPdfLinha[]
+
+  @@index([fileHash])
+  @@index([fileHash, competenciaAno, competenciaMes])
+  @@map("importacao_pdf_sessao")
+}
+
+model ImportacaoPdfLinha {
+  id          Int                 @id @default(autoincrement())
+  sessaoId    Int
+  rowId       String
+  confirmedAt DateTime?
+  sessao      ImportacaoPdfSessao @relation(fields: [sessaoId], references: [id], onDelete: Cascade)
+
+  @@unique([sessaoId, rowId])
+  @@map("importacao_pdf_linha")
+}
+
+// ====== NOTICEBOARD / CHAT ======
+
+model MensagemChat {
+  id                Int               @id @default(autoincrement())
+  remetenteId       Int
+  destinatarioId    Int? // null = mensagem para todos (broadcast)
+  conteudo          String
+  lida              Boolean           @default(false)
+  tipoMensagem      TipoMensagem      @default(CHAT)
+  mencionados       String? // JSON array of user IDs mentioned with @
+  requerConfirmacao Boolean           @default(false)
+  replyToId         Int? // resposta a outra mensagem (estilo WhatsApp)
+  createdAt         DateTime          @default(now())
+  remetente         Usuario           @relation("MensagensEnviadas", fields: [remetenteId], references: [id])
+  destinatario      Usuario?          @relation("MensagensRecebidas", fields: [destinatarioId], references: [id])
+  leituras          MensagemLeitura[]
+  reacoes           MensagemReacao[]
+  replyTo           MensagemChat?     @relation("Replies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies           MensagemChat[]    @relation("Replies")
+
+  @@index([remetenteId])
+  @@index([destinatarioId])
+  @@index([createdAt])
+  @@index([tipoMensagem])
+  @@map("MensagemChat")
+}
+
+model MensagemReacao {
+  id         Int          @id @default(autoincrement())
+  mensagemId Int
+  usuarioId  Int
+  emoji      String
+  createdAt  DateTime     @default(now())
+  mensagem   MensagemChat @relation(fields: [mensagemId], references: [id], onDelete: Cascade)
+  usuario    Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@unique([mensagemId, usuarioId, emoji])
+  @@index([mensagemId])
+  @@map("MensagemReacao")
+}
+
+model MensagemLeitura {
+  id           Int          @id @default(autoincrement())
+  mensagemId   Int
+  usuarioId    Int
+  lidaEm       DateTime     @default(now())
+  confirmadaEm DateTime? // For messages that require confirmation
+  mensagem     MensagemChat @relation(fields: [mensagemId], references: [id], onDelete: Cascade)
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@unique([mensagemId, usuarioId])
+  @@index([mensagemId])
+  @@index([usuarioId])
+  @@map("MensagemLeitura")
+}
+
+enum TipoMensagem {
+  CHAT
+  AVISO
+  CADASTRO
+}
+
+model PresencaUsuario {
+  id              Int      @id @default(autoincrement())
+  usuarioId       Int      @unique
+  online          Boolean  @default(false)
+  digitando       Boolean  @default(false)
+  digitandoPara   Int? // id do usuário para quem está digitando
+  ultimaAtividade DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@map("PresencaUsuario")
+}
+
+// ====== CONTA CORRENTE POR CLIENTE ======
+
+enum NaturezaLancamentoCliente {
+  DEBITO // despesas pagas pelo escritório pelo cliente (cliente deve ao escritório)
+  CREDITO // valores recebidos de terceiros para o cliente (escritório deve ao cliente)
+}
+
+model ContaCorrenteCliente {
+  id          Int                       @id @default(autoincrement())
+  clienteId   Int
+  cliente     Cliente                   @relation(fields: [clienteId], references: [id])
+  data        DateTime
+  descricao   String
+  documento   String?
+  valorCent   Int // sempre positivo, em centavos
+  natureza    NaturezaLancamentoCliente
+  observacoes String?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@index([clienteId])
+  @@map("ContaCorrenteCliente")
+}
+
+model AuditoriaLog {
+  id          Int      @id @default(autoincrement())
+  usuarioId   Int
+  acao        String // CONFIRMAR_PARCELA | CANCELAR_PARCELA | REALIZAR_REPASSE | RETIFICAR_PARCELA | BULK_CONFIRMAR | BULK_CANCELAR
+  entidade    String // "ParcelaContrato" | "RepasseRealizado"
+  entidadeId  Int
+  dadosAntes  Json?
+  dadosDepois Json?
+  ip          String?
+  createdAt   DateTime @default(now())
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@index([createdAt])
+  @@index([usuarioId])
+  @@index([acao])
+  @@map("AuditoriaLog")
+}
+
+// ====== PALAVRAS-CHAVE DO GMAIL POLLER ======
+
+model GmailPalavraChave {
+  id       Int      @id @default(autoincrement())
+  palavra  String   @unique
+  ativo    Boolean  @default(true)
+  criadoEm DateTime @default(now())
+
+  @@map("GmailPalavraChave")
+}
+
+// ====== COMPROVANTES DE RESPOSTA DE CLIENTE (via Gmail) ======
+
+model ComprovanteRespostaCliente {
+  id             Int                @id @default(autoincrement())
+  gmailMessageId String             @unique
+  parcelaId      Int?
+  clienteId      Int?
+  remetenteEmail String
+  assunto        String?
+  corpoTexto     String?            @db.Text
+  recebidoEm     DateTime
+  revisado       Boolean            @default(false)
+  revisadoEm     DateTime?
+  createdAt      DateTime           @default(now())
+  parcela        ParcelaContrato?   @relation(fields: [parcelaId], references: [id])
+  cliente        Cliente?           @relation(fields: [clienteId], references: [id])
+  anexos         ComprovanteAnexo[]
+
+  @@index([revisado])
+  @@index([clienteId])
+  @@map("ComprovanteRespostaCliente")
+}
+
+model ComprovanteAnexo {
+  id            Int                        @id @default(autoincrement())
+  comprovanteId Int
+  nomeArquivo   String
+  mimeType      String
+  tamanhoBytes  Int
+  conteudo      Bytes
+  comprovante   ComprovanteRespostaCliente @relation(fields: [comprovanteId], references: [id], onDelete: Cascade)
+
+  @@map("ComprovanteAnexo")
+}
+
+// ====== AGENDA ======
+
+model AgendaEvento {
+  id            Int                  @id @default(autoincrement())
+  titulo        String
+  descricao     String?
+  dataInicio    DateTime
+  dataFim       DateTime?
+  tipo          String               @default("COMPROMISSO")
+  prioridade    String               @default("NORMAL")
+  status        String               @default("PENDENTE")
+  criadoPorId        Int
+  criadoPor          Usuario              @relation(fields: [criadoPorId], references: [id])
+  participantes      AgendaParticipante[]
+  lembretes          AgendaLembrete[]
+  recorrencia        String               @default("NENHUMA")
+  recorrenciaFim     DateTime?
+  recorrenciaGrupoId Int?
+  googleEventId      String?              // ID do evento no Google Calendar
+  googleCalId        String?              // Calendar ID (default: "primary")
+  syncSource         String?              // "AMR" | "GOOGLE" — quem originou o evento
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@index([dataInicio])
+  @@index([status])
+  @@index([criadoPorId])
+  @@index([recorrenciaGrupoId])
+  @@index([googleEventId])
+  @@map("AgendaEvento")
+}
+
+model AgendaParticipante {
+  id                      Int          @id @default(autoincrement())
+  eventoId                Int
+  usuarioId               Int?
+  emailExterno            String?
+  nomeExterno             String?
+  whatsappExterno         String?
+  status                  String       @default("PENDENTE") // PENDENTE | ACEITO | RECUSADO
+  motivoRecusa            String?
+  dataAlternativaSugerida DateTime?
+  evento                  AgendaEvento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  usuario                 Usuario?     @relation(fields: [usuarioId], references: [id])
+  createdAt               DateTime     @default(now())
+
+  @@unique([eventoId, usuarioId])
+  @@map("AgendaParticipante")
+}
+
+model AgendaLembrete {
+  id              Int          @id @default(autoincrement())
+  eventoId        Int
+  usuarioId       Int?
+  emailExterno    String?
+  antecedenciaMin Int
+  canal           String       @default("APP")
+  disparadoEm     DateTime?
+  evento          AgendaEvento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  usuario         Usuario?     @relation(fields: [usuarioId], references: [id])
+  createdAt       DateTime     @default(now())
+
+  @@index([disparadoEm])
+  @@index([eventoId])
+  @@map("AgendaLembrete")
+}
+
+// ====== BOT / INFRA ======
+
+// ====== PROCESSOS JUDICIAIS ======
+
+model ProcessoJudicial {
+  id               Int                 @id @default(autoincrement())
+  advogadoId       Int
+  advogado         Advogado            @relation(fields: [advogadoId], references: [id])
+  numeroProcesso   String
+  tribunal         String              // "tjpa", "trt8", "trf1", "stj" etc.
+  classe           String?
+  assunto          String?
+  dataAjuizamento  DateTime?           @db.Date
+  status           String              @default("ATIVO") // ATIVO | ARQUIVADO
+  monitorado       Boolean             @default(true)
+  ultimoAndamento  String?             @db.Text
+  ultimaDataAnd    DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  // Campos de importação (xlsx Astrea)
+  clienteId        Int?
+  cliente          Cliente?            @relation(fields: [clienteId], references: [id])
+  clienteNome      String?             @db.Text
+  posicaoCliente   String?
+  nomeEnvolvido    String?             @db.Text
+  tipoEnvolvimento String?
+  andamentos       ProcessoAndamento[]
+  intimacoes       Intimacao[]
+
+  @@unique([numeroProcesso, tribunal])
+  @@index([advogadoId])
+  @@index([status])
+  @@index([clienteId])
+  @@map("ProcessoJudicial")
+}
+
+model ProcessoAndamento {
+  id            Int              @id @default(autoincrement())
+  processoId    Int
+  processo      ProcessoJudicial @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  dataAndamento DateTime
+  descricao     String           @db.Text
+  notificado    Boolean          @default(false)
+  nota          String?          @db.Text
+  createdAt     DateTime         @default(now())
+
+  @@index([processoId])
+  @@index([notificado])
+  @@map("ProcessoAndamento")
+}
+
+// ====== INTIMAÇÕES DJe ======
+
+model Intimacao {
+  id         Int               @id @default(autoincrement())
+  tribunal   String            @default("tjpa")
+  edicao     Int
+  ano        Int
+  texto      String            @db.Text
+  termoBusca String
+  advogadoId Int?
+  processoId Int?
+  lida       Boolean           @default(false)
+  notificado Boolean           @default(false)
+  createdAt  DateTime          @default(now())
+
+  advogado Advogado?         @relation(fields: [advogadoId], references: [id])
+  processo ProcessoJudicial? @relation(fields: [processoId], references: [id])
+
+  @@index([edicao, ano])
+  @@index([advogadoId])
+  @@index([lida])
+  @@index([notificado])
+  @@map("Intimacao")
+}
+
+model WhatsAppBotState {
+  phone      String   @id
+  nivel      Int      @default(0)
+  aguardando String?
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@map("WhatsAppBotState")
+}
+
+model InstagramConversa {
+  id            Int      @id @default(autoincrement())
+  igUserId      String   @unique // IGSID — Instagram-scoped user ID
+  igUsername    String?           // @handle, preenchido quando disponível
+  nomeCompleto  String?           // nome real via Graph API
+  fotoPerfil    String?           // URL da foto de perfil via Graph API
+  responsavelId Int?              // userId do advogado assignado
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+
+  @@map("InstagramConversa")
+}
+
+model InstagramMensagem {
+  id            Int      @id @default(autoincrement())
+  igMid         String?  @unique   // Instagram Message ID
+  igUserId      String              // IGSID do remetente/destinatário externo
+  igUsername    String?             // @handle (snapshot)
+  direcao       String              // IN | OUT
+  conteudo      String
+  respondidoPor String?             // BOT | BOT_ESCALOU | HUMANO
+  enviadoPorId  Int?                // userId (respostas humanas)
+  lida          Boolean  @default(false)
+  criadoEm      DateTime @default(now())
+  tipo          String   @default("text") // text | image | video | audio | story_mention | story_reply
+  mediaUrl      String?             // URL pública da mídia (Instagram Graph API)
+  mediaId       String?             // ID de mídia (Instagram)
+
+  @@index([igUserId])
+  @@map("InstagramMensagem")
+}
+
+model GoogleCalendarToken {
+  id              Int       @id @default(autoincrement())
+  advogadoId      Int?      @unique  // opcional — advogado vinculado
+  advogado        Advogado? @relation(fields: [advogadoId], references: [id], onDelete: Cascade)
+  usuarioId       Int?      @unique  // alternativo — qualquer usuário sem vínculo com advogado
+  usuario         Usuario?  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  accessToken     String
+  refreshToken    String
+  expiresAt       DateTime
+  calendarId      String   @default("primary")
+  syncToken       String?
+  channelId       String?
+  channelExpiry   DateTime?
+  channelResource String?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  @@map("GoogleCalendarToken")
+}
+
+model SchedulerLock {
+  key     String   @id
+  lastRun DateTime @db.Date
+
+  @@map("SchedulerLock")
+}
+
+model ContatoSite {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String
+  telefone  String?
+  area      String?
+  urgencia  String?
+  mensagem  String
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("ContatoSite")
+}
+
+model BoletInter {
+  id             Int       @id @default(autoincrement())
+  nossoNumero         String?
+  codigoSolicitacao   String?
+  seuNumero           String
+  valorCentavos  Int
+  dataVencimento DateTime  @db.Date
+  status         String    @default("EMITIDO")
+  codigoBarras   String?
+  linhaDigitavel String?
+  pixCopiaECola  String?   @db.Text
+  qrCodeImagem   String?   @db.Text
+  pdfUrl         String?
+  parcelaId      Int?
+  clienteId      Int?
+  pagadorNome    String?
+  pagadorCpfCnpj String?
+  pagadorEmail   String?
+  dataPagamento  DateTime?
+  valorPagoCent  Int?
+  historico      String?
+  multaPerc      Decimal?  @db.Decimal(5,2)
+  moraPercMes    Decimal?  @db.Decimal(5,2)
+  validadeDias   Int?
+  docNum         String?
+  modo           String    @default("mock")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  parcela ParcelaContrato? @relation(fields: [parcelaId], references: [id], onDelete: SetNull)
+  cliente Cliente?         @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+
+  @@index([parcelaId])
+  @@index([clienteId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("BoletInter")
+}
+
+// ====== PIX PAGAMENTOS ======
+
+model PixPagamento {
+  id                  Int       @id @default(autoincrement())
+  codigoSolicitacao   String?   @unique            // código Inter para consulta (retornado pelo POST)
+  endToEndId          String?                      // E2E ID Pix (disponível após processamento)
+  chavePix            String                       // chave do destinatário
+  tipoChave           String?                      // CPF | CNPJ | EMAIL | TELEFONE | EVP
+  favorecidoNome  String?
+  valorCentavos   Int
+  descricao       String?
+  status          String    @default("PROCESSANDO")
+  // PROCESSANDO | REALIZADO | DEVOLVIDO | ERRO | MOCK
+  repasseId       Int?
+  advogadoId      Int?
+  contaId         Int?
+  usuarioId       Int
+  erro            String?
+  dataPagamento   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  advogado Advogado?        @relation(fields: [advogadoId], references: [id], onDelete: SetNull)
+  conta    LivroCaixaConta? @relation(fields: [contaId],    references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([advogadoId])
+  @@index([createdAt(sort: Desc)])
+  @@map("PixPagamento")
+}
+
+model PagamentoBoleto {
+  id                     Int       @id @default(autoincrement())
+  codigoTransacao        String?   @unique            // código retornado pela Inter após envio
+  codBarraLinhaDigitavel String                       // linha digitável ou código de barras
+  valorCentavos          Int
+  dataPagamento          DateTime                     // data agendada/efetivada (date only)
+  dataVencimento         DateTime?                    // vencimento original do boleto
+  favorecidoNome         String?
+  historico              String?
+  status                 String    @default("PROCESSANDO")
+  // PROCESSANDO | AGENDADO | REALIZADO | CANCELADO | ERRO | MOCK
+  tipoOperacao           String    @default("BOLETO") // BOLETO | CONVENIO | TRIBUTO
+  contaId                Int?
+  usuarioId              Int
+  erro                   String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  conta    LivroCaixaConta? @relation(fields: [contaId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("PagamentoBoleto")
+}
+
+model PagamentoDarf {
+  id              Int       @id @default(autoincrement())
+  codigoTransacao String?
+  cnpjCpf         String
+  codigoReceita   String                       // 4 dígitos
+  dataPagamento   DateTime                     // data do pagamento (hoje em BRT)
+  dataVencimento  DateTime                     // vencimento da DARF
+  periodoApuracao DateTime                     // período de apuração
+  descricao       String?
+  nomeEmpresa     String
+  telefoneEmpresa String?
+  referencia      String                       // numérico, obrigatório pela Inter
+  valorPrincipal  Int                          // centavos
+  valorJuros      Int       @default(0)
+  valorMulta      Int       @default(0)
+  status          String    @default("PROCESSANDO")
+  historico       String?
+  contaId         Int?
+  usuarioId       Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  conta LivroCaixaConta? @relation(fields: [contaId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("PagamentoDarf")
+}

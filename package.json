@@ -1,0 +1,11 @@
+{
+  "name": "addere",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix frontend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend",
+    "prisma:generate": "npm run prisma:generate --prefix backend"
+  }
+}

@@ -1,0 +1,364 @@
+/* ============================================================
+   DOSSIE_PRINT.CSS - CSS PROFISSIONAL PARA IMPRESSÃO
+   ============================================================ */
+
+/* ============================================================
+   1. CONFIGURAÇÕES GERAIS DE IMPRESSÃO
+   ============================================================ */
+
+@media print {
+  
+  /* Remove tudo exceto o preview */
+  body * {
+    visibility: hidden;
+  }
+  
+  #dossie-preview,
+  #dossie-preview * {
+    visibility: visible;
+  }
+  
+  #dossie-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Remove elementos não necessários na impressão */
+  .print\:hidden,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Remove sombras e bordas arredondadas */
+  * {
+    box-shadow: none !important;
+  }
+
+  /* ============================================================
+     2. CONFIGURAÇÃO DE PÁGINA
+     ============================================================ */
+
+  @page {
+    size: A4;
+    margin: 15mm 10mm;
+  }
+
+  /* Evita quebras de página indesejadas */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+
+  table {
+    page-break-inside: avoid;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  /* ============================================================
+     3. AJUSTES DE COR PARA IMPRESSÃO
+     ============================================================ */
+
+  /* Remove backgrounds coloridos (economiza tinta) */
+  .bg-gray-50,
+  .bg-gray-100,
+  .bg-blue-50,
+  .bg-blue-100 {
+    background-color: transparent !important;
+    border: 1px solid #e5e7eb;
+  }
+
+  /* Mantém apenas cores essenciais */
+  .bg-gradient-to-r {
+    background: #1e40af !important;
+    color: white !important;
+  }
+
+  /* Status badges mantêm suas cores */
+  .bg-green-100,
+  .bg-yellow-100,
+  .bg-red-100,
+  .bg-amber-100 {
+    background-color: #f3f4f6 !important;
+    border: 1px solid #d1d5db;
+  }
+
+  /* Textos coloridos viram preto */
+  .text-blue-600,
+  .text-blue-700,
+  .text-blue-800,
+  .text-blue-900,
+  .text-gray-600,
+  .text-gray-700 {
+    color: #000 !important;
+  }
+
+  /* Mantém cores de destaque */
+  .text-green-700,
+  .text-green-800 {
+    color: #15803d !important;
+  }
+
+  .text-red-700,
+  .text-red-800 {
+    color: #b91c1c !important;
+  }
+
+  .text-yellow-700,
+  .text-yellow-800 {
+    color: #a16207 !important;
+  }
+
+  /* ============================================================
+     4. AJUSTES DE LAYOUT
+     ============================================================ */
+
+  /* Reduz padding/margin para economizar espaço */
+  .p-8 {
+    padding: 1rem !important;
+  }
+
+  .p-6 {
+    padding: 0.75rem !important;
+  }
+
+  .mb-8 {
+    margin-bottom: 1rem !important;
+  }
+
+  .mb-6 {
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* Grid responsivo vira coluna única */
+  .grid-cols-2,
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* ============================================================
+     5. TABELAS
+     ============================================================ */
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10pt !important;
+  }
+
+  th {
+    background-color: #f3f4f6 !important;
+    font-weight: bold !important;
+    border: 1px solid #d1d5db !important;
+    padding: 6px !important;
+  }
+
+  td {
+    border: 1px solid #e5e7eb !important;
+    padding: 4px !important;
+  }
+
+  tbody tr:nth-child(even) {
+    background-color: #fafafa !important;
+  }
+
+  /* ============================================================
+     6. TIPOGRAFIA
+     ============================================================ */
+
+  body {
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    color: #000 !important;
+  }
+
+  h1 {
+    font-size: 18pt !important;
+    font-weight: bold !important;
+  }
+
+  h2 {
+    font-size: 16pt !important;
+    font-weight: bold !important;
+  }
+
+  h3 {
+    font-size: 14pt !important;
+    font-weight: bold !important;
+  }
+
+  h4 {
+    font-size: 12pt !important;
+    font-weight: bold !important;
+  }
+
+  /* ============================================================
+     7. CABEÇALHO E RODAPÉ
+     ============================================================ */
+
+  /* Cabeçalho fixo em cada página */
+  #dossie-preview > div:first-child {
+    display: block;
+    position: running(header);
+  }
+
+  /* Força renderização de cores e filtros no PDF/impressão */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  @page {
+    @top-center {
+      content: element(header);
+    }
+  }
+
+  /* Rodapé com número de página */
+  @page {
+    @bottom-right {
+      content: "Página " counter(page) " de " counter(pages);
+      font-size: 9pt;
+      color: #6b7280;
+    }
+    @bottom-left {
+      content: "Gerado em " attr(data-generated);
+      font-size: 9pt;
+      color: #6b7280;
+    }
+  }
+
+  /* ============================================================
+     8. SEPARADORES E BORDAS
+     ============================================================ */
+
+  .border-dashed {
+    border-style: dashed !important;
+    border-color: #d1d5db !important;
+  }
+
+  .border-2 {
+    border-width: 2px !important;
+  }
+
+  /* ============================================================
+     9. BARRAS DE PROGRESSO
+     ============================================================ */
+
+  /* Simplifica barras de progresso */
+  .bg-gradient-to-r.from-green-500 {
+    background: linear-gradient(to right, #22c55e, #16a34a) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ============================================================
+     10. BADGES E TAGS
+     ============================================================ */
+
+  /* Badges ficam mais simples */
+  .rounded-full {
+    border-radius: 4px !important;
+  }
+
+  .px-3,
+  .px-4 {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+  }
+
+  /* ============================================================
+     11. IMAGENS E LOGOS
+     ============================================================ */
+
+  img {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  /* Logo no cabeçalho */
+  #dossie-preview img {
+    max-height: 50px !important;
+    width: auto !important;
+    filter: brightness(0) invert(1) !important; /* Força logo branco */
+    -webkit-filter: brightness(0) invert(1) !important;
+  }
+
+  /* ============================================================
+     12. AJUSTES ESPECÍFICOS
+     ============================================================ */
+
+  /* Separador de renegociação */
+  .border-dashed + div {
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  /* Box de resumo financeiro */
+  .bg-gradient-to-r.from-blue-50 {
+    background-color: #f8f9fa !important;
+    border: 2px solid #d1d5db !important;
+  }
+
+  /* Observações */
+  .bg-amber-50 {
+    background-color: #fffbeb !important;
+    border: 1px solid #fbbf24 !important;
+  }
+
+}
+
+/* ============================================================
+   13. CLASSES UTILITÁRIAS PARA IMPRESSÃO
+   ============================================================ */
+
+/* Usar na marcação HTML para forçar comportamentos */
+
+.page-break-before {
+  page-break-before: always;
+}
+
+.page-break-after {
+  page-break-after: always;
+}
+
+.page-break-inside-avoid {
+  page-break-inside: avoid;
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .print-only {
+    display: block;
+  }
+}
+
+/* ============================================================
+   14. MODO ESCURO (Desabilitar na impressão)
+   ============================================================ */
+
+@media print {
+  .dark,
+  .dark * {
+    color: #000 !important;
+    background-color: #fff !important;
+  }
+}

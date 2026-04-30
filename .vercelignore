@@ -1,0 +1,10 @@
+.git
+.claude
+.vercel
+backend
+.env
+.env.*
+node_modules
+dist
+build
+*.log

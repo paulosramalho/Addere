@@ -1,0 +1,182 @@
+/* CSS de Impressão - SOLUÇÃO DEFINITIVA - 01/02/2026 */
+
+@media screen {
+  #print-zone {
+    position: fixed !important;
+    left: -9999px !important;
+    top: 0 !important;
+    visibility: hidden !important;
+  }
+  
+  #print-area {
+    display: none !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm 1cm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  /* ================================
+     SOLUÇÃO: Usa body * em vez de #root
+  ================================ */
+  
+  /* Esconde TUDO primeiro */
+  body * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  
+  /* Depois MOSTRA apenas print-zone e seus filhos */
+  #print-zone,
+  #print-zone * {
+    display: block !important;
+    visibility: visible !important;
+  }
+  
+  /* Força print-zone a aparecer */
+  #print-zone {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  /* ================================
+     PÁGINAS DO RELATÓRIO
+  ================================ */
+  
+  .pdf-page {
+    display: block !important;
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    min-height: 25cm !important;
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    background: #fff !important;
+  }
+
+  .pdf-page:last-child {
+    page-break-after: avoid !important;
+  }
+
+  /* ================================
+     TABELAS
+  ================================ */
+  
+  table,
+  #print-zone table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: avoid !important;
+  }
+
+  thead,
+  #print-zone thead {
+    display: table-header-group !important;
+  }
+
+  tbody,
+  #print-zone tbody {
+    display: table-row-group !important;
+  }
+
+  tr,
+  #print-zone tr {
+    display: table-row !important;
+    page-break-inside: avoid !important;
+  }
+
+  td,
+  th,
+  #print-zone td,
+  #print-zone th {
+    display: table-cell !important;
+  }
+
+  /* ================================
+     OUTROS ELEMENTOS
+  ================================ */
+  
+  #print-zone div,
+  #print-zone span,
+  #print-zone p,
+  #print-zone strong,
+  #print-zone img {
+    display: block !important;
+  }
+  
+  #print-zone span,
+  #print-zone strong {
+    display: inline !important;
+  }
+
+  /* ================================
+     PRINT-AREA (compatibilidade)
+  ================================ */
+  
+  #print-area {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  #print-area,
+  #print-area * {
+    visibility: visible !important;
+  }
+
+  .rr-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    padding: 10mm 12mm 4mm 12mm;
+    z-index: 9999;
+  }
+
+  .rr-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    padding: 4mm 12mm 10mm 12mm;
+    z-index: 9999;
+  }
+
+  .rr-page {
+    box-sizing: border-box;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 32mm 12mm 34mm 12mm;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .rr-pages .rr-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}

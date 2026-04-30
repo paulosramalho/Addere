@@ -1,0 +1,1 @@
+ALTER TABLE "EmprestimoSocio" ADD COLUMN "valorPagoCentavos" INTEGER NOT NULL DEFAULT 0;
