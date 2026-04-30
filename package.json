@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "npm run build --prefix frontend",
+    "postinstall": "cd backend && npm install",
+    "build": "cd backend && npm install && npm run prisma:generate && cd ../frontend && npm install && npm run build",
+    "start": "cd backend && npm run start",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
     "prisma:generate": "npm run prisma:generate --prefix backend"
