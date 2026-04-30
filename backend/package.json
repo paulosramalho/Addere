@@ -4,7 +4,7 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "start": "export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; npx playwright install chromium >/dev/null 2>&1 & prisma migrate resolve --applied 20260310_add_agenda 2>/dev/null || true; prisma migrate resolve --applied 20260321_add_monitorado_processo 2>/dev/null || true; prisma migrate resolve --applied 20260321_add_pje_seed 2>/dev/null || true; prisma migrate deploy && prisma db seed && node src/server.js",
+    "start": "npx playwright install chromium >/dev/null 2>&1 & prisma migrate resolve --applied 20260310_add_agenda 2>/dev/null || true; prisma migrate resolve --applied 20260321_add_monitorado_processo 2>/dev/null || true; prisma migrate resolve --applied 20260321_add_pje_seed 2>/dev/null || true; prisma migrate deploy && prisma db seed && node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "vitest run",
     "test:watch": "vitest",
