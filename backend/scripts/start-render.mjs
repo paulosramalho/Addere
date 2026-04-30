@@ -75,14 +75,6 @@ function runBackground(command, args) {
 
 runBackground("npx", ["playwright", "install", "chromium"]);
 
-for (const migration of [
-  "20260310_add_agenda",
-  "20260321_add_monitorado_processo",
-  "20260321_add_pje_seed",
-]) {
-  await run("npx", ["prisma", "migrate", "resolve", "--applied", migration], { allowFailure: true });
-}
-
-await run("npx", ["prisma", "migrate", "deploy"]);
+await run("npx", ["prisma", "db", "push", "--skip-generate"]);
 await run("npx", ["prisma", "db", "seed"]);
 await import("../src/server.js");
