@@ -14,7 +14,6 @@ export default defineConfig({
       PORT: "0",
       // Valores dummy para passar na validação de startup (Prisma é mockado)
       DATABASE_URL: "postgresql://test:test@localhost:5432/test_db",
-      DIRECT_URL: "postgresql://test:test@localhost:5432/test_db",
       RESEND_API_KEY: "re_test_dummy",
       EMAIL_FROM: "test@amr.com",
     },

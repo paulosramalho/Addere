@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../lib/api";
+import { BASE_URL, apiFetch } from "../lib/api";
 import { useToast } from "../components/Toast";
 import { Tooltip } from "../components/Tooltip";
 
@@ -40,8 +40,7 @@ export default function LivroCaixaEmissao() {
     setLoading(true);
     try {
       const token = localStorage.getItem("addere_token");
-      const baseUrl = import.meta.env.VITE_API_URL || "https://addere.onrender.com/api";
-      const url = `${baseUrl}/livro-caixa/pdf?ano=${ano}&mes=${mes}`;
+      const url = `${BASE_URL}/livro-caixa/pdf?ano=${ano}&mes=${mes}`;
 
       const resp = await fetch(url, {
         method: "GET",

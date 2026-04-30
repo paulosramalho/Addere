@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback, Suspense, lazy } from "react";
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import logoSrc from "./assets/logo.png";
-import { apiFetch, setAuth, getUser, getToken, clearAuth } from "./lib/api";
+import { BASE_URL, apiFetch, setAuth, getUser, getToken, clearAuth } from "./lib/api";
 import { brlFromCentavos } from "./lib/formatters";
 import "./styles/dossie_print.css";
 
@@ -1936,7 +1936,7 @@ function Shell({ user, onLogout }) {
   );
 }
 
-const API = import.meta.env.VITE_API_URL;
+const API = BASE_URL;
 
 /* ---------------- Modal sessão expirada ---------------- */
 function SessionExpiredModal({ onConfirm }) {

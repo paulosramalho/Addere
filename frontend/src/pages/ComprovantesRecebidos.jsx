@@ -1,6 +1,6 @@
 // src/pages/ComprovantesRecebidos.jsx
 import React, { useEffect, useState, useCallback } from "react";
-import { apiFetch } from "../lib/api";
+import { BASE_URL, apiFetch } from "../lib/api";
 import { useToast } from "../components/Toast";
 import { fmtDate } from "../lib/formatters";
 
@@ -151,7 +151,7 @@ export default function RespostasClientes({ user }) {
 
   function downloadAnexo(anexoId, nomeArquivo) {
     const token = localStorage.getItem("addere_token");
-    const url = `${import.meta.env.VITE_API_URL}/comprovantes/anexo/${anexoId}`;
+    const url = `${BASE_URL}/comprovantes/anexo/${anexoId}`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.blob())
       .then(blob => {

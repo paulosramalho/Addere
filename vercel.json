@@ -3,6 +3,10 @@
   "installCommand": "npm install --prefix frontend",
   "buildCommand": "npm run build --prefix frontend",
   "outputDirectory": "frontend/dist",
+  "env": {
+    "VITE_API_URL": "https://addere.onrender.com/api",
+    "VITE_API_BASE_URL": "https://addere.onrender.com/api"
+  },
   "rewrites": [
     {
       "source": "/(.*)",

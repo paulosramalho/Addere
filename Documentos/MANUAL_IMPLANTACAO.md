@@ -68,18 +68,16 @@ Alertas               → Telegram Bot
 | Nome do banco | `neondb` |
 | Schema | `public` |
 
-**Duas strings de conexão necessárias:**
-- `DATABASE_URL` → endpoint com **pooler** (para a API em produção)
-- `DIRECT_URL` → endpoint **direto** sem pooler (para migrations via Prisma)
+**String de conexão necessária:**
+- `DATABASE_URL` → endpoint PostgreSQL do Neon com `sslmode=require`
 
-> Ambas ficam em **Render → Environment** e em `backend/.env` localmente.
+> Essa variável fica em **Render → Environment** e em `backend/.env` localmente.
 
-**Atenção:** A Prisma usa `DIRECT_URL` no `schema.prisma`:
+**Atenção:** A Prisma usa `DATABASE_URL` no `schema.prisma`:
 ```prisma
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 ```
 
@@ -375,7 +373,7 @@ Seguir esta ordem evita bloqueios por dependência:
 
 ```
 1. GitHub — criar repo, estrutura inicial, primeiro commit
-2. Neon — criar banco, copiar DATABASE_URL e DIRECT_URL
+2. Neon — criar banco, copiar DATABASE_URL
 3. Render — criar serviço, configurar ENVs mínimas (DATABASE_URL, JWT_SECRET)
 4. Rodar migrations — npx prisma migrate deploy (local ou via Render shell)
 5. Vercel (dashboard) — conectar repo, configurar VITE_API_BASE_URL
@@ -399,7 +397,6 @@ Seguir esta ordem evita bloqueios por dependência:
 | Variável | Descrição | Obrigatória |
 |----------|-----------|-------------|
 | `DATABASE_URL` | Neon pooler | ✅ |
-| `DIRECT_URL` | Neon direto (migrations) | ✅ |
 | `JWT_SECRET` | Segredo JWT — string aleatória longa | ✅ |
 | `DASHBOARD_PASSWORD` | Senha do painel | ✅ |
 | `NODE_ENV` | `production` | ✅ |
