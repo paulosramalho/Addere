@@ -1900,11 +1900,11 @@ router.post("/api/livro-caixa/lancamentos", authenticate, async (req, res) => {
     const competenciaAno = Number(b.competenciaAno);
     const competenciaMes = Number(b.competenciaMes);
 
-    if (!competenciaAno || competenciaAno < 2000) return res.status(400).json({ message: "competenciaAno invÃ¡lido." });
-    if (!competenciaMes || competenciaMes < 1 || competenciaMes > 12) return res.status(400).json({ message: "competenciaMes invÃ¡lido." });
+    if (!competenciaAno || competenciaAno < 2000) return res.status(400).json({ message: "competenciaAno inválido." });
+    if (!competenciaMes || competenciaMes < 1 || competenciaMes > 12) return res.status(400).json({ message: "competenciaMes inválido." });
 
     const data = parseDateDDMMYYYY(b.dataBR);
-    if (!data) return res.status(400).json({ message: "dataBR invÃ¡lida (DD/MM/AAAA)." });
+    if (!data) return res.status(400).json({ message: "dataBR inválida (DD/MM/AAAA)." });
 
     const es = String(b.es || "").toUpperCase();
     if (es !== "E" && es !== "S") return res.status(400).json({ message: "es deve ser 'E' ou 'S'." });
