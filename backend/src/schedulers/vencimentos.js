@@ -26,7 +26,7 @@ function _waPhone(phone) {
 // ============================================================
 let _ultimoEmailAlertas = null; // "YYYY-MM-DD" — L1 cache (sobrevivência ao reinício: veja _schedulerShouldRun)
 
-function buildEmailAlertaVencimentos(nome, parcelas1dia, parcelas7dias, repassesPendentes, saidas1dia, saidas7dias) {
+function buildEmailAlertaVencimentos(nome, parcelas1dia, parcelas7dias, saidas1dia, saidas7dias) {
   const fmtBRL = (c) => (Number(c || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const fmtDate = (d) => {
     const s = d instanceof Date ? d.toISOString() : String(d);
@@ -68,22 +68,6 @@ function buildEmailAlertaVencimentos(nome, parcelas1dia, parcelas7dias, repasses
           <td style="padding:8px">#${p.numero}</td>
           <td style="padding:8px">${fmtDate(p.vencimento)}</td>
           <td style="padding:8px;text-align:right;font-weight:600">${fmtBRL(Number(p.valorPrevisto || 0) * 100)}</td>
-        </tr>`).join("")}
-      </tbody>
-    </table>`;
-
-  const secao3 = repassesPendentes.length === 0 ? `<p style="color:#64748b;font-size:13px">Nenhum repasse pendente.</p>` : `
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="background:#dbeafe">
-        <th style="padding:8px;text-align:left;border-bottom:1px solid #93c5fd">Advogado</th>
-        <th style="padding:8px;text-align:left;border-bottom:1px solid #93c5fd">Competência</th>
-        <th style="padding:8px;text-align:right;border-bottom:1px solid #93c5fd">Valor Previsto</th>
-      </tr></thead>
-      <tbody>${repassesPendentes.map(r => `
-        <tr style="border-bottom:1px solid #dbeafe">
-          <td style="padding:8px">${r.advogado?.nome || "—"}</td>
-          <td style="padding:8px">${String(r.competenciaMes).padStart(2,"0")}/${r.competenciaAno}</td>
-          <td style="padding:8px;text-align:right;font-weight:600">${fmtBRL(Number(r.valorPrevisto || 0) * 100)}</td>
         </tr>`).join("")}
       </tbody>
     </table>`;
@@ -161,15 +145,6 @@ function buildEmailAlertaVencimentos(nome, parcelas1dia, parcelas7dias, repasses
         ${secao5}
       </div>
 
-      <!-- REPASSES -->
-      <div style="font-size:13px;font-weight:700;color:#475569;letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px">↑ Repasses a Efetuar</div>
-      <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:16px;margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <span style="font-size:18px">🔵</span>
-          <span style="font-weight:700;color:#1d4ed8;font-size:15px">Repasses Pendentes (${repassesPendentes.length} repasse${repassesPendentes.length !== 1 ? "s" : ""})</span>
-        </div>
-        ${secao3}
-      </div>
     </div>
     <div style="padding:16px 28px;background:#f1f5f9;text-align:center;font-size:11px;color:#94a3b8">
       Addere Control — notificação automática
@@ -344,283 +319,6 @@ function buildEmailAtrasoCliente(nomeCliente, parcelas) {
 </body></html>`;
 }
 
-// ── E-mail: novo lançamento com participação do advogado ────────────────────
-function buildEmailNovoLancamentoAdvogado(nomeAdvogado, lanc) {
-  const fmtBRL = (c) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const aliq = _mesAliuqota(lanc.competenciaMes, lanc.competenciaAno);
-
-  return `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f8fafc;margin:0;padding:20px">
-  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)">
-    <div style="background:#166534;padding:24px 28px">
-      <div style="font-size:20px;font-weight:700;color:#fff">Addere</div>
-      <div style="font-size:13px;color:#bbf7d0;margin-top:4px">Novo lançamento com sua participação</div>
-      <div style="font-size:12px;color:#86efac;margin-top:4px">Mensagem direcionada à ${nomeAdvogado}</div>
-    </div>
-    <div style="padding:24px 28px">
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 20px;margin-bottom:20px">
-        <table style="width:100%;border-collapse:collapse">
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase;width:130px">Data</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a;font-weight:600">${_fmtDatePT(lanc.data)}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Cliente</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a">${lanc.clienteFornecedor || "—"}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Histórico</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a">${lanc.historico || "—"}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Valor recebido</td>
-            <td style="padding:6px 0;font-size:18px;font-weight:700;color:#166534">${fmtBRL(lanc.valorCentavos)}</td>
-          </tr>
-        </table>
-      </div>
-      <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;font-size:13px;color:#713f12">
-        ℹ️ O valor do seu repasse será informado oportunamente, após a definição da alíquota para <strong>${aliq.nome} de ${aliq.ano}</strong>.
-      </div>
-    </div>
-    <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">
-      Addere Control — notificação automática
-    </div>
-  </div>
-</body></html>`;
-}
-
-// ── E-mail: resumo para admin de lançamento notificado ──────────────────────
-function buildEmailAdminNovoLancamento(dadosLanc, destinatarios, semEmail = []) {
-  const fmtBRL = (c) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const aliq = _mesAliuqota(dadosLanc.competenciaMes, dadosLanc.competenciaAno);
-  const linhasDestinatarios = destinatarios.map(d =>
-    `<tr>
-      <td style="padding:5px 8px;font-size:13px;color:#0f172a;border-bottom:1px solid #e5e7eb">${d.nome}</td>
-      <td style="padding:5px 8px;font-size:13px;color:#475569;border-bottom:1px solid #e5e7eb">${d.email}</td>
-    </tr>`
-  ).join("");
-
-  const secaoSemEmail = semEmail.length > 0 ? `
-      <div style="margin-top:20px">
-        <div style="font-size:13px;font-weight:600;color:#b45309;margin-bottom:8px">⚠️ Não notificados — e-mail não cadastrado (${semEmail.length})</div>
-        <table style="width:100%;border-collapse:collapse;border:1px solid #fde68a;border-radius:8px;overflow:hidden">
-          <thead>
-            <tr style="background:#fffbeb">
-              <th style="padding:8px;font-size:12px;color:#92400e;text-align:left;border-bottom:1px solid #fde68a">Nome</th>
-              <th style="padding:8px;font-size:12px;color:#92400e;text-align:left;border-bottom:1px solid #fde68a">Motivo</th>
-            </tr>
-          </thead>
-          <tbody>${semEmail.map(s => `<tr>
-            <td style="padding:5px 8px;font-size:13px;color:#0f172a;border-bottom:1px solid #fef9c3">${s.nome}</td>
-            <td style="padding:5px 8px;font-size:13px;color:#b45309;border-bottom:1px solid #fef9c3">${s.motivo}</td>
-          </tr>`).join("")}</tbody>
-        </table>
-      </div>` : "";
-
-  return `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f8fafc;margin:0;padding:20px">
-  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)">
-    <div style="background:#1e3a5f;padding:24px 28px">
-      <div style="font-size:20px;font-weight:700;color:#fff">Addere</div>
-      <div style="font-size:13px;color:#93c5fd;margin-top:4px">Notificação de novo lançamento — Resumo admin</div>
-    </div>
-    <div style="padding:24px 28px">
-      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px 20px;margin-bottom:20px">
-        <table style="width:100%;border-collapse:collapse">
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase;width:140px">Data</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a;font-weight:600">${_fmtDatePT(dadosLanc.data)}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Cliente</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a">${dadosLanc.clienteFornecedor || "—"}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Histórico</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a">${dadosLanc.historico || "—"}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Valor recebido</td>
-            <td style="padding:6px 0;font-size:18px;font-weight:700;color:#1e3a5f">${fmtBRL(dadosLanc.valorCentavos)}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Alíquota</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a">${aliq.nome} de ${aliq.ano}</td>
-          </tr>
-        </table>
-      </div>
-      <div style="font-size:13px;font-weight:600;color:#334155;margin-bottom:8px">Advogados notificados (${destinatarios.length})</div>
-      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
-        <thead>
-          <tr style="background:#f1f5f9">
-            <th style="padding:8px;font-size:12px;color:#475569;text-align:left;border-bottom:1px solid #e5e7eb">Nome</th>
-            <th style="padding:8px;font-size:12px;color:#475569;text-align:left;border-bottom:1px solid #e5e7eb">E-mail</th>
-          </tr>
-        </thead>
-        <tbody>${linhasDestinatarios}</tbody>
-      </table>
-      ${secaoSemEmail}
-    </div>
-    <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">
-      Addere Control — notificação automática
-    </div>
-  </div>
-</body></html>`;
-}
-
-async function enviarEmailNovoLancamentoAdvogados(parcelaId, dadosLanc) {
-  try {
-    // Busca parcela → contrato → advogado principal + indicação
-    const parcelaComContrato = await prisma.parcelaContrato.findUnique({
-      where: { id: parcelaId },
-      include: {
-        contrato: {
-          include: {
-            repasseAdvogadoPrincipal: { select: { id: true, nome: true, email: true, ativo: true } },
-            repasseIndicacaoAdvogado:  { select: { id: true, nome: true, email: true, ativo: true } },
-            splits: { include: { advogado: { select: { id: true, nome: true, email: true, ativo: true } } } },
-          },
-        },
-      },
-    });
-
-    // Splits a nível de parcela (override) ou de contrato (fallback)
-    const splitsParcela = await prisma.parcelaSplitAdvogado.findMany({
-      where: { parcelaId },
-      include: { advogado: { select: { id: true, nome: true, email: true, ativo: true } } },
-    });
-    const splitsContrato = parcelaComContrato?.contrato?.splits ?? [];
-    // Usa splits de parcela se existirem; senão usa splits do contrato
-    const splits = splitsParcela.length > 0 ? splitsParcela : splitsContrato;
-
-    const porAdvogado = new Map();
-    const semEmailList = [];
-    const _seenSemEmail = new Set();
-    const addAdv = (adv) => {
-      if (!adv || !adv.nome) return;
-      if (adv.ativo && adv.email) {
-        if (!porAdvogado.has(adv.id)) porAdvogado.set(adv.id, { nome: adv.nome, email: adv.email });
-      } else if (!_seenSemEmail.has(adv.id)) {
-        _seenSemEmail.add(adv.id);
-        semEmailList.push({ nome: adv.nome, motivo: !adv.ativo ? "inativo" : "sem e-mail cadastrado" });
-      }
-    };
-
-    // Indicação → sempre inclui se existir
-    addAdv(parcelaComContrato?.contrato?.repasseIndicacaoAdvogado);
-
-    // Principais: splits se existirem, senão advogado principal
-    if (splits.length > 0) {
-      for (const split of splits) addAdv(split.advogado);
-    } else {
-      addAdv(parcelaComContrato?.contrato?.repasseAdvogadoPrincipal);
-    }
-
-    const destinatariosNotificados = [];
-    for (const { nome, email } of porAdvogado.values()) {
-      await sendEmail({
-        to: email,
-        subject: `💰 Addere — Novo lançamento: ${dadosLanc.clienteFornecedor || dadosLanc.historico || "Pagamento recebido"}`,
-        html: buildEmailNovoLancamentoAdvogado(nome, dadosLanc),
-      });
-      destinatariosNotificados.push({ nome, email });
-    }
-
-    if (destinatariosNotificados.length > 0 || semEmailList.length > 0) {
-      console.log(`📧 E-mail novo lançamento enviado para ${destinatariosNotificados.length} advogado(s); sem e-mail: ${semEmailList.length}`);
-      // Resumo para admins (inclui quem não recebeu por falta de e-mail)
-      const admins = await prisma.usuario.findMany({
-        where: { role: "ADMIN", ativo: true },
-        select: { email: true, nome: true },
-      });
-      await Promise.allSettled(admins.map(admin => sendEmail({
-        to: admin.email,
-        subject: `📋 Addere — Lançamento notificado: ${dadosLanc.clienteFornecedor || dadosLanc.historico || "Pagamento recebido"}`,
-        html: buildEmailAdminNovoLancamento(dadosLanc, destinatariosNotificados, semEmailList),
-      })));
-    }
-  } catch (err) {
-    console.error("❌ Erro ao enviar e-mail de novo lançamento:", err.message);
-  }
-}
-
-// ── E-mail: apuração do repasse (Modelo de Distribuição aplicado) ────────────
-function buildEmailApuracaoAdvogado(nomeAdvogado, { mes, ano, valorLiquidoCentavos, qtdParcelas }) {
-  const fmtBRL = (c) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const mesNome = _MESES_PT[mes - 1] || String(mes);
-  return `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f8fafc;margin:0;padding:20px">
-  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)">
-    <div style="background:#92400e;padding:24px 28px">
-      <div style="font-size:20px;font-weight:700;color:#fff">Addere</div>
-      <div style="font-size:13px;color:#fde68a;margin-top:4px">Apuração de repasse disponível</div>
-      <div style="font-size:12px;color:#fef3c7;margin-top:4px">Mensagem direcionada à ${nomeAdvogado}</div>
-    </div>
-    <div style="padding:24px 28px">
-      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px 20px;margin-bottom:20px">
-        <table style="width:100%;border-collapse:collapse">
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase;width:160px">Competência</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a;font-weight:600">${mesNome} de ${ano}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Parcelas apuradas</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a">${qtdParcelas}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Valor apurado</td>
-            <td style="padding:6px 0;font-size:18px;font-weight:700;color:#92400e">${fmtBRL(valorLiquidoCentavos)}</td>
-          </tr>
-        </table>
-      </div>
-      <div style="background:#fefce8;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;font-size:13px;color:#713f12">
-        ℹ️ Este é o valor apurado com base no Modelo de Distribuição do seu contrato. O pagamento efetivo será realizado após confirmação do financeiro.
-      </div>
-    </div>
-    <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">
-      Addere Control — notificação automática
-    </div>
-  </div>
-</body></html>`;
-}
-
-// ── E-mail: repasse realizado → advogado ─────────────────────────────────────
-function buildEmailRepasseRealizado(nomeAdvogado, { competenciaMes, competenciaAno, valorEfetivadoCentavos, dataRepasse }) {
-  const fmtBRL = (c) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const mesNome = _MESES_PT[competenciaMes - 1] || String(competenciaMes);
-  const dataStr = dataRepasse ? _fmtDatePT(dataRepasse) : "—";
-  return `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f8fafc;margin:0;padding:20px">
-  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)">
-    <div style="background:#1e40af;padding:24px 28px">
-      <div style="font-size:20px;font-weight:700;color:#fff">Addere</div>
-      <div style="font-size:13px;color:#bfdbfe;margin-top:4px">Repasse processado pelo financeiro</div>
-      <div style="font-size:12px;color:#dbeafe;margin-top:4px">Mensagem direcionada à ${nomeAdvogado}</div>
-    </div>
-    <div style="padding:24px 28px">
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px 20px;margin-bottom:20px">
-        <table style="width:100%;border-collapse:collapse">
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase;width:160px">Competência</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a;font-weight:600">${mesNome} de ${competenciaAno}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Data do repasse</td>
-            <td style="padding:6px 0;font-size:14px;color:#0f172a">${dataStr}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 0;font-size:12px;color:#64748b;font-weight:600;text-transform:uppercase">Valor efetivado</td>
-            <td style="padding:6px 0;font-size:18px;font-weight:700;color:#1e40af">${fmtBRL(valorEfetivadoCentavos)}</td>
-          </tr>
-        </table>
-      </div>
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;font-size:13px;color:#1e3a8a">
-        ✅ Seu repasse foi processado. Aguarde o crédito em conta — em caso de dúvidas, entre em contato com o financeiro.
-      </div>
-    </div>
-    <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">
-      Addere Control — notificação automática
-    </div>
-  </div>
-</body></html>`;
-}
-
 export function startVencimentosScheduler() {
   if (IS_TEST) return;
 
@@ -679,7 +377,7 @@ export function startVencimentosScheduler() {
       await Promise.allSettled(admins.map(admin => sendEmail({
         to: admin.email,
         subject: `⏰ Addere — Alertas financeiros: ${rawD1.length} entrada(s) amanhã · ${saidasD1.length} saída(s) amanhã`,
-        html: buildEmailAlertaVencimentos(admin.nome, norm1, norm7, [], saidasD1, saidasD7),
+        html: buildEmailAlertaVencimentos(admin.nome, norm1, norm7, saidasD1, saidasD7),
       })));
       for (const admin of admins) {
 
@@ -753,16 +451,11 @@ export function startVencimentosScheduler() {
 
 export {
   _dispararAvisoImediatoParcelas,
-  enviarEmailNovoLancamentoAdvogados,
   buildEmailAlertaVencimentos,
   buildEmailVencimentoCliente,
   buildEmailAtrasoCliente,
   buildEmailRecebimentoCliente,
   buildEmailAcuseRecebimentoCliente,
-  buildEmailNovoLancamentoAdvogado,
-  buildEmailAdminNovoLancamento,
-  buildEmailApuracaoAdvogado,
-  buildEmailRepasseRealizado,
   _fmtDatePT,
   _MESES_PT,
   _mesAliuqota,

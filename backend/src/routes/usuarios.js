@@ -1,10 +1,16 @@
 import { Router } from "express";
 import prisma from "../lib/prisma.js";
 import bcrypt from "bcryptjs";
-import { authenticate, requireAdmin, invalidateAdvogadoIdCache } from "../lib/auth.js";
+import { authenticate, requireAdmin } from "../lib/auth.js";
 import { sendEmail, ADMIN_WHATSAPP, buildWhatsAppLink } from "../lib/email.js";
 
 const router = Router();
+const TIPOS_USUARIO_PERMITIDOS = new Set(["USUARIO", "ESTAGIARIO", "SECRETARIA_VIRTUAL", "EXTERNO", "INTERNO"]);
+
+function normalizarTipoUsuario(value, fallback = "INTERNO") {
+  const tipo = String(value || fallback).trim().toUpperCase();
+  return TIPOS_USUARIO_PERMITIDOS.has(tipo) ? tipo : fallback;
+}
 
 // ============================================================
 // USUÁRIOS
@@ -17,7 +23,7 @@ router.get("/api/usuarios/me", authenticate, async (req, res) => {
       where: { id: req.user.id },
       select: {
         id: true, nome: true, email: true, telefone: true, cpf: true,
-        tipoUsuario: true, role: true, advogadoId: true, ativo: true,
+        tipoUsuario: true, role: true, ativo: true,
       },
     });
     if (!usuario) return res.status(404).json({ message: "Usuário não encontrado." });
@@ -67,7 +73,6 @@ router.get("/api/usuarios", authenticate, requireAdmin, async (req, res) => {
         cpf: true,
         role: true,
         tipoUsuario: true,
-        advogadoId: true,
         ghostAdmin: true,
         deveTrocarSenha: true,
         ativo: true,
@@ -93,8 +98,6 @@ router.post("/api/usuarios", authenticate, requireAdmin, async (req, res) => {
       tipoUsuario,
       telefone,
       cpf,
-      advogadoId,
-      criarAdvogado,
       ghostAdmin,
       deveTrocarSenha,
     } = req.body || {};
@@ -126,44 +129,15 @@ router.post("/api/usuarios", authenticate, requireAdmin, async (req, res) => {
 
     const senhaHash = await bcrypt.hash(senha, 10);
 
-    // Criar registro de Advogado automaticamente (admin-only)
-    let finalAdvogadoId = advogadoId ? Number(advogadoId) : null;
-    let finalTipoUsuario = tipoUsuario || "INTERNO";
-
-    if (criarAdvogado) {
-      const nomeAdv = String(nome).trim();
-      const cpfAdv = cpf ? String(cpf) : null;
-      if (!cpfAdv) return res.status(400).json({ message: "CPF é obrigatório para criar Advogado." });
-
-      // Verifica se CPF já existe em Advogados
-      const advExistente = await prisma.advogado.findUnique({ where: { cpf: cpfAdv } });
-      if (advExistente) {
-        finalAdvogadoId = advExistente.id;
-      } else {
-        const novoAdv = await prisma.advogado.create({
-          data: {
-            nome: nomeAdv,
-            cpf: cpfAdv,
-            oab: cpfAdv, // placeholder - admin corrige depois
-            email: emailNorm,
-            telefone: telefone ? String(telefone) : null,
-          },
-        });
-        finalAdvogadoId = novoAdv.id;
-      }
-      finalTipoUsuario = "ADVOGADO";
-    }
-
     const usuario = await prisma.usuario.create({
       data: {
         nome: String(nome).trim(),
         email: emailNorm,
         senhaHash,
         role: role || "USER",
-        tipoUsuario: finalTipoUsuario,
+        tipoUsuario: normalizarTipoUsuario(tipoUsuario),
         telefone: telefone ? String(telefone) : null,
         cpf: cpf ? String(cpf) : null,
-        advogadoId: finalAdvogadoId,
         ghostAdmin: typeof ghostAdmin === "boolean" ? ghostAdmin : false,
         deveTrocarSenha: typeof deveTrocarSenha === "boolean" ? deveTrocarSenha : false,
         ativo: true,
@@ -176,7 +150,6 @@ router.post("/api/usuarios", authenticate, requireAdmin, async (req, res) => {
         cpf: true,
         role: true,
         tipoUsuario: true,
-        advogadoId: true,
         ghostAdmin: true,
         deveTrocarSenha: true,
         ativo: true,
@@ -207,10 +180,8 @@ router.put("/api/usuarios/:id", authenticate, requireAdmin, async (req, res) => 
       cpf,
       tipoUsuario,
       role,
-      advogadoId,
       senha,
       senhaConfirmacao,
-      criarAdvogado,
       ghostAdmin,
       deveTrocarSenha,
     } = req.body || {};
@@ -242,33 +213,6 @@ router.put("/api/usuarios/:id", authenticate, requireAdmin, async (req, res) => 
       senhaHash = await bcrypt.hash(String(senha), 10);
     }
 
-    // Criar registro de Advogado automaticamente (admin-only)
-    let finalAdvogadoId = advogadoId ? Number(advogadoId) : null;
-    if (criarAdvogado && !existente.advogadoId) {
-      const nomeAdv = String(nome).trim();
-      const cpfAdv = cpf ? String(cpf) : null;
-      const emailAdv = emailNorm;
-      if (!cpfAdv) return res.status(400).json({ message: "CPF é obrigatório para criar Advogado." });
-
-      // Verifica se CPF já existe em Advogados
-      const advExistente = await prisma.advogado.findUnique({ where: { cpf: cpfAdv } });
-      if (advExistente) {
-        // Vincula ao existente
-        finalAdvogadoId = advExistente.id;
-      } else {
-        const novoAdv = await prisma.advogado.create({
-          data: {
-            nome: nomeAdv,
-            cpf: cpfAdv,
-            oab: cpfAdv, // placeholder - admin corrige depois
-            email: emailAdv,
-            telefone: telefone ? String(telefone) : null,
-          },
-        });
-        finalAdvogadoId = novoAdv.id;
-      }
-    }
-
     const usuario = await prisma.usuario.update({
       where: { id },
       data: {
@@ -276,9 +220,9 @@ router.put("/api/usuarios/:id", authenticate, requireAdmin, async (req, res) => 
         email: emailNorm,
         telefone: telefone ? String(telefone) : null,
         cpf: cpf ? String(cpf) : null,
-        tipoUsuario: criarAdvogado ? "ADVOGADO" : (tipoUsuario || existente.tipoUsuario),
+        tipoUsuario: normalizarTipoUsuario(tipoUsuario, normalizarTipoUsuario(existente.tipoUsuario, "INTERNO")),
         role: role || existente.role,
-        advogadoId: finalAdvogadoId,
+        advogadoId: null,
         ghostAdmin: typeof ghostAdmin === "boolean" ? ghostAdmin : existente.ghostAdmin,
         deveTrocarSenha: typeof deveTrocarSenha === "boolean" ? deveTrocarSenha : existente.deveTrocarSenha,
         ...(senhaHash ? { senhaHash } : {}),
@@ -291,16 +235,12 @@ router.put("/api/usuarios/:id", authenticate, requireAdmin, async (req, res) => 
         cpf: true,
         tipoUsuario: true,
         role: true,
-        advogadoId: true,
         ghostAdmin: true,
         deveTrocarSenha: true,
         ativo: true,
         createdAt: true,
       },
     });
-
-    // P5 — Invalida cache de advogadoId ao alterar vínculo do usuário
-    invalidateAdvogadoIdCache(id);
 
     return res.json({
       message: "Usuário atualizado com sucesso", usuario });

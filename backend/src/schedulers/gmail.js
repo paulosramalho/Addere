@@ -507,7 +507,7 @@ export function startGmailScheduler() {
 
     let beneficiario = null, cnpjBeneficiario = null;
     // Padrão 1: "Nome Empresa - 48.744.127/0001-41"
-    const mBenef = texto.match(/([A-Za-zÀ-ú\s]+Advogados)\s*[-–]\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/);
+    const mBenef = texto.match(/([A-Za-zÀ-ú\s&.]+)\s*[-–]\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/);
     if (mBenef) { beneficiario = mBenef[1].trim(); cnpjBeneficiario = mBenef[2].trim(); }
     // Padrão 2: seção BENEFICIÁRIO/FAVORECIDO/CEDENTE com CNPJ na linha seguinte ou próxima
     if (!cnpjBeneficiario) {
@@ -981,14 +981,6 @@ export function startGmailScheduler() {
     }
   }
 
-  // ── Referência à função enviarEmailNovoLancamentoAdvogados (importada inline para evitar dep circular) ──
-  // Nota: na modularização completa, importar de vencimentos.js
-  async function _enviarEmailNovoLancamentoAdvogados(parcelaId, dadosLanc) {
-    // Re-import lazy para evitar dependência circular entre schedulers
-    const { enviarEmailNovoLancamentoAdvogados } = await import("./vencimentos.js");
-    return enviarEmailNovoLancamentoAdvogados(parcelaId, dadosLanc);
-  }
-
   async function _buildEmailAcuseRecebimentoCliente(nomeCliente, assuntoOriginal, parcelaConfirmada) {
     const { buildEmailAcuseRecebimentoCliente } = await import("./vencimentos.js");
     return buildEmailAcuseRecebimentoCliente(nomeCliente, assuntoOriginal, parcelaConfirmada);
@@ -1335,16 +1327,6 @@ export function startGmailScheduler() {
                 where: { gmailMessageId: msgId },
                 data: { parcelaId: parcelaMatch.id },
               });
-
-              // 8. Notifica advogados (fire-and-forget)
-              _enviarEmailNovoLancamentoAdvogados(parcelaMatch.id, {
-                data: dataPagamento,
-                clienteFornecedor: cliente.nomeRazaoSocial,
-                historico: `Parcela ${parcelaMatch.numero} — auto-confirmada via comprovante Gmail`,
-                valorCentavos: Math.round(valorRecebido * 100),
-                competenciaAno: dataPagamento.getFullYear(),
-                competenciaMes: dataPagamento.getMonth() + 1,
-              }).catch(() => {});
 
               console.log(`✅ Parcela ${parcelaMatch.id} auto-confirmada via comprovante de ${remetenteEmail}`);
             }

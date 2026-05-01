@@ -99,7 +99,7 @@ const IS_TEST = process.env.NODE_ENV === "test";
 
 // Validação global de parâmetros de rota que devem ser inteiros positivos (#11)
 // Dispara antes de qualquer handler que use esses parâmetros
-for (const paramName of ["id", "advogadoId", "clienteId", "contratoId", "parcelaId", "contaId", "lancamentoId", "userId", "eventoId", "logId"]) {
+for (const paramName of ["id", "clienteId", "contratoId", "parcelaId", "contaId", "lancamentoId", "userId", "eventoId", "logId"]) {
   app.param(paramName, (req, res, next, val) => {
     if (!/^\d+$/.test(val) || parseInt(val, 10) <= 0) {
       return res.status(400).json({ message: `Parâmetro '${paramName}' inválido.` });
@@ -193,6 +193,8 @@ const removedModules = [
   "/api/pagamentos-avulsos",
   "/api/repasses",
   "/api/repasses-pdf",
+  "/api/contratos/:id/splits",
+  "/api/contratos/:id/repasse-config",
   "/api/util/repasses-manuais",
   "/api/relatorios/repasses",
   "/api/livro-caixa/teste/simular-repasse",

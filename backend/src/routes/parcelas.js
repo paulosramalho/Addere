@@ -8,7 +8,6 @@ import { syncParcelaComLivroCaixa, toCentsFromDecimal } from "../lib/livroCaixaS
 import { parseDateDDMMYYYY, formatDateBR } from "../lib/contratoHelpers.js";
 import {
   _dispararAvisoImediatoParcelas,
-  enviarEmailNovoLancamentoAdvogados,
   buildEmailRecebimentoCliente,
 } from "../schedulers/vencimentos.js";
 
@@ -147,39 +146,20 @@ router.patch("/api/parcelas/:id/confirmar", authenticate, requireAdmin, async (r
       console.log(`✅ Parcela ${parcelaId} paga e sincronizada`);
     });
 
-    // Notificar advogados com participação (fire-and-forget)
-    prisma.parcelaContrato.findUnique({
-      where: { id: parcelaId },
-      include: { contrato: { include: { cliente: { select: { nomeRazaoSocial: true } } } } },
-    }).then((p) => {
-      if (!p) return;
-      enviarEmailNovoLancamentoAdvogados(parcelaId, {
-        data: p.dataRecebimento || dt,
-        clienteFornecedor: p.contrato?.cliente?.nomeRazaoSocial || null,
-        historico: `Parcela ${p.numero} — Contrato ${p.contrato?.numeroContrato || ""}`,
-        valorCentavos: Math.round((p.valorRecebido || 0) * 100),
-        competenciaAno: dt.getFullYear(),
-        competenciaMes: dt.getMonth() + 1,
-      });
-    }).catch(() => {});
-
     logAuditoria(req, "CONFIRMAR_PARCELA", "ParcelaContrato", parcelaId,
       { status: parcela.status },
       { status: "RECEBIDA", dataRecebimento, meioRecebimento, valorRecebido: valorRecebidoDecimal }
     ).catch(() => {});
 
-    // WhatsApp — pagamento_confirmado para cliente + advogados
+    // WhatsApp — pagamento_confirmado para cliente
     prisma.parcelaContrato.findUnique({
       where: { id: parcelaId },
       include: {
         contrato: {
           include: {
             cliente: { select: { nomeRazaoSocial: true, telefone: true } },
-            repasseAdvogadoPrincipal: { select: { nome: true, whatsapp: true, telefone: true, ativo: true } },
-            repasseIndicacaoAdvogado: { select: { nome: true, whatsapp: true, telefone: true, ativo: true } },
           },
         },
-        splits: { include: { advogado: { select: { nome: true, whatsapp: true, telefone: true, ativo: true } } } },
       },
     }).then(async (p) => {
       if (!p) return;
@@ -201,25 +181,6 @@ router.patch("/api/parcelas/:id/confirmar", authenticate, requireAdmin, async (r
         }]).catch(() => {});
       }
 
-      // → Advogados (splits + principal + indicação, sem duplicatas)
-      const advSet = new Map();
-      const _addAdv = (a) => { const wa = a?.telefone; if (a?.ativo && wa && !advSet.has(wa)) advSet.set(wa, a.nome); };
-      for (const s of p.splits || []) _addAdv(s.advogado);
-      _addAdv(p.contrato?.repasseAdvogadoPrincipal);
-      _addAdv(p.contrato?.repasseIndicacaoAdvogado);
-      for (const [whatsapp, nome] of advSet) {
-        const phone = _waPhone(whatsapp);
-        if (!phone) continue;
-        sendWhatsAppTemplate(phone, "advogado_pagamento_confirmado", "pt_BR", [{
-          type: "body",
-          parameters: [
-            { type: "text", text: nome },
-            { type: "text", text: clienteNome },
-            { type: "text", text: valor },
-            { type: "text", text: numContrato },
-          ],
-        }]).catch(() => {});
-      }
     }).catch(() => {});
 
     // E-mail de confirmação ao cliente (fire-and-forget)

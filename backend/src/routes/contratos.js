@@ -1,6 +1,6 @@
 import { Router } from "express";
 import prisma from "../lib/prisma.js";
-import { authenticate, requireAdmin, getUserAdvogadoId } from "../lib/auth.js";
+import { authenticate, requireAdmin } from "../lib/auth.js";
 import { logAuditoria } from "../lib/audit.js";
 import { sendEmail } from "../lib/email.js";
 import { sendWhatsApp, sendWhatsAppTemplate } from "../lib/whatsapp.js";
@@ -19,7 +19,6 @@ import {
 } from "../lib/livroCaixaSync.js";
 import {
   _dispararAvisoImediatoParcelas,
-  enviarEmailNovoLancamentoAdvogados,
 } from "../schedulers/vencimentos.js";
 
 const router = Router();
@@ -69,18 +68,6 @@ router.get("/api/contratos/next-numero", authenticate, async (req, res) => {
 // Listar contratos
 router.get("/api/contratos", authenticate, async (req, res) => {
   try {
-    const roleStr = String(req.user?.role || "").toUpperCase();
-    const isAdmin = roleStr === "ADMIN";
-
-    // USER: resolve advogadoId para filtrar contratos
-    let userAdvogadoId = null;
-    if (!isAdmin) {
-      userAdvogadoId = await getUserAdvogadoId(req.user?.id);
-      if (!userAdvogadoId) {
-        return res.json([]); // sem vínculo → lista vazia (UX gentil)
-      }
-    }
-
     // Filtro base: ativos ou com renegociação
     const whereBase = {
       OR: [
@@ -99,17 +86,6 @@ router.get("/api/contratos", authenticate, async (req, res) => {
       }
     }
 
-    // USER: push do filtro de advogado direto para o banco (evita buscar tudo e filtrar em Node.js)
-    if (!isAdmin && userAdvogadoId) {
-      whereBase.AND = [{
-        OR: [
-          { repasseAdvogadoPrincipalId: userAdvogadoId },
-          { repasseIndicacaoAdvogadoId: userAdvogadoId },
-          { splits: { some: { advogadoId: userAdvogadoId } } },
-        ],
-      }];
-    }
-
     const contratos = await prisma.contratoPagamento.findMany({
       where: whereBase,
       include: {
@@ -118,38 +94,6 @@ router.get("/api/contratos", authenticate, async (req, res) => {
             id: true,
             cpfCnpj: true,
             nomeRazaoSocial: true,
-          },
-        },
-        modeloDistribuicao: {
-          select: {
-            id: true,
-            codigo: true,
-            descricao: true,
-          },
-        },
-        repasseAdvogadoPrincipal: {
-          select: {
-            id: true,
-            nome: true,
-            oab: true,
-          },
-        },
-        repasseIndicacaoAdvogado: {
-          select: {
-            id: true,
-            nome: true,
-            oab: true,
-          },
-        },
-        splits: {
-          include: {
-            advogado: {
-              select: {
-                id: true,
-                nome: true,
-                oab: true,
-              },
-            },
           },
         },
         parcelas: {
@@ -258,44 +202,6 @@ router.get("/api/contratos/:id", authenticate, async (req, res) => {
             telefone: true,
           },
         },
-        modeloDistribuicao: {
-          include: {
-            itens: {
-              orderBy: { ordem: "asc" },
-            },
-          },
-        },
-        repasseAdvogadoPrincipal: {
-          select: {
-            id: true,
-            nome: true,
-            oab: true,
-            email: true,
-          },
-        },
-        repasseIndicacaoAdvogado: {
-          select: {
-            id: true,
-            nome: true,
-            oab: true,
-            email: true,
-          },
-        },
-        splits: {
-          include: {
-            advogado: {
-              select: {
-                id: true,
-                nome: true,
-                oab: true,
-                email: true,
-              },
-            },
-          },
-          orderBy: {
-            id: 'asc',
-          },
-        },
         parcelas: {
           orderBy: { numero: "asc" },
         },
@@ -325,7 +231,6 @@ router.get("/api/contratos/:id", authenticate, async (req, res) => {
       id: contrato.id,
       numero: contrato.numeroContrato,
       parcelas: contrato.parcelas?.length || 0,
-      splits: contrato.splits?.length || 0,
     });
 
     res.json(contrato);
@@ -348,12 +253,7 @@ router.post("/api/contratos", authenticate, async (req, res) => {
       valorTotal,
       formaPagamento,
       observacoes,
-      modeloDistribuicaoId,
-      usaSplitSocio,
-      repasseAdvogadoPrincipalId,
-      repasseIndicacaoAdvogadoId,
       isentoTributacao,
-      splits,
       parcelas,
       contratoOrigemId,
     } = req.body;
@@ -365,7 +265,6 @@ router.post("/api/contratos", authenticate, async (req, res) => {
       valorTotalValor: valorTotal,
       formaPagamento,
       parcelasQtd: parcelas?.length,
-      splitsQtd: splits?.length,
     });
 
     // ✅ NORMALIZAÇÃO: frontend manda parcelas como OBJETO { quantidade, primeiroVencimento }
@@ -510,25 +409,6 @@ router.post("/api/contratos", authenticate, async (req, res) => {
       }
     }
 
-    // Validar splits
-    if (usaSplitSocio) {
-      if (!splits || !Array.isArray(splits) || splits.length === 0) {
-        return res.status(400).json({
-          message: "Quando usa split de sócio, deve ter pelo menos um split",
-        });
-      }
-
-      const somaPercentuais = splits.reduce((sum, s) => {
-        return sum + parseInt(s.percentualBp || 0);
-      }, 0);
-
-      if (somaPercentuais !== 10000) {
-        return res.status(400).json({
-          message: `Soma dos percentuais dos splits deve ser 100% (10000 bp). Atual: ${somaPercentuais} bp`,
-        });
-      }
-    }
-
     // Preparar data de criação
     const dataParaCriar = {
       numeroContrato: numeroFinal,
@@ -536,23 +416,13 @@ router.post("/api/contratos", authenticate, async (req, res) => {
       valorTotal: valorDecimal,
       formaPagamento,
       observacoes,
-      modeloDistribuicaoId: modeloDistribuicaoId ? parseInt(modeloDistribuicaoId) : null,
-      usaSplitSocio: usaSplitSocio || false,
-      repasseAdvogadoPrincipalId: repasseAdvogadoPrincipalId ? parseInt(repasseAdvogadoPrincipalId) : null,
-      repasseIndicacaoAdvogadoId: repasseIndicacaoAdvogadoId ? parseInt(repasseIndicacaoAdvogadoId) : null,
+      modeloDistribuicaoId: null,
+      usaSplitSocio: false,
+      repasseAdvogadoPrincipalId: null,
+      repasseIndicacaoAdvogadoId: null,
       isentoTributacao: isentoTributacao || false,
       contratoOrigemId: contratoOrigemId ? parseInt(contratoOrigemId) : null,
     };
-
-    // Adicionar splits se tiver
-    if (splits && Array.isArray(splits) && splits.length > 0) {
-      dataParaCriar.splits = {
-        create: splits.map((split) => ({
-          advogadoId: parseInt(split.advogadoId),
-          percentualBp: parseInt(split.percentualBp),
-        })),
-      };
-    }
 
     // Adicionar parcelas se tiver
     if (parcelasArray && Array.isArray(parcelasArray) && parcelasArray.length > 0) {
@@ -562,7 +432,7 @@ router.post("/api/contratos", authenticate, async (req, res) => {
           vencimento: new Date(parcela.vencimento),
           valorPrevisto: convertValueToDecimal(parcela.valorPrevisto),
           status: "PREVISTA",
-          modeloDistribuicaoId: parcela.modeloDistribuicaoId ? parseInt(parcela.modeloDistribuicaoId) : null,
+          modeloDistribuicaoId: null,
         })),
       };
     }
@@ -570,10 +440,6 @@ router.post("/api/contratos", authenticate, async (req, res) => {
     // Criar contrato — G2: advisory lock garante serialização da geração de número
     const _contratoInclude = {
       cliente: { select: { id: true, cpfCnpj: true, nomeRazaoSocial: true, email: true, naoEnviarEmails: true } },
-      modeloDistribuicao: { select: { id: true, codigo: true, descricao: true } },
-      repasseAdvogadoPrincipal: { select: { id: true, nome: true, oab: true } },
-      repasseIndicacaoAdvogado: { select: { id: true, nome: true, oab: true } },
-      splits: { include: { advogado: { select: { id: true, nome: true, oab: true } } }, orderBy: { id: "asc" } },
       parcelas: { orderBy: { numero: "asc" } },
     };
     const contrato = await prisma.$transaction(async (tx) => {
@@ -591,7 +457,6 @@ router.post("/api/contratos", authenticate, async (req, res) => {
       numero: contrato.numeroContrato,
       valorTotal: contrato.valorTotal,
       parcelas: contrato.parcelas?.length || 0,
-      splits: contrato.splits?.length || 0,
     });
 
     // ============================================================
@@ -640,7 +505,6 @@ router.post("/api/contratos/:id/renegociar", authenticate, async (req, res) => {
       where: { id: contratoId },
       include: {
         parcelas: true,
-        splits: true,
       },
     });
 
@@ -717,10 +581,10 @@ router.post("/api/contratos/:id/renegociar", authenticate, async (req, res) => {
       formaPagamento: fp,
       valorTotal: pendenteDecimal,
       observacoes: normalizeRenegObs(observacoes, pai.numeroContrato),
-      modeloDistribuicaoId: pai.modeloDistribuicaoId ?? null,
-      usaSplitSocio: Boolean(pai.usaSplitSocio),
-      repasseAdvogadoPrincipalId: pai.repasseAdvogadoPrincipalId ?? null,
-      repasseIndicacaoAdvogadoId: pai.repasseIndicacaoAdvogadoId ?? null,
+      modeloDistribuicaoId: null,
+      usaSplitSocio: false,
+      repasseAdvogadoPrincipalId: null,
+      repasseIndicacaoAdvogadoId: null,
       isentoTributacao: Boolean(pai.isentoTributacao),
       ativo: true,
       // mantém rastreio: depende do seu schema; não inventar campos novos
@@ -810,17 +674,6 @@ router.post("/api/contratos/:id/renegociar", authenticate, async (req, res) => {
               status: "PREVISTA",
             })),
           },
-
-          ...(pai.usaSplitSocio && Array.isArray(pai.splits) && pai.splits.length > 0
-            ? {
-                splits: {
-                  create: pai.splits.map((s) => ({
-                    advogadoId: s.advogadoId,
-                    percentualBp: s.percentualBp,
-                  })),
-                },
-              }
-            : {}),
         },
 
         include: {
@@ -828,11 +681,6 @@ router.post("/api/contratos/:id/renegociar", authenticate, async (req, res) => {
           cliente: { select: { id: true, cpfCnpj: true, nomeRazaoSocial: true } },
           contratoOrigem: { select: { id: true, numeroContrato: true } },
           contratosFilhos: { select: { id: true, numeroContrato: true }, orderBy: { createdAt: "desc" } },
-          modeloDistribuicao: { select: { id: true, codigo: true, descricao: true } },
-          splits: {
-            include: { advogado: { select: { id: true, nome: true, oab: true } } },
-            orderBy: { id: "asc" },
-          },
         }
       });
 
@@ -926,14 +774,10 @@ router.put("/api/contratos/:id", authenticate, async (req, res) => {
       valorTotal,
       formaPagamento,
       observacoes,
-      modeloDistribuicaoId,
-      usaSplitSocio,
-      repasseAdvogadoPrincipalId,
-      repasseIndicacaoAdvogadoId,
       isentoTributacao,
     } = req.body;
 
-    const antes = await prisma.contratoPagamento.findUnique({ where: { id: parseInt(id) }, select: { numeroContrato: true, valorTotal: true, formaPagamento: true, observacoes: true, modeloDistribuicaoId: true, usaSplitSocio: true, repasseAdvogadoPrincipalId: true, repasseIndicacaoAdvogadoId: true, isentoTributacao: true } });
+    const antes = await prisma.contratoPagamento.findUnique({ where: { id: parseInt(id) }, select: { numeroContrato: true, valorTotal: true, formaPagamento: true, observacoes: true, isentoTributacao: true } });
 
     const contrato = await prisma.contratoPagamento.update({
       where: { id: parseInt(id) },
@@ -942,23 +786,19 @@ router.put("/api/contratos/:id", authenticate, async (req, res) => {
         valorTotal: valorTotal ? convertValueToDecimal(valorTotal) : undefined,
         formaPagamento,
         observacoes,
-        modeloDistribuicaoId: modeloDistribuicaoId ? parseInt(modeloDistribuicaoId) : null,
-        usaSplitSocio,
-        repasseAdvogadoPrincipalId: repasseAdvogadoPrincipalId ? parseInt(repasseAdvogadoPrincipalId) : null,
-        repasseIndicacaoAdvogadoId: repasseIndicacaoAdvogadoId ? parseInt(repasseIndicacaoAdvogadoId) : null,
+        modeloDistribuicaoId: null,
+        usaSplitSocio: false,
+        repasseAdvogadoPrincipalId: null,
+        repasseIndicacaoAdvogadoId: null,
         isentoTributacao,
       },
       include: {
         cliente: true,
-        modeloDistribuicao: true,
-        repasseAdvogadoPrincipal: true,
-        repasseIndicacaoAdvogado: true,
-        splits: { include: { advogado: true } },
         parcelas: { orderBy: { numero: "asc" } },
       },
     });
 
-    logAuditoria(req, "EDITAR_CONTRATO", "ContratoPagamento", contrato.id, antes, { numeroContrato, valorTotal, formaPagamento, observacoes, modeloDistribuicaoId, usaSplitSocio, repasseAdvogadoPrincipalId, repasseIndicacaoAdvogadoId, isentoTributacao }).catch(() => {});
+    logAuditoria(req, "EDITAR_CONTRATO", "ContratoPagamento", contrato.id, antes, { numeroContrato, valorTotal, formaPagamento, observacoes, isentoTributacao }).catch(() => {});
 
     res.json({
       message: "Contrato atualizado com sucesso!",
@@ -985,170 +825,6 @@ router.delete("/api/contratos/:id", authenticate, async (req, res) => {
   } catch (error) {
     console.error("Erro ao desativar contrato:", error);
     res.status(500).json({ message: "Erro ao desativar contrato." });
-  }
-});
-
-// Atualizar splits
-router.put("/api/contratos/:id/splits", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { splits } = req.body;
-
-    console.log('🔄 Atualizando splits do contrato:', id);
-    console.log('Splits recebidos:', splits);
-
-    if (!Array.isArray(splits)) {
-      return res.status(400).json({ message: "Splits deve ser um array" });
-    }
-
-    const somaPercentuais = splits.reduce((sum, s) => sum + parseInt(s.percentualBp), 0);
-
-    if (somaPercentuais !== 10000) {
-      return res.status(400).json({
-        message: `Soma dos percentuais deve ser 100% (10000 bp). Atual: ${somaPercentuais} bp`,
-      });
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.contratoRepasseSplitAdvogado.deleteMany({
-        where: { contratoId: parseInt(id) },
-      });
-
-      if (splits.length > 0) {
-        await tx.contratoRepasseSplitAdvogado.createMany({
-          data: splits.map((s) => ({
-            contratoId: parseInt(id),
-            advogadoId: parseInt(s.advogadoId),
-            percentualBp: parseInt(s.percentualBp),
-          })),
-        });
-      }
-    });
-
-    const contratoAtualizado = await prisma.contratoPagamento.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        splits: {
-          include: {
-            advogado: {
-              select: {
-                id: true,
-                nome: true,
-                oab: true,
-              },
-            },
-          },
-          orderBy: {
-            id: 'asc',
-          },
-        },
-      },
-    });
-
-    console.log('✅ Splits atualizados:', contratoAtualizado.splits?.length || 0);
-
-    res.json({
-      message: "Splits atualizados com sucesso",
-      contrato: contratoAtualizado,
-    });
-
-  } catch (error) {
-    console.error("❌ Erro ao atualizar splits:", error);
-    res.status(500).json({
-      message: "Erro ao atualizar splits",
-      error: error.message
-    });
-  }
-});
-
-// Config de repasse
-router.patch("/api/contratos/:id/repasse-config", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      modeloDistribuicaoId,
-      usaSplitSocio,
-      advogadoPrincipalId,
-      indicacaoAdvogadoId,
-      splits,
-    } = req.body;
-    if (!modeloDistribuicaoId) {
-      return res.status(400).json({ message: "Modelo de distribuição é obrigatório" });
-    }
-
-    const contrato = await prisma.contratoPagamento.findUnique({
-      where: { id: parseInt(id) },
-    });
-
-    if (!contrato) {
-      return res.status(404).json({ message: "Contrato não encontrado" });
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.contratoPagamento.update({
-        where: { id: parseInt(id) },
-        data: {
-          modeloDistribuicaoId: parseInt(modeloDistribuicaoId),
-          usaSplitSocio: Boolean(usaSplitSocio),
-          repasseAdvogadoPrincipalId: advogadoPrincipalId ? parseInt(advogadoPrincipalId) : null,
-          repasseIndicacaoAdvogadoId: indicacaoAdvogadoId ? parseInt(indicacaoAdvogadoId) : null,
-        },
-      });
-
-      if (usaSplitSocio && Array.isArray(splits) && splits.length > 0) {
-        await tx.contratoRepasseSplitAdvogado.deleteMany({
-          where: { contratoId: parseInt(id) },
-        });
-
-        const splitsValidos = splits.filter(s => s.advogadoId && s.percentualBp);
-
-        if (splitsValidos.length > 0) {
-          await tx.contratoRepasseSplitAdvogado.createMany({
-            data: splitsValidos.map((s) => ({
-              contratoId: parseInt(id),
-              advogadoId: parseInt(s.advogadoId),
-              percentualBp: parseInt(s.percentualBp),
-            })),
-          });
-        }
-      } else {
-        await tx.contratoRepasseSplitAdvogado.deleteMany({
-          where: { contratoId: parseInt(id) },
-        });
-      }
-    });
-
-    const contratoAtualizado = await prisma.contratoPagamento.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        splits: {
-          include: {
-            advogado: true,
-          },
-        },
-        modeloDistribuicao: {
-          include: {
-           itens: {
-              orderBy: { ordem: "asc" },
-            },
-          },
-        },
-        repasseAdvogadoPrincipal: true,
-        repasseIndicacaoAdvogado: true,
-      },
-    });
-
-    res.json({
-      message: "Configuração de repasse salva com sucesso",
-      contrato: contratoAtualizado,
-    });
-
-  } catch (error) {
-    console.error("❌ Erro ao salvar config de repasse:", error);
-    res.status(500).json({
-      message: "Erro ao salvar configuração de repasse",
-      error: error.message
-    });
   }
 });
 

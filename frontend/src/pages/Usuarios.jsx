@@ -272,11 +272,9 @@ export default function UsuariosPage({ user }) {
   const [cpf, setCpf] = useState("");
   const [tipoUsuario, setTipoUsuario] = useState("USUARIO");
   const [role, setRole] = useState("USER");
-  const [advogadoId, setAdvogadoId] = useState("");
   const [senha, setSenha] = useState("");
   const [senhaConfirmacao, setSenhaConfirmacao] = useState("");
 
-  const [criarAdvogado, setCriarAdvogado] = useState(false);
   const [ghostAdmin, setGhostAdmin] = useState(false);
   const [deveTrocarSenha, setDeveTrocarSenha] = useState(false);
 
@@ -285,7 +283,6 @@ export default function UsuariosPage({ user }) {
 
   const tipoOptions = useMemo(
     () => [
-      { value: "ADVOGADO", label: "Advogado" },
       { value: "USUARIO", label: "Usuário" },
       { value: "ESTAGIARIO", label: "Estagiário" },
       { value: "SECRETARIA_VIRTUAL", label: "Secretária Virtual" },
@@ -358,8 +355,6 @@ export default function UsuariosPage({ user }) {
     setCpf("");
     setTipoUsuario("USUARIO");
     setRole("USER");
-    setAdvogadoId("");
-    setCriarAdvogado(false);
     setGhostAdmin(false);
     setDeveTrocarSenha(false);
     setSenha("");
@@ -382,9 +377,7 @@ export default function UsuariosPage({ user }) {
     setCpf(u.cpf ? maskCPF(u.cpf) : "");
     setTelefone(u.telefone ? maskPhoneBR(u.telefone) : "");
     setRole(u.role || "USER");
-    setTipoUsuario(u.tipoUsuario || "USUARIO");
-    setAdvogadoId(u.advogadoId ? String(u.advogadoId) : "");
-    setCriarAdvogado(false);
+    setTipoUsuario(u.tipoUsuario === "ADVOGADO" ? "USUARIO" : (u.tipoUsuario || "USUARIO"));
     setGhostAdmin(!!u.ghostAdmin);
     setDeveTrocarSenha(!!u.deveTrocarSenha);
     setSenha("");
@@ -400,15 +393,11 @@ export default function UsuariosPage({ user }) {
     if (!isValidEmail(emailNorm)) return "E-mail inválido.";
     if (telefone && !isValidPhoneBR(telefone)) return "Telefone inválido.";
 
-    if (tipoUsuario === "USUARIO" || tipoUsuario === "ESTAGIARIO" || criarAdvogado) {
-      if (!cpf) return criarAdvogado ? "CPF é obrigatório para criar Advogado." : "CPF é obrigatório para Usuário/Estagiário.";
+    if (tipoUsuario === "USUARIO" || tipoUsuario === "ESTAGIARIO") {
+      if (!cpf) return "CPF é obrigatório para Usuário/Estagiário.";
       if (!isValidCPF(cpf)) return "CPF inválido.";
     } else {
       if (cpf && !isValidCPF(cpf)) return "CPF inválido.";
-    }
-
-    if (tipoUsuario === "ADVOGADO" && !criarAdvogado) {
-      if (!advogadoId && !(editing && editing.advogadoId)) return "Para tipo Advogado, informe o ID do Advogado ou marque 'Criar registro de Advogado'.";
     }
 
     if (!editing) {
@@ -454,8 +443,6 @@ export default function UsuariosPage({ user }) {
       cpf: cpf ? onlyDigits(cpf) : null,
       tipoUsuario,
       role,
-      advogadoId: advogadoId ? Number(advogadoId) : null,
-      criarAdvogado: criarAdvogado || false,
       ghostAdmin: ghostAdmin || false,
       deveTrocarSenha: deveTrocarSenha || false,
     };
@@ -594,9 +581,7 @@ export default function UsuariosPage({ user }) {
                     <td className="px-4 py-3">{u.telefone ? maskPhoneBR(u.telefone) : "—"}</td>
                     <td className="px-4 py-3">{u.cpf ? maskCPF(u.cpf) : "—"}</td>
                     <td className="px-4 py-3">
-                      {u.tipoUsuario === "ADVOGADO" ? (
-                        <Badge tone="blue">Advogado</Badge>
-                      ) : u.tipoUsuario === "ESTAGIARIO" ? (
+                      {u.tipoUsuario === "ESTAGIARIO" ? (
                         <Badge tone="amber">Estagiário</Badge>
                       ) : u.tipoUsuario === "SECRETARIA_VIRTUAL" ? (
                         <span className="inline-flex items-center rounded-full border border-pink-200 bg-pink-50 text-pink-700 px-2 py-0.5 text-xs font-semibold">Secretária Virtual</span>
@@ -732,17 +717,6 @@ export default function UsuariosPage({ user }) {
               hint="Admin = acesso total"
             />
 
-            {tipoUsuario === "ADVOGADO" ? (
-              <Input
-                label="ID do Advogado *"
-                type="number"
-                value={advogadoId}
-                onChange={setAdvogadoId}
-                placeholder="Ex: 1, 2, 3..."
-                disabled={loading || criarAdvogado}
-                hint={criarAdvogado ? "Desabilitado — será criado automaticamente" : "Vincular a um registro de Advogado existente"}
-              />
-            ) : null}
           </div>
 
           {/* Opções administrativas */}
@@ -759,35 +733,6 @@ export default function UsuariosPage({ user }) {
                   <Badge tone="red">Inativo</Badge>
                 )}
                 <span className="text-xs text-slate-400">(alterar via botão na listagem)</span>
-              </div>
-            )}
-
-            {/* Advogado vinculado (info) */}
-            {editing?.advogadoId && (
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-slate-600">Advogado vinculado:</span>
-                <Badge tone="blue">ID {editing.advogadoId}</Badge>
-              </div>
-            )}
-
-            {/* Criar Advogado */}
-            {(!editing || !editing.advogadoId) && !advogadoId && (
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={criarAdvogado}
-                onChange={(e) => setCriarAdvogado(e.target.checked)}
-                className="rounded border-slate-300"
-                disabled={loading}
-              />
-              <span className="text-sm text-slate-700">
-                Criar registro de Advogado automaticamente
-              </span>
-            </label>
-            )}
-            {criarAdvogado && (
-              <div className="ml-6 text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
-                Será criado um Advogado com o nome, CPF, e-mail e telefone deste usuário. O tipo será definido como "Advogado" automaticamente.
               </div>
             )}
 

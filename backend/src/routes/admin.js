@@ -71,7 +71,7 @@ router.post("/api/admin/disparo-teste-email", authenticate, requireAdmin, async 
         await sendEmail({
           to: admin.email,
           subject: `[TESTE] ⏰ Addere — Alertas: ${rawD1.length} entrada(s) amanhã · ${saidasD1.length} saída(s) amanhã`,
-          html: buildEmailAlertaVencimentos(admin.nome, norm1, norm7, [], saidasD1, saidasD7),
+          html: buildEmailAlertaVencimentos(admin.nome, norm1, norm7, saidasD1, saidasD7),
         });
       }
       // Clientes com parcelas próximas
@@ -177,7 +177,7 @@ router.post("/api/admin/teste-emails-cliente", authenticate, requireAdmin, async
       numero,
       vencimento: d,
       valorPrevisto: (1500 + numero * 250).toFixed(2),
-      contrato: { numeroContrato: `AMR-2025-00${numero}` },
+      contrato: { numeroContrato: `ADD-2025-00${numero}` },
     };
   };
 
@@ -214,7 +214,7 @@ router.post("/api/admin/teste-emails-cliente", authenticate, requireAdmin, async
       to: DEST,
       subject: `[SIMULAÇÃO] ✅ Pagamento recebido — Addere`,
       html: buildEmailRecebimentoCliente(NOME, {
-        numeroContrato: "AMR-2025-001",
+        numeroContrato: "ADD-2025-001",
         numeroParcela: 2,
         dataRecebimento: hoje,
         valorRecebido: 1750,

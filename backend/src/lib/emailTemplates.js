@@ -51,7 +51,7 @@ function _buildTabelaVencidos(lista) {
   </table>`;
 }
 
-export function buildEmailAlertaVencimentos(nome, parcelas1dia, parcelas7dias, repassesPendentes, saidas1dia, saidas7dias) {
+export function buildEmailAlertaVencimentos(nome, parcelas1dia, parcelas7dias, saidas1dia, saidas7dias) {
   const fmtBRL = (c) => (Number(c || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const fmtDate = (d) => {
     const s = d instanceof Date ? d.toISOString() : String(d);
@@ -93,22 +93,6 @@ export function buildEmailAlertaVencimentos(nome, parcelas1dia, parcelas7dias, r
           <td style="padding:8px">#${p.numero}</td>
           <td style="padding:8px">${fmtDate(p.vencimento)}</td>
           <td style="padding:8px;text-align:right;font-weight:600">${fmtBRL(Number(p.valorPrevisto || 0) * 100)}</td>
-        </tr>`).join("")}
-      </tbody>
-    </table>`;
-
-  const secao3 = repassesPendentes.length === 0 ? `<p style="color:#64748b;font-size:13px">Nenhum repasse pendente.</p>` : `
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="background:#dbeafe">
-        <th style="padding:8px;text-align:left;border-bottom:1px solid #93c5fd">Advogado</th>
-        <th style="padding:8px;text-align:left;border-bottom:1px solid #93c5fd">Competência</th>
-        <th style="padding:8px;text-align:right;border-bottom:1px solid #93c5fd">Valor Previsto</th>
-      </tr></thead>
-      <tbody>${repassesPendentes.map(r => `
-        <tr style="border-bottom:1px solid #dbeafe">
-          <td style="padding:8px">${r.advogado?.nome || "—"}</td>
-          <td style="padding:8px">${String(r.competenciaMes).padStart(2,"0")}/${r.competenciaAno}</td>
-          <td style="padding:8px;text-align:right;font-weight:600">${fmtBRL(Number(r.valorPrevisto || 0) * 100)}</td>
         </tr>`).join("")}
       </tbody>
     </table>`;
@@ -186,15 +170,6 @@ export function buildEmailAlertaVencimentos(nome, parcelas1dia, parcelas7dias, r
         ${secao5}
       </div>
 
-      <!-- REPASSES -->
-      <div style="font-size:13px;font-weight:700;color:#475569;letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px">↑ Repasses a Efetuar</div>
-      <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:16px;margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <span style="font-size:18px">🔵</span>
-          <span style="font-weight:700;color:#1d4ed8;font-size:15px">Repasses Pendentes (${repassesPendentes.length} repasse${repassesPendentes.length !== 1 ? "s" : ""})</span>
-        </div>
-        ${secao3}
-      </div>
     </div>
     <div style="padding:16px 28px;background:#f1f5f9;text-align:center;font-size:11px;color:#94a3b8">
       Addere Control — notificação automática

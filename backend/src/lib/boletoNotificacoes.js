@@ -86,7 +86,7 @@ async function _gerarPdfBoleto(boleto, cliente) {
   vencLimite.setUTCDate(vencLimite.getUTCDate() + _valDias);
   const valorStr  = fmtV(boleto.valorCentavos);
   const nossoFmt  = `00019/${CART}/${boleto.nossoNumero || "—"}`;
-  const docNum    = boleto.docNum || `AMR-B${String(boleto.id).padStart(5, "0")}`;
+  const docNum    = boleto.docNum || `ADD-B${String(boleto.id).padStart(5, "0")}`;
   const multaPerc = Number(boleto.multaPerc  ?? 2);
   const moraPerc  = Number(boleto.moraPercMes ?? 1);
   const historico = boleto.historico || "Honorários advocatícios";
