@@ -15,12 +15,21 @@ const router = Router();
 const TIPOS_CONTA_CONTABIL = ["BANCO", "APLICACAO", "CAIXA", "CLIENTES", "CARTAO_CREDITO", "CARTAO_DEBITO", "OUTROS"];
 
 function normalizarContaContabil(valor) {
-  return String(valor || "")
+  let nome = String(valor || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .toUpperCase();
+
+  nome = nome
+    .replace(/^APLICACAO\s+/, "APL ")
+    .replace(/^APLIC\s+/, "APL ")
+    .replace(/^AP\s+/, "APL ")
+    .replace(/^BANCO\s+INTER$/, "INTER")
+    .replace(/^C6\s+BANK$/, "C6");
+
+  return nome;
 }
 
 async function encontrarContaContabilDuplicada({ nome, tipo, excetoId = null }) {

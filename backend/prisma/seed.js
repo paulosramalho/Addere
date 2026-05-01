@@ -58,12 +58,20 @@ async function seedAdminInicial() {
 }
 
 function normalizarContaKey(conta) {
-  const nome = String(conta.nome || "")
+  let nome = String(conta.nome || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .toUpperCase();
+
+  nome = nome
+    .replace(/^APLICACAO\s+/, "APL ")
+    .replace(/^APLIC\s+/, "APL ")
+    .replace(/^AP\s+/, "APL ")
+    .replace(/^BANCO\s+INTER$/, "INTER")
+    .replace(/^C6\s+BANK$/, "C6");
+
   const tipo = String(conta.tipo || "").trim().toUpperCase();
   return `${tipo}|${nome}`;
 }
@@ -110,28 +118,21 @@ async function main() {
     { nome: "InfinitePay", tipo: "BANCO", ordem: 9 },
   ];
 
-  for (const conta of contasAddere) {
-    const existente = await prisma.livroCaixaConta.findFirst({
-      where: { nome: conta.nome },
-    });
-
-    const data = {
-      ...conta,
-      ativa: true,
-      dataInicial: new Date("2026-01-01T12:00:00.000Z"),
-      saldoInicialCent: 0,
-    };
-
-    if (existente) {
-      await prisma.livroCaixaConta.update({
-        where: { id: existente.id },
-        data,
+  const contasExistentes = await prisma.livroCaixaConta.count();
+  if (contasExistentes === 0) {
+    for (const conta of contasAddere) {
+      await prisma.livroCaixaConta.create({
+        data: {
+          ...conta,
+          ativa: true,
+          dataInicial: new Date("2026-01-01T12:00:00.000Z"),
+          saldoInicialCent: 0,
+        },
       });
-      console.log(`  Conta ${conta.nome} atualizada.`);
-    } else {
-      await prisma.livroCaixaConta.create({ data });
       console.log(`  Conta ${conta.nome} criada.`);
     }
+  } else {
+    console.log(`  ${contasExistentes} conta(s) existentes; seed de contas padrao ignorado.`);
   }
 
   await deduplicarContasContabeis();
