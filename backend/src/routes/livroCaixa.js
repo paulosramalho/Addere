@@ -27,7 +27,7 @@ function normalizarContaContabil(valor) {
     .replace(/^APLIC\s+/, "APL ")
     .replace(/^AP\s+/, "APL ")
     .replace(/^BANCO\s+INTER$/, "INTER")
-    .replace(/^C6\s+BANK$/, "C6");
+    .replace(/^C6$/, "C6 BANK");
 
   return nome;
 }
@@ -646,6 +646,24 @@ function brMoneyToCentavos(v) {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 
+function contaPreferidaParaLocal(contas, local) {
+  const localNorm = normTxt(local);
+  if (!localNorm) return null;
+
+  const porNomeExato = (nome) => contas.find((conta) => normTxt(conta.nome) === nome);
+  if (localNorm === "c6") {
+    return porNomeExato("c6 bank") || porNomeExato("c6") || null;
+  }
+
+  const exata = contas.find((conta) => normTxt(conta.nome) === localNorm);
+  if (exata) return exata;
+
+  return contas.find((conta) => {
+    const nome = normTxt(conta.nome);
+    return nome && (nome.includes(localNorm) || localNorm.includes(nome));
+  }) || null;
+}
+
 function brToISODate(br) {
   // "DD/MM/AAAA" -> "AAAA-MM-DD"
   const [d, m, y] = String(br || "").split("/");
@@ -894,11 +912,7 @@ router.post(
         const valorCentavos = brMoneyToCentavos(r.valorBR);
 
         // sugestão de conta pelo "local"
-        const localNorm = normTxt(r.local);
-        const contaSug = contas.find((c) => {
-          const n = normTxt(c.nome);
-          return n && (n.includes(localNorm) || localNorm.includes(n));
-        });
+        const contaSug = contaPreferidaParaLocal(contas, r.local);
 
         const rowId = `PDF_${ano}_${mes}_${idx}`;
         items.push({

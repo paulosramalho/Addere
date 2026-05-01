@@ -57,47 +57,154 @@ async function seedAdminInicial() {
   console.log(`  Admin ${email} criado.`);
 }
 
-function normalizarContaKey(conta) {
-  let nome = String(conta.nome || "")
+function normalizarNomeConta(valor) {
+  return String(valor || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .toUpperCase();
+}
+
+function normalizarContaKey(conta) {
+  let nome = normalizarNomeConta(conta.nome);
 
   nome = nome
     .replace(/^APLICACAO\s+/, "APL ")
     .replace(/^APLIC\s+/, "APL ")
     .replace(/^AP\s+/, "APL ")
     .replace(/^BANCO\s+INTER$/, "INTER")
-    .replace(/^C6\s+BANK$/, "C6");
+    .replace(/^C6$/, "C6 BANK");
 
   const tipo = String(conta.tipo || "").trim().toUpperCase();
   return `${tipo}|${nome}`;
 }
 
+function escolherContaPrincipal(key, contas) {
+  const ordenadas = [...contas].sort((a, b) => a.id - b.id);
+  const porNome = (nome) => ordenadas.find((conta) => normalizarNomeConta(conta.nome) === nome);
+
+  if (key === "BANCO|C6 BANK") {
+    return porNome("C6 BANK") || porNome("C6") || ordenadas[0];
+  }
+
+  if (key === "BANCO|INTER") {
+    return porNome("BANCO INTER") || porNome("INTER") || ordenadas[0];
+  }
+
+  if (key === "APLICACAO|APL INTER") {
+    return porNome("APL INTER") || porNome("APLICACAO INTER") || ordenadas[0];
+  }
+
+  if (key === "APLICACAO|APL C6") {
+    return porNome("APL C6") || porNome("APLICACAO C6") || ordenadas[0];
+  }
+
+  return ordenadas[0];
+}
+
+async function atualizarNomesContasPadrao() {
+  const contas = await prisma.livroCaixaConta.findMany({
+    orderBy: { id: "asc" },
+  });
+
+  const grupoC6 = contas.filter((conta) => normalizarContaKey(conta) === "BANCO|C6 BANK");
+  const c6Bank = grupoC6.find((conta) => normalizarNomeConta(conta.nome) === "C6 BANK");
+
+  if (grupoC6.length === 0) {
+    await prisma.livroCaixaConta.create({
+      data: {
+        nome: "C6 Bank",
+        tipo: "BANCO",
+        ordem: 3,
+        ativa: true,
+        dataInicial: new Date("2026-01-01T12:00:00.000Z"),
+        saldoInicialCent: 0,
+      },
+    });
+    console.log("  Conta C6 Bank criada.");
+    return;
+  }
+
+  if (!c6Bank && grupoC6.length > 0) {
+    const conta = grupoC6[0];
+    await prisma.livroCaixaConta.update({
+      where: { id: conta.id },
+      data: { nome: "C6 Bank", tipo: "BANCO", ordem: 3 },
+    });
+    console.log(`  Conta ${conta.nome} renomeada para C6 Bank.`);
+  }
+}
+
+async function corrigirLancamentosC6Bank2024() {
+  const contaC6Bank = await prisma.livroCaixaConta.findFirst({
+    where: { nome: { equals: "C6 Bank", mode: "insensitive" }, tipo: "BANCO" },
+    select: { id: true },
+  });
+
+  if (!contaC6Bank) {
+    console.warn("  Conta C6 Bank nao encontrada; correcao dos lancamentos de 2024 ignorada.");
+    return;
+  }
+
+  const lancamentos = await prisma.livroCaixaLancamento.findMany({
+    where: {
+      competenciaAno: 2024,
+      competenciaMes: { in: [1, 2, 3, 4, 5, 6] },
+      localLabelFallback: { not: null },
+    },
+    select: { id: true, localLabelFallback: true, contaId: true },
+  });
+
+  const ids = lancamentos
+    .filter((lancamento) => ["C6", "C6 BANK"].includes(normalizarNomeConta(lancamento.localLabelFallback)))
+    .filter((lancamento) => lancamento.contaId !== contaC6Bank.id || normalizarNomeConta(lancamento.localLabelFallback) !== "C6 BANK")
+    .map((lancamento) => lancamento.id);
+
+  if (ids.length === 0) {
+    console.log("  Lancamentos 2024 Local=C6 ja estao em C6 Bank.");
+    return;
+  }
+
+  await prisma.livroCaixaLancamento.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      contaId: contaC6Bank.id,
+      localLabelFallback: "C6 Bank",
+      status: "OK",
+    },
+  });
+  console.log(`  Lancamentos 2024 Local=C6 atualizados para C6 Bank: ${ids.length}.`);
+}
+
 async function deduplicarContasContabeis() {
   const contas = await prisma.livroCaixaConta.findMany({
-    orderBy: [{ tipo: "asc" }, { nome: "asc" }, { id: "asc" }],
+    orderBy: { id: "asc" },
   });
-  const porChave = new Map();
+  const grupos = new Map();
 
   for (const conta of contas) {
     const key = normalizarContaKey(conta);
-    if (!porChave.has(key)) {
-      porChave.set(key, conta);
-      continue;
-    }
+    if (!grupos.has(key)) grupos.set(key, []);
+    grupos.get(key).push(conta);
+  }
 
-    const principal = porChave.get(key);
-    await prisma.$transaction([
-      prisma.livroCaixaLancamento.updateMany({ where: { contaId: conta.id }, data: { contaId: principal.id } }),
-      prisma.pixPagamento.updateMany({ where: { contaId: conta.id }, data: { contaId: principal.id } }),
-      prisma.pagamentoBoleto.updateMany({ where: { contaId: conta.id }, data: { contaId: principal.id } }),
-      prisma.pagamentoDarf.updateMany({ where: { contaId: conta.id }, data: { contaId: principal.id } }),
-      prisma.livroCaixaConta.delete({ where: { id: conta.id } }),
-    ]);
-    console.log(`  Conta duplicada removida: ${conta.nome} (${conta.tipo}) -> #${principal.id}`);
+  for (const [key, grupo] of grupos.entries()) {
+    if (grupo.length < 2) continue;
+
+    const principal = escolherContaPrincipal(key, grupo);
+    const duplicadas = grupo.filter((conta) => conta.id !== principal.id);
+
+    for (const duplicada of duplicadas) {
+      await prisma.$transaction([
+        prisma.livroCaixaLancamento.updateMany({ where: { contaId: duplicada.id }, data: { contaId: principal.id } }),
+        prisma.pixPagamento.updateMany({ where: { contaId: duplicada.id }, data: { contaId: principal.id } }),
+        prisma.pagamentoBoleto.updateMany({ where: { contaId: duplicada.id }, data: { contaId: principal.id } }),
+        prisma.pagamentoDarf.updateMany({ where: { contaId: duplicada.id }, data: { contaId: principal.id } }),
+        prisma.livroCaixaConta.delete({ where: { id: duplicada.id } }),
+      ]);
+      console.log(`  Conta duplicada removida: ${duplicada.nome} (${duplicada.tipo}) -> #${principal.id}`);
+    }
   }
 }
 
@@ -109,11 +216,10 @@ async function main() {
   const contasAddere = [
     { nome: "Caixa Administrativo", tipo: "CAIXA", ordem: 1 },
     { nome: "Caixa Geral", tipo: "CAIXA", ordem: 2 },
-    { nome: "C6", tipo: "BANCO", ordem: 3 },
-    { nome: "Aplicação Inter", tipo: "APLICACAO", ordem: 4 },
-    { nome: "Aplicação C6", tipo: "APLICACAO", ordem: 5 },
+    { nome: "C6 Bank", tipo: "BANCO", ordem: 3 },
+    { nome: "Apl Inter", tipo: "APLICACAO", ordem: 4 },
+    { nome: "Apl C6", tipo: "APLICACAO", ordem: 5 },
     { nome: "Banco Inter", tipo: "BANCO", ordem: 6 },
-    { nome: "C6 Bank", tipo: "BANCO", ordem: 7 },
     { nome: "Banco VRDE", tipo: "BANCO", ordem: 8 },
     { nome: "InfinitePay", tipo: "BANCO", ordem: 9 },
   ];
@@ -135,7 +241,9 @@ async function main() {
     console.log(`  ${contasExistentes} conta(s) existentes; seed de contas padrao ignorado.`);
   }
 
+  await atualizarNomesContasPadrao();
   await deduplicarContasContabeis();
+  await corrigirLancamentosC6Bank2024();
 
   const cfg = await prisma.configEscritorio.findFirst();
   const configData = {
