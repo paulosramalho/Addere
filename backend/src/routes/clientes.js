@@ -10,6 +10,48 @@ const router = Router();
 // CLIENTES
 // ============================================================
 
+router.get("/api/pessoas", authenticate, async (req, res) => {
+  try {
+    const { tipos: tiposParam, tipo: tipoParam, search, limit, includeInativo } = req.query;
+    const tiposRaw = tiposParam || tipoParam || "";
+    const tipos = String(tiposRaw)
+      .split(",")
+      .map((t) => t.trim().toUpperCase())
+      .filter((t) => ["C", "F", "A"].includes(t));
+
+    const where = includeInativo === "true" ? {} : { ativo: true };
+    if (tipos.length > 0) where.tipo = { in: tipos };
+
+    if (search && String(search).trim()) {
+      const q = String(search).trim();
+      where.OR = [
+        { nomeRazaoSocial: { contains: q, mode: "insensitive" } },
+        { cpfCnpj: { contains: q.replace(/\D/g, ""), mode: "insensitive" } },
+      ];
+    }
+
+    const pessoas = await prisma.cliente.findMany({
+      where,
+      orderBy: { nomeRazaoSocial: "asc" },
+      take: limit ? Math.min(Number(limit), 2000) : 2000,
+      select: {
+        id: true,
+        nomeRazaoSocial: true,
+        cpfCnpj: true,
+        email: true,
+        telefone: true,
+        tipo: true,
+        ativo: true,
+      },
+    });
+
+    res.json(pessoas.map((p) => ({ ...p, nome: p.nomeRazaoSocial })));
+  } catch (error) {
+    console.error("Erro ao buscar pessoas:", error);
+    res.status(500).json({ message: "Erro ao buscar pessoas." });
+  }
+});
+
 router.get("/api/clients", authenticate, async (req, res) => {
   try {
     const { tipo: tipoParam, search, limit, includeInativo } = req.query;
