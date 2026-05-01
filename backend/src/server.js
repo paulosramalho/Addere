@@ -21,15 +21,12 @@ import { _sanitizeErrMsg } from "./lib/upload.js";
 import healthRouter from "./routes/health.js";
 import auditoriaRouter from "./routes/auditoria.js";
 import authRouter from "./routes/auth.js";
-import advogadosRouter from "./routes/advogados.js";
 import comprovantesRouter from "./routes/comprovantes.js";
 import clientesRouter from "./routes/clientes.js";
 import usuariosRouter from "./routes/usuarios.js";
 import adminRouter from "./routes/admin.js";
 import contratosRouter from "./routes/contratos.js";
 import parcelasRouter from "./routes/parcelas.js";
-import pagamentosAvulsosRouter from "./routes/pagamentosAvulsos.js";
-import repassesRouter from "./routes/repasses.copia.js";
 import dashboardRouter from "./routes/dashboard.js";
 import historicoRouter from "./routes/historico.js";
 import contaCorrenteRouter from "./routes/contaCorrente.js";
@@ -57,8 +54,6 @@ import { startIntimacoesScheduler } from "./schedulers/intimacoes.js";
 import { startBriefingScheduler } from "./schedulers/briefing.js";
 import { startSaudeCaixaScheduler } from "./schedulers/saudeCaixa.js";
 import { startAndamentosIAScheduler } from "./schedulers/andamentosIA.js";
-import { startFechamentoMensalScheduler } from "./schedulers/fechamentoMensal.js";
-import { startPreAudienciaScheduler } from "./schedulers/preAudiencia.js";
 import { startSiteMonitorScheduler }  from "./schedulers/siteMonitor.js";
 import { startGoogleCalendarSync }    from "./schedulers/googleCalendarSync.js";
 import { startBoletosAgendadosScheduler } from "./schedulers/boletosAgendados.js";
@@ -104,7 +99,7 @@ const IS_TEST = process.env.NODE_ENV === "test";
 
 // Validação global de parâmetros de rota que devem ser inteiros positivos (#11)
 // Dispara antes de qualquer handler que use esses parâmetros
-for (const paramName of ["id", "advogadoId", "clienteId", "contratoId", "parcelaId", "repasseId", "contaId", "lancamentoId", "userId", "eventoId", "logId"]) {
+for (const paramName of ["id", "advogadoId", "clienteId", "contratoId", "parcelaId", "contaId", "lancamentoId", "userId", "eventoId", "logId"]) {
   app.param(paramName, (req, res, next, val) => {
     if (!/^\d+$/.test(val) || parseInt(val, 10) <= 0) {
       return res.status(400).json({ message: `Parâmetro '${paramName}' inválido.` });
@@ -186,16 +181,32 @@ app.use("/api/auth/forgot-password", rateLimit({ windowMs: 15 * 60 * 1000, max: 
 // ── Route modules ─────────────────────────────────────────────────────────────
 app.use(healthRouter);
 app.use(authRouter);
-app.use(advogadosRouter);
 app.use(auditoriaRouter);
 app.use(comprovantesRouter);
 app.use(clientesRouter);
 app.use(usuariosRouter);
+
+const removedModules = [
+  "/api/advogados",
+  "/api/modelo-distribuicao",
+  "/api/modelos-distribuicao",
+  "/api/pagamentos-avulsos",
+  "/api/repasses",
+  "/api/repasses-pdf",
+  "/api/util/repasses-manuais",
+  "/api/relatorios/repasses",
+  "/api/livro-caixa/teste/simular-repasse",
+  "/api/livro-caixa/gerar-parcelas-fixas-mes",
+  "/api/livro-caixa/confirmar-parcela-fixa",
+  "/api/livro-caixa/parcelas-fixas",
+];
+app.use(removedModules, (_req, res) => {
+  res.status(410).json({ message: "Módulo removido da Addere." });
+});
+
 app.use(adminRouter);
 app.use(contratosRouter);
 app.use(parcelasRouter);
-app.use(pagamentosAvulsosRouter);
-app.use(repassesRouter);
 app.use(dashboardRouter);
 app.use(historicoRouter);
 app.use(contaCorrenteRouter);
@@ -312,8 +323,6 @@ if (!IS_TEST && process.env.SCHEDULERS_ENABLED === "true") {
   startBriefingScheduler();
   startSaudeCaixaScheduler();
   startAndamentosIAScheduler();
-  startFechamentoMensalScheduler();
-  startPreAudienciaScheduler();
   startSiteMonitorScheduler();
   startGoogleCalendarSync();
   startBoletosAgendadosScheduler();

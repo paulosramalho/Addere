@@ -1,4 +1,4 @@
-// src/pages/ConfiguracaoEscritorio.jsx
+// src/pages/ConfiguracaoEmpresa.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../lib/api";
 import { useToast } from "../components/Toast";
@@ -100,7 +100,7 @@ function EnvioModal({ canal, cfg, onClose }) {
     if (!destinatario.trim()) { addToast(`Informe o ${label.toLowerCase()}`, "error"); return; }
     setEnviando(true);
     try {
-      await apiFetch("/config-escritorio/enviar", {
+      await apiFetch("/config-empresa/enviar", {
         method: "POST",
         body: { canal, destinatario: destinatario.trim() },
       });
@@ -135,7 +135,7 @@ function EnvioModal({ canal, cfg, onClose }) {
             />
           </div>
           <p className="text-xs text-slate-400">
-            Será enviado: dados do escritório, {cfg.oabRegistro || "OAB"}, CNPJ{" "}
+            Será enviado: dados da empresa, CNPJ{" "}
             {isWA ? "e dados bancários (Ag, Cc, Pix)." : "e dados bancários."}
           </p>
         </div>
@@ -169,7 +169,6 @@ function CardEnvio({ cfg, contas }) {
   function copiar() {
     const linhas = [cfg.nomeFantasia || cfg.nome];
     if (endereco) linhas.push(endereco);
-    if (cfg.oabRegistro) linhas.push(cfg.oabRegistro);
     if (cfg.cnpj) linhas.push(`CNPJ: ${cfg.cnpj}`);
     if (cfg.whatsapp) linhas.push(`📱 ${cfg.whatsapp}`);
     if (bancos.length) {
@@ -217,7 +216,6 @@ function CardEnvio({ cfg, contas }) {
         <div className="mb-3">
           <div className="text-lg font-bold text-slate-900">{cfg.nomeFantasia || cfg.nome}</div>
           {endereco && <div className="text-sm text-slate-600 mt-0.5">{endereco}</div>}
-          {cfg.oabRegistro && <div className="text-sm text-slate-600">{cfg.oabRegistro}</div>}
           {cfg.cnpj && <div className="text-sm text-slate-500">CNPJ: {cfg.cnpj}</div>}
         </div>
 
@@ -279,7 +277,7 @@ function CardEnvio({ cfg, contas }) {
 
         {!cfg.nome && bancos.length === 0 && (
           <div className="text-sm text-slate-400 italic">
-            Preencha os dados do escritório para habilitar o envio.
+            Preencha os dados da empresa para habilitar o envio.
           </div>
         )}
       </div>
@@ -289,7 +287,7 @@ function CardEnvio({ cfg, contas }) {
 }
 
 /* ---- página principal ---- */
-export default function ConfiguracaoEscritorio({ user }) {
+export default function ConfiguracaoEmpresa({ user }) {
   const { addToast } = useToast();
   const isAdmin = String(user?.role || "").toUpperCase() === "ADMIN";
 
@@ -306,7 +304,7 @@ export default function ConfiguracaoEscritorio({ user }) {
 
   useEffect(() => {
     Promise.all([
-      apiFetch("/config-escritorio"),
+      apiFetch("/config-empresa"),
       apiFetch("/livro-caixa/contas"),
     ])
       .then(([cfg, cts]) => {
@@ -382,7 +380,7 @@ export default function ConfiguracaoEscritorio({ user }) {
     if (cnpjError) { addToast("Corrija o CNPJ antes de salvar.", "error"); return; }
     setSaving(true);
     try {
-      await apiFetch("/config-escritorio", { method: "PUT", body: JSON.stringify(form) });
+      await apiFetch("/config-empresa", { method: "PUT", body: JSON.stringify(form) });
       addToast("Configurações salvas.", "success");
     } catch (err) {
       addToast("Erro ao salvar: " + err.message, "error");
@@ -396,11 +394,11 @@ export default function ConfiguracaoEscritorio({ user }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Dados do Escritório</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Dados da Empresa</h1>
         <p className="text-sm text-slate-500 mt-0.5">
           {isAdmin
             ? "Informações utilizadas em relatórios, PDFs e cabeçalhos."
-            : "Dados de contato e bancários do escritório."}
+            : "Dados de contato e bancários da empresa."}
         </p>
       </div>
 
@@ -430,8 +428,6 @@ export default function ConfiguracaoEscritorio({ user }) {
                 placeholder="00.000.000/0001-00"
                 maxLength={18}
                 error={cnpjError} />
-              <Field label="Registro OAB" value={form.oabRegistro}
-                onChange={v => set("oabRegistro", v)} placeholder="Ex.: OAB/PA 12.345" />
             </div>
           </section>
 

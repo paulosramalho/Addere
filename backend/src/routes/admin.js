@@ -30,7 +30,7 @@ router.post("/api/admin/disparo-teste-email", authenticate, requireAdmin, async 
     const d2        = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate() + 2));
     const d7        = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate() + 7, 23, 59, 59, 999));
 
-    const [rawD1, rawD7, repassesPend, saidasD1, saidasD7] = await Promise.all([
+    const [rawD1, rawD7, saidasD1, saidasD7] = await Promise.all([
       prisma.parcelaContrato.findMany({
         where: { status: { in: ["PREVISTA", "ATRASADA"] }, vencimento: { gte: amanha, lte: amanhaFim } },
         include: { contrato: { select: { numeroContrato: true, cliente: { select: { id: true, nomeRazaoSocial: true, email: true, naoEnviarEmails: true, telefone: true } } } } },
@@ -40,11 +40,6 @@ router.post("/api/admin/disparo-teste-email", authenticate, requireAdmin, async 
         where: { status: { in: ["PREVISTA", "ATRASADA"] }, vencimento: { gte: d2, lte: d7 } },
         include: { contrato: { select: { numeroContrato: true, cliente: { select: { id: true, nomeRazaoSocial: true, email: true, naoEnviarEmails: true, telefone: true } } } } },
         orderBy: { vencimento: "asc" },
-      }),
-      prisma.repassePagamento.findMany({
-        where: { status: "PENDENTE" },
-        include: { advogado: { select: { nome: true } } },
-        orderBy: { competenciaId: "asc" },
       }),
       prisma.livroCaixaLancamento.findMany({
         where: { es: "S", statusFluxo: "PREVISTO", data: { gte: amanha, lte: amanhaFim } },
@@ -58,21 +53,16 @@ router.post("/api/admin/disparo-teste-email", authenticate, requireAdmin, async 
       }),
     ]);
 
-    // Repasses só entram no alerta a partir do dia 6 do mês
-    const diaMesBelemTeste = parseInt(agora.toLocaleDateString("pt-BR", { timeZone: "America/Belem", day: "numeric" }));
-    const repassesAlertaTeste = diaMesBelemTeste > 5 ? repassesPend : [];
-
     const contagens = {
       entradasD1: rawD1.length,
       entradasD7: rawD7.length,
-      repassesPendentes: repassesAlertaTeste.length,
       saidasD1: saidasD1.length,
       saidasD7: saidasD7.length,
     };
 
-    const temDados = rawD1.length > 0 || rawD7.length > 0 || repassesAlertaTeste.length > 0 || saidasD1.length > 0 || saidasD7.length > 0;
+    const temDados = rawD1.length > 0 || rawD7.length > 0 || saidasD1.length > 0 || saidasD7.length > 0;
     if (!temDados) {
-      resultado.alertas = { enviado: false, motivo: "Nenhum dado encontrado (sem parcelas/repasses/saídas nos próximos 7 dias)", contagens };
+      resultado.alertas = { enviado: false, motivo: "Nenhum dado encontrado (sem parcelas/saídas nos próximos 7 dias)", contagens };
     } else {
       const norm1 = rawD1.map(p => ({ ...p, clienteNome: p.contrato?.cliente?.nomeRazaoSocial, contratoNumero: p.contrato?.numeroContrato }));
       const norm7 = rawD7.map(p => ({ ...p, clienteNome: p.contrato?.cliente?.nomeRazaoSocial, contratoNumero: p.contrato?.numeroContrato }));
@@ -80,8 +70,8 @@ router.post("/api/admin/disparo-teste-email", authenticate, requireAdmin, async 
       for (const admin of admins) {
         await sendEmail({
           to: admin.email,
-          subject: `[TESTE] ⏰ Addere — Alertas: ${rawD1.length} entrada(s) amanhã · ${saidasD1.length} saída(s) amanhã · ${repassesAlertaTeste.length} repasse(s) pend.`,
-          html: buildEmailAlertaVencimentos(admin.nome, norm1, norm7, repassesAlertaTeste, saidasD1, saidasD7),
+          subject: `[TESTE] ⏰ Addere — Alertas: ${rawD1.length} entrada(s) amanhã · ${saidasD1.length} saída(s) amanhã`,
+          html: buildEmailAlertaVencimentos(admin.nome, norm1, norm7, [], saidasD1, saidasD7),
         });
       }
       // Clientes com parcelas próximas
@@ -404,447 +394,10 @@ router.delete("/api/aliquotas/:id", authenticate, requireAdmin, async (req, res)
 });
 
 // ============================================================
-// MODELOS DE DISTRIBUIÇÃO
+// CONFIG EMPRESA — singleton
 // ============================================================
 
-router.get("/api/modelo-distribuicao", authenticate, async (req, res) => {
-  try {
-    const somenteAtivos = req.query.ativo === "true";
-    const modelos = await prisma.modeloDistribuicao.findMany({
-      ...(somenteAtivos ? { where: { ativo: true } } : {}),
-      include: {
-        itens: {
-          orderBy: { ordem: "asc" },
-        },
-      },
-      orderBy: { codigo: "asc" },
-    });
-
-    res.json(modelos);
-  } catch (error) {
-    console.error("Erro ao listar modelos:", error);
-    res.status(500).json({ message: "Erro ao listar modelos de distribuição" });
-  }
-});
-
-router.get("/api/modelo-distribuicao/:id", authenticate, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const modelo = await prisma.modeloDistribuicao.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        itens: {
-          orderBy: { ordem: "asc" },
-        },
-      },
-    });
-
-    if (!modelo) {
-      return res.status(404).json({ message: "Modelo não encontrado" });
-    }
-
-    res.json(modelo);
-  } catch (error) {
-    console.error("Erro ao buscar modelo:", error);
-    res.status(500).json({ message: "Erro ao buscar modelo" });
-  }
-});
-
-router.get("/api/modelo-distribuicao/:id/itens", authenticate, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const itens = await prisma.modeloDistribuicaoItem.findMany({
-      where: { modeloId: parseInt(id) },
-      orderBy: { ordem: "asc" },
-    });
-
-    res.json(itens);
-  } catch (error) {
-    console.error("Erro ao buscar itens do modelo:", error);
-    res.status(500).json({ message: "Erro ao buscar itens do modelo" });
-  }
-});
-
-// ✅ Adicionar itens ao modelo (usado pelo front de Configurações)
-router.post(
-  "/api/modelo-distribuicao/:id/itens",
-  authenticate,
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-
-      // aceita tanto { itens: [...] } quanto um item único { destinoTipo, percentualBp, ... }
-      const bodyItens = Array.isArray(req.body?.itens) ? req.body.itens : null;
-      const itemUnico = !bodyItens ? req.body : null;
-
-      const modeloId = parseInt(id);
-      if (!modeloId || Number.isNaN(modeloId)) {
-        return res.status(400).json({ message: "ID do modelo inválido" });
-      }
-
-      const modeloExiste = await prisma.modeloDistribuicao.findUnique({
-        where: { id: modeloId },
-        select: { id: true },
-      });
-      if (!modeloExiste) {
-        return res.status(404).json({ message: "Modelo não encontrado" });
-      }
-
-      const itensParaInserir = bodyItens ? bodyItens : [itemUnico];
-
-      if (!itensParaInserir || itensParaInserir.length === 0) {
-        return res.status(400).json({ message: "Nenhum item informado" });
-      }
-
-      // calcula a próxima ordem automaticamente (se não vier)
-      const qtdAtual = await prisma.modeloDistribuicaoItem.count({
-        where: { modeloId },
-      });
-
-      const data = itensParaInserir.map((it, idx) => {
-        if (!it?.destinoTipo) {
-          throw new Error("destinoTipo é obrigatório em todos os itens");
-        }
-        const bp = parseInt(it.percentualBp);
-        if (Number.isNaN(bp)) {
-          throw new Error("percentualBp inválido em um dos itens");
-        }
-
-        return {
-          modeloId,
-          ordem: Number.isFinite(it.ordem) ? parseInt(it.ordem) : (qtdAtual + idx + 1),
-          origem: it.origem || "REPASSE",
-          periodicidade: it.periodicidade || "INCIDENTAL",
-          destinoTipo: it.destinoTipo,
-          destinatario: it.destinatario || null,
-          percentualBp: bp,
-        };
-      });
-
-      // cria (em lote quando possível)
-      if (data.length > 1) {
-        await prisma.modeloDistribuicaoItem.createMany({ data });
-      } else {
-        await prisma.modeloDistribuicaoItem.create({ data: data[0] });
-      }
-
-      // devolve o modelo completo já com itens ordenados (pra UI atualizar card)
-      const modeloCompleto = await prisma.modeloDistribuicao.findUnique({
-        where: { id: modeloId },
-        include: { itens: { orderBy: { ordem: "asc" } } },
-      });
-
-      res.status(201).json(modeloCompleto);
-    } catch (error) {
-      console.error("Erro ao adicionar itens ao modelo:", error);
-      res.status(500).json({
-        message: error?.message || "Erro ao adicionar itens ao modelo",
-      });
-    }
-  }
-);
-
-// Alterar item de modelo de distribuição
-router.put("/api/modelo-distribuicao/itens/:itemId", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const itemId = parseInt(req.params.itemId);
-    if (!itemId || Number.isNaN(itemId)) return res.status(400).json({ message: "ID do item inválido." });
-
-    const { ordem, destinoTipo, percentualBp, destinatario } = req.body;
-    const data = {};
-    if (ordem !== undefined) data.ordem = parseInt(ordem);
-    if (destinoTipo !== undefined) data.destinoTipo = destinoTipo;
-    if (percentualBp !== undefined) data.percentualBp = parseInt(percentualBp);
-    if (destinatario !== undefined) data.destinatario = destinatario || null;
-
-    const item = await prisma.modeloDistribuicaoItem.update({
-      where: { id: itemId },
-      data,
-    });
-    res.json(item);
-  } catch (error) {
-    console.error("Erro ao alterar item do modelo:", error);
-    if (error.code === "P2025") return res.status(404).json({ message: "Item não encontrado." });
-    res.status(500).json({ message: "Erro ao alterar item do modelo." });
-  }
-});
-
-// Excluir item de modelo de distribuição
-router.delete("/api/modelo-distribuicao/itens/:itemId", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const itemId = parseInt(req.params.itemId);
-    if (!itemId || Number.isNaN(itemId)) return res.status(400).json({ message: "ID do item inválido." });
-    await prisma.modeloDistribuicaoItem.delete({ where: { id: itemId } });
-    res.json({ message: "Item excluído com sucesso." });
-  } catch (error) {
-    console.error("Erro ao excluir item do modelo:", error);
-    if (error.code === "P2025") return res.status(404).json({ message: "Item não encontrado." });
-    res.status(500).json({ message: "Erro ao excluir item do modelo." });
-  }
-});
-
-// ============================================================
-// ALIASES (plural) - compatibilidade com o front antigo
-// ============================================================
-
-router.get("/api/modelos-distribuicao", authenticate, async (req, res) => {
-  try {
-    const somenteAtivos = req.query.ativo === "true";
-    const modelos = await prisma.modeloDistribuicao.findMany({
-      ...(somenteAtivos ? { where: { ativo: true } } : {}),
-      include: { itens: { orderBy: { ordem: "asc" } } },
-      orderBy: { codigo: "asc" },
-    });
-    res.json(modelos);
-  } catch (error) {
-    console.error("Erro ao listar modelos (alias plural):", error);
-    res.status(500).json({ message: "Erro ao listar modelos de distribuição" });
-  }
-});
-
-router.get("/api/modelos-distribuicao/:id", authenticate, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const modelo = await prisma.modeloDistribuicao.findUnique({
-      where: { id: parseInt(id) },
-      include: { itens: { orderBy: { ordem: "asc" } } },
-    });
-    if (!modelo) return res.status(404).json({ message: "Modelo não encontrado" });
-    res.json(modelo);
-  } catch (error) {
-    console.error("Erro ao buscar modelo (alias plural):", error);
-    res.status(500).json({ message: "Erro ao buscar modelo" });
-  }
-});
-
-router.get("/api/modelos-distribuicao/:id/itens", authenticate, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const itens = await prisma.modeloDistribuicaoItem.findMany({
-      where: { modeloId: parseInt(id) },
-      orderBy: { ordem: "asc" },
-    });
-    res.json(itens);
-  } catch (error) {
-    console.error("Erro ao buscar itens do modelo (alias plural):", error);
-    res.status(500).json({ message: "Erro ao buscar itens do modelo" });
-  }
-});
-
-router.post("/api/modelo-distribuicao", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const { codigo, cod, descricao, origem, periodicidade, itens } = req.body;
-    const codigoFinal = String((codigo ?? cod) || "").trim();
-    const descricaoFinal = String(descricao || "").trim();
-
-    if (!codigoFinal || !descricaoFinal) {
-      return res.status(400).json({
-        message: "Código e descrição são obrigatórios",
-      });
-    }
-
-    const itensArr = Array.isArray(itens) ? itens : [];
-
-    // ✅ Fluxo permitido: criar modelo sem itens e cadastrar depois via tela "Itens"
-    if (itensArr.length > 0) {
-      const somaPercentuais = itensArr.reduce((sum, item) => {
-        return sum + parseInt(item.percentualBp || 0);
-      }, 0);
-
-      if (somaPercentuais !== 10000) {
-        return res.status(400).json({
-          message: `Soma dos percentuais deve ser 100% (10000 bp). Atual: ${somaPercentuais} bp`,
-        });
-      }
-    }
-
-    const existente = await prisma.modeloDistribuicao.findUnique({
-      where: { codigo: codigoFinal },
-    });
-
-    if (existente) {
-      return res.status(400).json({
-        message: `Já existe um modelo com o código '${codigoFinal}'`,
-      });
-    }
-
-    const dataCreate = {
-      codigo: codigoFinal,
-      descricao: descricaoFinal,
-      origem: origem || "REPASSE",
-      periodicidade: periodicidade || "INCIDENTAL",
-    };
-
-    if (itensArr.length > 0) {
-      dataCreate.itens = {
-        create: itensArr.map((item, index) => ({
-          ordem: index + 1,
-          origem: item.origem || origem || "REPASSE",
-          periodicidade: item.periodicidade || periodicidade || "INCIDENTAL",
-          destinoTipo: item.destinoTipo,
-          destinatario: item.destinatario || null,
-          percentualBp: parseInt(item.percentualBp),
-        })),
-      };
-    }
-
-    const modelo = await prisma.modeloDistribuicao.create({
-      data: dataCreate,
-      include: {
-        itens: { orderBy: { ordem: "asc" } },
-      },
-    });
-
-    res.status(201).json(modelo);
-  } catch (error) {
-    console.error("Erro ao criar modelo:", error);
-    res.status(500).json({ message: "Erro ao criar modelo" });
-  }
-});
-
-router.put("/api/modelo-distribuicao/:id", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { codigo, descricao, origem, periodicidade, itens, ativo } = req.body;
-
-    if (itens && Array.isArray(itens)) {
-      const somaPercentuais = itens.reduce((sum, item) => {
-        return sum + parseInt(item.percentualBp || 0);
-      }, 0);
-
-      if (somaPercentuais !== 10000) {
-        return res.status(400).json({
-          message: `Soma dos percentuais deve ser 100% (10000 bp). Atual: ${somaPercentuais} bp`,
-        });
-      }
-    }
-
-    const modelo = await prisma.$transaction(async (tx) => {
-      const modeloAtualizado = await tx.modeloDistribuicao.update({
-        where: { id: parseInt(id) },
-        data: {
-          codigo,
-          descricao,
-          origem,
-          periodicidade,
-          ativo,
-        },
-      });
-
-      if (itens && Array.isArray(itens)) {
-        await tx.modeloDistribuicaoItem.deleteMany({
-          where: { modeloId: parseInt(id) },
-        });
-
-        await tx.modeloDistribuicaoItem.createMany({
-          data: itens.map((item, index) => ({
-            modeloId: parseInt(id),
-            ordem: index + 1,
-            origem: item.origem || origem || "REPASSE",
-            periodicidade: item.periodicidade || periodicidade || "INCIDENTAL",
-            destinoTipo: item.destinoTipo,
-            destinatario: item.destinatario || null,
-            percentualBp: parseInt(item.percentualBp),
-          })),
-        });
-      }
-
-      return modeloAtualizado;
-    });
-
-    const modeloCompleto = await prisma.modeloDistribuicao.findUnique({
-      where: { id: parseInt(id) },
-      include: {
-        itens: {
-          orderBy: { ordem: "asc" },
-        },
-      },
-    });
-
-    res.json(modeloCompleto);
-  } catch (error) {
-    console.error("Erro ao atualizar modelo:", error);
-
-    if (error.code === "P2025") {
-      return res.status(404).json({ message: "Modelo não encontrado" });
-    }
-
-    res.status(500).json({ message: "Erro ao atualizar modelo" });
-  }
-});
-
-router.delete("/api/modelo-distribuicao/:id", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const emUso = await prisma.contratoPagamento.count({
-      where: {
-        modeloDistribuicaoId: parseInt(id),
-        ativo: true,
-      },
-    });
-
-    if (emUso > 0) {
-      return res.status(400).json({
-        message: `Este modelo está em uso por ${emUso} contrato(s) ativo(s)`,
-      });
-    }
-
-    const modelo = await prisma.modeloDistribuicao.update({
-      where: { id: parseInt(id) },
-      data: { ativo: false },
-    });
-
-    res.json({
-      message: "Modelo desativado com sucesso",
-      modelo,
-    });
-  } catch (error) {
-    console.error("Erro ao desativar modelo:", error);
-
-    if (error.code === "P2025") {
-      return res.status(404).json({ message: "Modelo não encontrado" });
-    }
-
-    res.status(500).json({ message: "Erro ao desativar modelo" });
-  }
-});
-
-router.post("/api/modelo-distribuicao/validar", authenticate, async (req, res) => {
-  try {
-    const { itens } = req.body;
-
-    if (!itens || !Array.isArray(itens)) {
-      return res.status(400).json({ message: "Itens inválidos" });
-    }
-
-    const somaPercentuais = itens.reduce((sum, item) => {
-      return sum + parseInt(item.percentualBp || 0);
-    }, 0);
-
-    const valido = somaPercentuais === 10000;
-
-    res.json({
-      valido,
-      somaBp: somaPercentuais,
-      somaPercentual: (somaPercentuais / 100).toFixed(2),
-      diferenca: valido ? 0 : 10000 - somaPercentuais,
-      diferencaPercentual: valido ? "0.00" : ((10000 - somaPercentuais) / 100).toFixed(2),
-    });
-  } catch (error) {
-    console.error("Erro ao validar modelo:", error);
-    res.status(500).json({ message: "Erro ao validar modelo" });
-  }
-});
-
-// ============================================================
-// CONFIG ESCRITÓRIO — singleton
-// ============================================================
-
-router.get("/api/config-escritorio", authenticate, async (req, res) => {
+router.get(["/api/config-escritorio", "/api/config-empresa"], authenticate, async (req, res) => {
   try {
     let config = await prisma.configEscritorio.findFirst();
     if (!config) config = await prisma.configEscritorio.create({ data: {} });
@@ -854,7 +407,7 @@ router.get("/api/config-escritorio", authenticate, async (req, res) => {
   }
 });
 
-router.put("/api/config-escritorio", authenticate, requireAdmin, async (req, res) => {
+router.put(["/api/config-escritorio", "/api/config-empresa"], authenticate, requireAdmin, async (req, res) => {
   try {
     const fields = ["nome","nomeFantasia","cnpj","oabRegistro","logradouro","numero","complemento",
                     "bairro","cidade","estado","cep","telefoneFix","celular","whatsapp"];
@@ -871,8 +424,8 @@ router.put("/api/config-escritorio", authenticate, requireAdmin, async (req, res
   }
 });
 
-// ── Envio de dados do escritório (e-mail ou WhatsApp) ──────────────────────
-router.post("/api/config-escritorio/enviar", authenticate, async (req, res) => {
+// ── Envio de dados da empresa (e-mail ou WhatsApp) ─────────────────────────
+router.post(["/api/config-escritorio/enviar", "/api/config-empresa/enviar"], authenticate, async (req, res) => {
   try {
     const { canal, destinatario } = req.body;
     if (!canal || !destinatario) return res.status(400).json({ message: "canal e destinatario obrigatórios" });
@@ -896,7 +449,6 @@ router.post("/api/config-escritorio/enviar", authenticate, async (req, res) => {
     if (canal === "whatsapp") {
       const linhas = [`*${nome}*`];
       if (endereco) linhas.push(endereco);
-      if (cfg?.oabRegistro) linhas.push(cfg.oabRegistro);
       if (cfg?.cnpj) linhas.push(`CNPJ: ${cfg.cnpj}`);
       if (cfg?.whatsapp) linhas.push(`📱 ${cfg.whatsapp}`);
       if (contas.length) {
@@ -913,11 +465,10 @@ router.post("/api/config-escritorio/enviar", authenticate, async (req, res) => {
         }
       }
       const waPhone = _waPhone(destinatario);
-      // Monta variáveis do template dados_escritorio
+      // Monta variáveis do template de dados da empresa
       const v1 = nome;
       const v2 = [
         endereco,
-        cfg?.oabRegistro,
         cfg?.cnpj ? `CNPJ: ${cfg.cnpj}` : "",
         cfg?.whatsapp ? `📱 ${cfg.whatsapp}` : "",
       ].filter(Boolean).join("\n");
@@ -927,7 +478,7 @@ router.post("/api/config-escritorio/enviar", authenticate, async (req, res) => {
         if (b.chavePix1) partes.push(`  Pix: ${fmtPix(b.chavePix1)}`);
         if (b.chavePix2) partes.push(`  Pix: ${fmtPix(b.chavePix2)}`);
         return partes.join("\n");
-      }).join("\n\n") : "Consulte o escritório.";
+      }).join("\n\n") : "Consulte a empresa.";
 
       try {
         // Tenta mensagem livre (requer janela de 24h aberta)
@@ -969,7 +520,6 @@ router.post("/api/config-escritorio/enviar", authenticate, async (req, res) => {
     ${endereco ? `<div style="font-size:12px;color:#a8c4e0;margin-top:2px">${endereco}</div>` : ""}
   </div>
   <div style="border:1px solid #e2e8f0;border-top:0;border-radius:0 0 8px 8px;padding:18px 24px;background:#f8fafc">
-    ${cfg?.oabRegistro ? `<div style="font-size:13px;color:#555;margin-bottom:2px">${cfg.oabRegistro}</div>` : ""}
     ${cfg?.cnpj        ? `<div style="font-size:13px;color:#555;margin-bottom:2px">CNPJ: ${cfg.cnpj}</div>` : ""}
     ${cfg?.whatsapp    ? `<div style="font-size:13px;color:#555;margin-bottom:12px">📱 ${cfg.whatsapp}</div>` : ""}
     ${contas.length ? `<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:.05em;margin-bottom:8px">Dados Bancários</div>${bancoRows}` : ""}
@@ -987,7 +537,7 @@ router.post("/api/config-escritorio/enviar", authenticate, async (req, res) => {
 
     res.status(400).json({ message: "canal inválido (use email ou whatsapp)" });
   } catch (e) {
-    console.error("❌ config-escritorio/enviar:", e.message);
+    console.error("❌ config-empresa/enviar:", e.message);
     res.status(500).json({ message: e.message });
   }
 });

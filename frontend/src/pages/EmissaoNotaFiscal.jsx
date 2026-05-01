@@ -18,12 +18,12 @@ export default function EmissaoNotaFiscal() {
 
         <div className="px-6 py-5 flex items-center justify-between">
           <span className="text-sm font-medium text-slate-600">CNPJ</span>
-          <span className="font-mono text-sm text-slate-800 select-all">27.678.566/0001-23</span>
+          <span className="font-mono text-sm text-slate-800 select-all">48.744.127/0001-41</span>
         </div>
 
         <div className="px-6 py-5 flex items-center justify-between">
           <span className="text-sm font-medium text-slate-600">Código de Acesso</span>
-          <span className="font-mono text-sm text-slate-800 select-all">231208</span>
+          <span className="font-mono text-sm text-slate-800 select-all">tweet352413</span>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import { apiFetch } from "../lib/api";
 import { useToast } from "../components/Toast";
 import ConfirmModal from "../components/ConfirmModal";
 
-const TIPOS = ["REUNIÃO", "AUDIÊNCIA", "PRAZO", "COMPROMISSO", "TAREFA", "OUTRO"];
+const TIPOS = ["REUNIÃO", "COMPROMISSO", "TAREFA", "OUTRO"];
 const PRIORIDADES = ["BAIXA", "NORMAL", "ALTA", "URGENTE"];
 const ANTECEDENCIAS = [
   { label: "15 minutos", value: 15 },
@@ -16,8 +16,6 @@ const CANAIS = ["APP", "EMAIL"];
 
 const TIPO_CORES = {
   "REUNIÃO":     { bg: "#dbeafe", text: "#1e40af", dot: "#3b82f6" },
-  "AUDIÊNCIA":   { bg: "#ede9fe", text: "#5b21b6", dot: "#7c3aed" },
-  "PRAZO":       { bg: "#fee2e2", text: "#991b1b", dot: "#ef4444" },
   "COMPROMISSO": { bg: "#dcfce7", text: "#14532d", dot: "#22c55e" },
   "TAREFA":      { bg: "#fef9c3", text: "#713f12", dot: "#eab308" },
   "OUTRO":       { bg: "#f1f5f9", text: "#334155", dot: "#94a3b8" },
@@ -834,7 +832,7 @@ export default function Agenda({ user }) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Agenda</h1>
-          <p className="text-sm text-gray-500">Compromissos, prazos e lembretes</p>
+          <p className="text-sm text-gray-500">Compromissos, tarefas e lembretes</p>
         </div>
         <button onClick={() => abrirModal()}
           className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-hover">

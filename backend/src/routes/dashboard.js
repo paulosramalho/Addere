@@ -120,25 +120,12 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
     const previstosEntradasCentavos = previstos.filter(l => l.es === "E").reduce((acc, l) => acc + Number(l.valorCentavos || 0), 0);
     const previstosSaidasCentavos = previstos.filter(l => l.es === "S").reduce((acc, l) => acc + Number(l.valorCentavos || 0), 0);
 
-    // 8) REPASSES PENDENTES  (model correto: repassePagamento)
-    const repassesPendentesAgg = await prisma.repassePagamento.aggregate({
-      where: { status: "PENDENTE" },
-      _sum: { valorPrevisto: true },
-      _count: true,
-    });
-
-    const repassesPendentes = repassesPendentesAgg._count || 0;
-    // valorPrevisto é Decimal → converte pra centavos
-    const repassesPendentesValorCentavos = Math.round(
-      Number(repassesPendentesAgg._sum?.valorPrevisto || 0) * 100
-    );
-
-    // 9) CONTRATOS ATIVOS (campo correto: ativo)
+    // 8) CONTRATOS ATIVOS (campo correto: ativo)
     const contratosAtivos = await prisma.contratoPagamento.count({
       where: { ativo: true },
     });
 
-    // 10) PARCELAS PENDENTES (model correto: parcelaContrato; campo correto: vencimento)
+    // 9) PARCELAS PENDENTES (model correto: parcelaContrato; campo correto: vencimento)
     const parcelasPendentes = await prisma.parcelaContrato.count({
       where: {
         status: { in: ["PENDENTE", "ATRASADA"] },
@@ -306,12 +293,6 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
         entradasCentavos: previstosEntradasCentavos,
         saidasCentavos: previstosSaidasCentavos,
         count: previstos.length,
-      },
-
-      // Repasses
-      repasses: {
-        pendentes: repassesPendentes,
-        valorPendenteCentavos: repassesPendentesValorCentavos,
       },
 
       // Contratos e parcelas

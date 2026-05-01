@@ -20,9 +20,9 @@ function getOrigemBadge(origem) {
     MANUAL: { bg: "#e0f2fe", color: "#0369a1", label: "Manual" },
     PAGAMENTO_RECEBIDO: { bg: "#dcfce7", color: "#15803d", label: "Recebimento" },
     PARCELA_PREVISTA: { bg: "#fef3c7", color: "#a16207", label: "Parcela Prevista" },
-    PARCELA_FIXA_AUTOMATICA: { bg: "#dbeafe", color: "#1e40af", label: "Parcela Fixa" },
-    REPASSES_REALIZADOS: { bg: "#fee2e2", color: "#b91c1c", label: "Repasse" },
-    EMPRESTIMO_SOCIO_PAGAMENTO: { bg: "#ede9fe", color: "#6d28d9", label: "Empréstimo" },
+    PARCELA_FIXA_AUTOMATICA: { bg: "#f3f4f6", color: "#6b7280", label: "Legado" },
+    REPASSES_REALIZADOS: { bg: "#f3f4f6", color: "#6b7280", label: "Legado" },
+    EMPRESTIMO_SOCIO_PAGAMENTO: { bg: "#f3f4f6", color: "#6b7280", label: "Legado" },
     DESPESA: { bg: "#fee2e2", color: "#b91c1c", label: "Despesa" },
   };
   
@@ -142,7 +142,7 @@ function ContasSaldoPopover({ lancamentoId, onSelect, onClose }) {
   );
 }
 
-export default function LancamentosTable({ lancamentos, onDefinirConta, onRefresh, onEditar, onCriarAV, onExcluir, isAdmin = false, contas = [] }) {
+export default function LancamentosTable({ lancamentos, onDefinirConta, onRefresh, onEditar, onExcluir, isAdmin = false, contas = [] }) {
   const { addToast } = useToast();
   const [confirmarModal, setConfirmarModal] = useState(null); // { id, dataStr, contaId }
   const [contaPopover, setContaPopover] = useState(null); // lancamentoId
@@ -300,8 +300,6 @@ export default function LancamentosTable({ lancamentos, onDefinirConta, onRefres
             const isEfetivado = l.statusFluxo === "EFETIVADO";
             const isLiquidado = l.statusFluxo === "LIQUIDADO";
             const isCancelado = l.statusFluxo === "CANCELADO";
-            const isParcelaFixa = l.origem === "PARCELA_FIXA_AUTOMATICA";
-
             // ✅ Atualiza saldo SOMENTE para lançamentos EFETIVADOS
             if (isSaldoVirtual) {
               // Linha do saldo anterior - inicializa o acumulador
@@ -639,35 +637,8 @@ export default function LancamentosTable({ lancamentos, onDefinirConta, onRefres
                           </Tooltip>
                         )}
 
-                        {/* Criar AV: entrada EFETIVADA sem parcela vinculada */}
-                        {typeof onCriarAV === "function" &&
-                          l.es === "E" &&
-                          l.statusFluxo === "EFETIVADO" &&
-                          !String(l.referenciaOrigem || "").includes("PARCELA_") &&
-                          l.origem !== "REPASSES_REALIZADOS" &&
-                          l.origem !== "EMPRESTIMO_SOCIO_PAGAMENTO" && (
-                          <Tooltip content="Criar contrato AV e vincular este lançamento">
-                            <button
-                              onClick={() => onCriarAV(l)}
-                              style={{
-                                padding: "4px 10px",
-                                borderRadius: 6,
-                                border: "1px solid #d97706",
-                                background: "#fef3c7",
-                                color: "#92400e",
-                                fontSize: 12,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                              }}
-                            >
-                              + Criar AV
-                            </button>
-                          </Tooltip>
-                        )}
-
                         {/* Mostrar — se não tem nenhuma ação */}
-                        {!isPrevisto && !isPendente && l.origem !== "MANUAL" &&
-                          !(typeof onCriarAV === "function" && l.es === "E" && l.statusFluxo === "EFETIVADO" && !String(l.referenciaOrigem || "").includes("PARCELA_") && l.origem !== "REPASSES_REALIZADOS" && l.origem !== "EMPRESTIMO_SOCIO_PAGAMENTO") && (
+                        {!isPrevisto && !isPendente && l.origem !== "MANUAL" && (
                           <span style={{ opacity: 0.4 }}>—</span>
                         )}
                       </>

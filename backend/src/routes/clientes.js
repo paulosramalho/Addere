@@ -311,16 +311,16 @@ router.get("/api/clients/duplicados", authenticate, requireAdmin, async (req, re
   }
 });
 
-// GET /api/busca-global?q=... — busca clientes + contratos + advogados em paralelo
+// GET /api/busca-global?q=... — busca clientes + contratos em paralelo
 router.get("/api/busca-global", authenticate, async (req, res) => {
   try {
     const q = String(req.query.q || "").trim();
-    if (!q || q.length < 3) return res.json({ clientes: [], contratos: [], advogados: [] });
+    if (!q || q.length < 3) return res.json({ clientes: [], contratos: [] });
 
     const digits = q.replace(/\D/g, "");
     const isAdmin = String(req.user?.role || "").toUpperCase() === "ADMIN";
 
-    const [clientes, contratos, advogados] = await Promise.all([
+    const [clientes, contratos] = await Promise.all([
       prisma.cliente.findMany({
         where: {
           OR: [
@@ -347,20 +347,9 @@ router.get("/api/busca-global", authenticate, async (req, res) => {
         take: 5,
         orderBy: { createdAt: "desc" },
       }) : Promise.resolve([]),
-      isAdmin ? prisma.advogado.findMany({
-        where: {
-          OR: [
-            { nome: { contains: q, mode: "insensitive" } },
-            { oab: { contains: q, mode: "insensitive" } },
-          ],
-        },
-        select: { id: true, nome: true, oab: true },
-        take: 3,
-        orderBy: { nome: "asc" },
-      }) : Promise.resolve([]),
     ]);
 
-    res.json({ clientes, contratos, advogados });
+    res.json({ clientes, contratos });
   } catch (e) {
     console.error("Erro busca-global:", e.message);
     res.status(500).json({ message: "Erro na busca." });
@@ -371,16 +360,15 @@ router.get("/api/busca-global", authenticate, async (req, res) => {
 router.get("/api/clients/:id/vinculos", authenticate, requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [contratos, lancamentos, contaCorrente, adiantamentos, repassesManuais, comprovantes] = await Promise.all([
+    const [contratos, lancamentos, contaCorrente, adiantamentos, comprovantes] = await Promise.all([
       prisma.contratoPagamento.count({ where: { clienteId: id } }),
       prisma.livroCaixaLancamento.count({ where: { clienteContaId: id } }),
       prisma.contaCorrenteCliente.count({ where: { clienteId: id } }),
       prisma.adiantamentoSocio.count({ where: { clienteId: id } }),
-      prisma.repasseManualLancamento.count({ where: { clienteId: id } }),
       prisma.comprovanteRespostaCliente.count({ where: { clienteId: id } }),
     ]);
-    res.json({ contratos, lancamentos, contaCorrente, adiantamentos, repassesManuais, comprovantes,
-      total: contratos + lancamentos + contaCorrente + adiantamentos + repassesManuais + comprovantes });
+    res.json({ contratos, lancamentos, contaCorrente, adiantamentos, comprovantes,
+      total: contratos + lancamentos + contaCorrente + adiantamentos + comprovantes });
   } catch (error) {
     console.error("Erro ao buscar vínculos:", error);
     res.status(500).json({ message: "Erro ao buscar vínculos." });

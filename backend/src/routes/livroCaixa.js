@@ -1,114 +1,62 @@
 import { Router } from "express";
 import prisma from "../lib/prisma.js";
-import { authenticate, requireAdmin, getUserAdvogadoId } from "../lib/auth.js";
+import { authenticate, requireAdmin } from "../lib/auth.js";
 import { upload, _extrairTextoImagem } from "../lib/upload.js";
 import { extractPdfRowsByColumns, extractPdfLines } from "../lib/pdfParser.js";
 import { parseDateDDMMYYYY, formatDateBR, gerarNumeroContratoComPrefixo, convertValueToDecimal } from "../lib/contratoHelpers.js";
 import { sendWhatsApp, sendWhatsAppStrict, sendWhatsAppTemplate, _waPhone } from "../lib/whatsapp.js";
 import { sendEmail } from "../lib/email.js";
-import { buildEmailVencidos, _fmtDatePT } from "../lib/emailTemplates.js";
+import { buildEmailVencidos } from "../lib/emailTemplates.js";
 import crypto from "crypto";
 import PDFDocument from "pdfkit";
 
 const router = Router();
 
-function _buildTabelaVencidos(lista) {
-  const fmtBRL = (c) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const riscoLabel = { NORMAL: "Normal", ATENCAO: "Atenção", ALTO_RISCO: "Alto Risco", DUVIDOSO: "Duvidoso" };
-  const riscoCor = { NORMAL: "#6b7280", ATENCAO: "#92400e", ALTO_RISCO: "#c2410c", DUVIDOSO: "#b91c1c" };
-  const riscoBg = { NORMAL: "#f1f5f9", ATENCAO: "#fef3c7", ALTO_RISCO: "#ffedd5", DUVIDOSO: "#fee2e2" };
-  if (!lista.length) return "<p style='font-size:13px;color:#94a3b8;margin:0'>Nenhum lançamento nesta categoria.</p>";
-  const linhas = lista.map(l => `
-    <tr>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:13px">${_fmtDatePT(l.data)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:13px">${l.clienteFornecedor || l.historico || "—"}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:13px;max-width:160px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${l.historico || "—"}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:13px;text-align:right;font-weight:600">${fmtBRL(l.valorCentavos)}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:13px;text-align:center">${l.diasEmAtraso}d</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:13px;text-align:center">
-        <span style="background:${riscoBg[l.risco]};color:${riscoCor[l.risco]};padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600">${riscoLabel[l.risco]}</span>
-      </td>
-    </tr>`).join("");
-  return `<table style="width:100%;border-collapse:collapse">
-    <thead><tr style="background:#f8fafc">
-      <th style="padding:8px 10px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:left;border-bottom:2px solid #e5e7eb">Data</th>
-      <th style="padding:8px 10px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:left;border-bottom:2px solid #e5e7eb">Cliente/Fornecedor</th>
-      <th style="padding:8px 10px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:left;border-bottom:2px solid #e5e7eb">Histórico</th>
-      <th style="padding:8px 10px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:right;border-bottom:2px solid #e5e7eb">Valor</th>
-      <th style="padding:8px 10px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:center;border-bottom:2px solid #e5e7eb">Dias</th>
-      <th style="padding:8px 10px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:center;border-bottom:2px solid #e5e7eb">Risco</th>
-    </tr></thead>
-    <tbody>${linhas}</tbody>
-  </table>`;
+const TIPOS_CONTA_CONTABIL = ["BANCO", "APLICACAO", "CAIXA", "CLIENTES", "CARTAO_CREDITO", "CARTAO_DEBITO", "OUTROS"];
+
+function normalizarContaContabil(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
 }
 
-function buildEmailVencidosAdvogado(nomeAdvogado, enriched) {
-  const fmtBRL = (c) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+async function encontrarContaContabilDuplicada({ nome, tipo, excetoId = null }) {
+  const tipoNormalizado = String(tipo || "").trim().toUpperCase();
+  const nomeNormalizado = normalizarContaContabil(nome);
+  if (!tipoNormalizado || !nomeNormalizado) return null;
 
-  const aReceber = enriched.filter(l => l.es === "E");
-  const aPagar   = enriched.filter(l => l.es === "S");
-  const totalReceber = aReceber.reduce((s, l) => s + l.valorCentavos, 0);
-  const totalPagar   = aPagar.reduce((s, l) => s + l.valorCentavos, 0);
-  const total        = enriched.reduce((s, l) => s + l.valorCentavos, 0);
+  const contas = await prisma.livroCaixaConta.findMany({
+    where: {
+      tipo: tipoNormalizado,
+      ...(excetoId ? { id: { not: Number(excetoId) } } : {}),
+    },
+    select: { id: true, nome: true },
+  });
 
-  const secaoReceber = aReceber.length > 0 ? `
-    <div style="margin-bottom:24px">
-      <div style="background:#dcfce7;border-left:4px solid #16a34a;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <span style="font-size:13px;font-weight:700;color:#15803d">💰 A RECEBER</span>
-          <span style="font-size:12px;color:#166534;margin-left:8px">${aReceber.length} parcela(s)</span>
-        </div>
-        <span style="font-size:16px;font-weight:700;color:#15803d">${fmtBRL(totalReceber)}</span>
-      </div>
-      ${_buildTabelaVencidos(aReceber)}
-    </div>` : "";
-
-  const secaoPagar = aPagar.length > 0 ? `
-    <div style="margin-bottom:24px">
-      <div style="background:#fee2e2;border-left:4px solid #dc2626;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <span style="font-size:13px;font-weight:700;color:#b91c1c">💸 A PAGAR</span>
-          <span style="font-size:12px;color:#991b1b;margin-left:8px">${aPagar.length} parcela(s)</span>
-        </div>
-        <span style="font-size:16px;font-weight:700;color:#b91c1c">${fmtBRL(totalPagar)}</span>
-      </div>
-      ${_buildTabelaVencidos(aPagar)}
-    </div>` : "";
-
-  return `<!DOCTYPE html><html><body style="font-family:sans-serif;background:#f8fafc;margin:0;padding:20px">
-  <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)">
-    <div style="background:#1e3a5f;padding:24px 28px">
-      <div style="font-size:20px;font-weight:700;color:#fff">Addere</div>
-      <div style="font-size:13px;color:#93c5fd;margin-top:4px">Lançamentos vencidos em aberto — ${nomeAdvogado}</div>
-    </div>
-    <div style="padding:24px 28px">
-      <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
-        <div style="flex:1;min-width:140px;background:#f1f5f9;border-radius:8px;padding:14px 18px">
-          <div style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600">Total</div>
-          <div style="font-size:22px;font-weight:700;color:#0f172a">${fmtBRL(total)}</div>
-          <div style="font-size:12px;color:#94a3b8">${enriched.length} parcela(s)</div>
-        </div>
-        ${aReceber.length > 0 ? `<div style="flex:1;min-width:140px;background:#dcfce7;border-radius:8px;padding:14px 18px">
-          <div style="font-size:11px;color:#15803d;text-transform:uppercase;font-weight:600">💰 A receber</div>
-          <div style="font-size:22px;font-weight:700;color:#15803d">${fmtBRL(totalReceber)}</div>
-          <div style="font-size:12px;color:#166534">${aReceber.length} parcela(s)</div>
-        </div>` : ""}
-        ${aPagar.length > 0 ? `<div style="flex:1;min-width:140px;background:#fee2e2;border-radius:8px;padding:14px 18px">
-          <div style="font-size:11px;color:#b91c1c;text-transform:uppercase;font-weight:600">💸 A pagar</div>
-          <div style="font-size:22px;font-weight:700;color:#b91c1c">${fmtBRL(totalPagar)}</div>
-          <div style="font-size:12px;color:#991b1b">${aPagar.length} parcela(s)</div>
-        </div>` : ""}
-      </div>
-      ${secaoReceber}
-      ${secaoPagar}
-    </div>
-    <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">
-      Addere Control — enviado automaticamente às 8h
-    </div>
-  </div>
-</body></html>`;
+  return contas.find((conta) => normalizarContaContabil(conta.nome) === nomeNormalizado) || null;
 }
 
+async function getOrCreateContaContabilImportada(nome, tx = prisma) {
+  const nomeFinal = String(nome || "Outro (importado)").replace(/\s+/g, " ").trim();
+  const nomeNormalizado = normalizarContaContabil(nomeFinal);
+  const contas = await tx.livroCaixaConta.findMany({
+    select: { id: true, nome: true },
+  });
+  const existente = contas.find((conta) => normalizarContaContabil(conta.nome) === nomeNormalizado);
+  if (existente) return existente;
+
+  return tx.livroCaixaConta.create({
+    data: {
+      nome: nomeFinal,
+      tipo: "OUTROS",
+      ordem: 999,
+      ativa: true,
+    },
+  });
+}
 
 // ============================================================
 
@@ -423,21 +371,27 @@ router.post("/api/livro-caixa/contas", authenticate, async (req, res) => {
     console.log('📦 Body recebido:', JSON.stringify(req.body, null, 2));
     
     const { nome, tipo, ordem, ativa, dataInicial, saldoInicialCent, chavePix1, chavePix2 } = req.body;
+    const nomeNormalizado = String(nome || "").replace(/\s+/g, " ").trim();
+    const tipoNormalizado = String(tipo || "").trim().toUpperCase();
 
     // Validações
-    if (!nome || !tipo) {
+    if (!nomeNormalizado || !tipoNormalizado) {
       console.log('⚠️ Validação falhou: nome ou tipo faltando');
       return res.status(400).json({
         message: "Nome e tipo são obrigatórios"
       });
     }
 
-    const tiposValidos = ["BANCO", "APLICACAO", "CAIXA", "CLIENTES", "CARTAO_CREDITO", "CARTAO_DEBITO", "OUTROS"];
-    if (!tiposValidos.includes(tipo)) {
+    if (!TIPOS_CONTA_CONTABIL.includes(tipoNormalizado)) {
       console.log('⚠️ Tipo inválido:', tipo);
       return res.status(400).json({
         message: "Tipo inválido. Use: BANCO, APLICACAO, CAIXA, CLIENTES, CARTAO_CREDITO, CARTAO_DEBITO ou OUTROS"
       });
+    }
+
+    const duplicada = await encontrarContaContabilDuplicada({ nome: nomeNormalizado, tipo: tipoNormalizado });
+    if (duplicada) {
+      return res.status(409).json({ message: `Conta contábil já cadastrada: ${duplicada.nome}` });
     }
 
     console.log('✅ Validações OK, criando conta...');
@@ -445,8 +399,8 @@ router.post("/api/livro-caixa/contas", authenticate, async (req, res) => {
     // Criar conta
     const conta = await prisma.livroCaixaConta.create({
       data: {
-        nome: String(nome).trim(),
-        tipo: String(tipo).trim(),
+        nome: nomeNormalizado,
+        tipo: tipoNormalizado,
         ordem: parseInt(ordem) || 0,
         ativa: ativa !== undefined ? Boolean(ativa) : true,
         dataInicial: dataInicial ? new Date(`${String(dataInicial).slice(0,10)}T12:00:00.000Z`) : null,
@@ -498,22 +452,33 @@ router.put("/api/livro-caixa/contas/:id", authenticate, async (req, res) => {
       return res.status(404).json({ message: "Conta não encontrada" });
     }
 
+    const nomeFinalConta = nome !== undefined ? String(nome).replace(/\s+/g, " ").trim() : existente.nome;
+    const tipoFinalConta = tipo !== undefined ? String(tipo).trim().toUpperCase() : existente.tipo;
+
     // Validar tipo se informado
     if (tipo) {
-      const tiposValidos = ["BANCO", "APLICACAO", "CAIXA", "CLIENTES", "CARTAO_CREDITO", "CARTAO_DEBITO", "OUTROS"];
-      if (!tiposValidos.includes(tipo)) {
+      if (!TIPOS_CONTA_CONTABIL.includes(tipoFinalConta)) {
         return res.status(400).json({
           message: "Tipo inválido. Use: BANCO, APLICACAO, CAIXA, CLIENTES, CARTAO_CREDITO, CARTAO_DEBITO ou OUTROS"
         });
       }
     }
 
+    if (!nomeFinalConta) {
+      return res.status(400).json({ message: "Nome é obrigatório" });
+    }
+
+    const duplicada = await encontrarContaContabilDuplicada({ nome: nomeFinalConta, tipo: tipoFinalConta, excetoId: id });
+    if (duplicada) {
+      return res.status(409).json({ message: `Conta contábil já cadastrada: ${duplicada.nome}` });
+    }
+
     // Atualizar
     const conta = await prisma.livroCaixaConta.update({
       where: { id: parseInt(id) },
       data: {
-        ...(nome !== undefined && { nome: String(nome).trim() }),
-        ...(tipo !== undefined && { tipo: String(tipo).trim() }),
+        ...(nome !== undefined && { nome: nomeFinalConta }),
+        ...(tipo !== undefined && { tipo: tipoFinalConta }),
         ...(ordem !== undefined && { ordem: parseInt(ordem) }),
         ...(ativa !== undefined && { ativa: Boolean(ativa) }),
         ...(dataInicial !== undefined && { dataInicial: dataInicial ? new Date(`${String(dataInicial).slice(0,10)}T12:00:00.000Z`) : null }),
@@ -529,10 +494,8 @@ router.put("/api/livro-caixa/contas/:id", authenticate, async (req, res) => {
     console.log('✅ Conta atualizada');
 
     // Sincroniza com Clientes se o tipo final for BANCO ou APLICACAO
-    const tipoFinal = tipo ?? existente.tipo;
-    const nomeFinal = nome ? String(nome).trim() : existente.nome;
-    if (["BANCO", "APLICACAO"].includes(tipoFinal)) {
-      await getOrCreatePessoaByNomeETipo(nomeFinal, "A").catch((e) =>
+    if (["BANCO", "APLICACAO"].includes(tipoFinalConta)) {
+      await getOrCreatePessoaByNomeETipo(nomeFinalConta, "A").catch((e) =>
         console.warn("⚠️ Sync Clientes (update):", e.message)
       );
     }
@@ -639,7 +602,7 @@ router.post("/api/dados-bancarios/enviar", authenticate, async (req, res) => {
       if (c.chavePix2) linhas.push(`✦ Pix: ${formatPix(c.chavePix2)}`);
       linhas.push("");
     }
-    linhas.push("_Amanda Ramalho Advogados_");
+    linhas.push("_Addere_");
 
     const mensagem = linhas.join("\n");
     await sendWhatsApp(_waPhone(phone), mensagem);
@@ -943,10 +906,8 @@ router.post(
           localLabel: r.local,
           contaId: contaSug?.id || null,
           contaNome: contaSug?.nome || r.local || "",
-          repasse: false,
           isentoTributacao: false,
           clienteId: null,
-          modeloDistribuicaoId: null,
           jaConfirmada: confirmedMap.has(rowId),
           confirmedAt:  confirmedMap.get(rowId) ?? null,
         });
@@ -1029,7 +990,7 @@ function shouldAutoCreateClienteFromImportPdf(nome, historico = "") {
   }
 
   // 4) "Banco ..." e "Apl ..." são criados com tipo "A" no fluxo de Saída
-  //    — no fluxo de Entrada (NFS-e), não devem virar Pagamento Avulso
+  //    — no fluxo de Entrada (NFS-e), não devem gerar contrato AV
   if (/^banco\s+/.test(n)) return false;
   if (/^apl\s+/.test(n) || /^aplica/.test(n)) return false;
 
@@ -1068,18 +1029,8 @@ router.post("/api/livro-caixa/importacao/pdf/confirmar-linha", authenticate, asy
     const historico = String(r.historico || "").trim();
     const localLabel = String(r.localLabel || "").trim();
 
-    const repasse = !!r.repasse;
     const isentoTributacao = !!r.isentoTributacao;
     let clienteId = r.clienteId ? Number(r.clienteId) : null;
-    const modeloDistribuicaoId = r.modeloDistribuicaoId ? Number(r.modeloDistribuicaoId) : null;
-    const advogadoPrincipalId  = r.advogadoPrincipalId  ? Number(r.advogadoPrincipalId)  : null;
-    const indicacaoAdvogadoId  = r.indicacaoAdvogadoId  ? Number(r.indicacaoAdvogadoId)  : null;
-    const usaSplitSocio        = !!r.usaSplitSocio;
-    const splitsToCreate       = Array.isArray(r.splits)
-      ? r.splits
-          .filter((s) => s && s.advogadoId && Number(s.percentualBp) > 0)
-          .map((s) => ({ advogadoId: Number(s.advogadoId), percentualBp: Number(s.percentualBp) }))
-      : [];
     const contaIdRaw = r.contaId ? Number(r.contaId) : null;
     const contaNome = String(r.contaNome || localLabel || "").trim();
     let clienteCriado = null;
@@ -1098,23 +1049,8 @@ router.post("/api/livro-caixa/importacao/pdf/confirmar-linha", authenticate, asy
     // ------------------------------------------------------------
     let contaId = contaIdRaw;
     if (!contaId) {
-      const existing = await prisma.livroCaixaConta.findFirst({
-        where: { nome: contaNome },
-        select: { id: true },
-      });
-      if (existing) {
-        contaId = existing.id;
-      } else {
-        const created = await prisma.livroCaixaConta.create({
-          data: {
-            nome: contaNome || "Outro (importado)",
-            tipo: "OUTROS",
-            ordem: 999,
-            ativa: true,
-          },
-        });
-        contaId = created.id;
-      }
+      const contaImportada = await getOrCreateContaContabilImportada(contaNome);
+      contaId = contaImportada.id;
     }
 
     // ------------------------------------------------------------
@@ -1185,9 +1121,7 @@ router.post("/api/livro-caixa/importacao/pdf/confirmar-linha", authenticate, asy
     // ------------------------------------------------------------
     // A) ENTRADA
     // Regras:
-    // A.1 Se contém NFS-e => Pagamento Avulso
-    //   - pergunta Repasse? se sim: exige modeloDistribuicaoId
-    //   - grava Repasse Efetuado (status da parcela) + grava Livro Caixa (E)
+    // A.1 Se contém NFS-e => contrato AV e Livro Caixa (E)
     // A.2 Se NÃO contém NFS-e => pergunta não tributado (isentoTributacao)
     //   - se sim: repete fluxo de A.1 (mas com isentoTributacao=true)
     //   - se não: grava só Livro Caixa (E)
@@ -1195,7 +1129,7 @@ router.post("/api/livro-caixa/importacao/pdf/confirmar-linha", authenticate, asy
 
     const contemNFSe = /NFS-e/i.test(String(documento || "")) || /NFS-e/i.test(historico);
 
-    // Se vai virar Pagamento Avulso:
+    // Se vai gerar contrato AV:
     const viraAvulso = contemNFSe || isentoTributacao === true;
 
     if (!viraAvulso) {
@@ -1238,7 +1172,7 @@ router.post("/api/livro-caixa/importacao/pdf/confirmar-linha", authenticate, asy
     }
 
 
-    // Aqui: A.1 ou A.2.a.1 => Pagamento Avulso
+    // Aqui: A.1 ou A.2.a.1 => contrato AV
     // Se não veio clienteId manual, cria/encontra pelo nome importado do PDF.
     if (!clienteId && clienteFornecedor) {
       const resolved = await getOrCreatePessoaByNomeETipo(clienteFornecedor, "C");
@@ -1247,11 +1181,8 @@ router.post("/api/livro-caixa/importacao/pdf/confirmar-linha", authenticate, asy
     }
 
     if (!clienteId) {
-      return res.status(400).json({ message: "Pagamento Avulso: informe o cliente ou o nome do cliente/fornecedor." });
+      return res.status(400).json({ message: "Informe o cliente ou o nome do cliente/fornecedor." });
 }
-    if (repasse && !modeloDistribuicaoId) {
-      return res.status(400).json({ message: "Repasse=Sim exige modeloDistribuicaoId." });
-    }
 
     const valorRecebidoMasked = (valorCentavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -1267,13 +1198,6 @@ router.post("/api/livro-caixa/importacao/pdf/confirmar-linha", authenticate, asy
         numeroContrato,
 
         isentoTributacao: !!isentoTributacao,
-        modeloDistribuicaoId:      modeloDistribuicaoId || null,
-        repasseAdvogadoPrincipalId: usaSplitSocio ? null : advogadoPrincipalId,
-        repasseIndicacaoAdvogadoId: indicacaoAdvogadoId || null,
-        usaSplitSocio,
-        ...(splitsToCreate.length
-          ? { splits: { createMany: { data: splitsToCreate } } }
-          : {}),
 
         parcelas: {
           create: {
@@ -1341,7 +1265,7 @@ router.post("/api/livro-caixa/importacao/pdf/confirmar-linha", authenticate, asy
 
       valorRecebidoCentavos: valorCentavos,
 
-      message: "Pagamento avulso registrado e contrato criado com sucesso!",
+      message: "Contrato AV registrado com sucesso!",
     });
 } catch (e) {
     console.error("❌ Erro confirmar linha importação:", e);
@@ -1553,7 +1477,7 @@ router.post("/api/livro-caixa/boleto/parse-pdf", authenticate, upload.single("bo
       }
     }
 
-    const CNPJ_FIRMA = "27678566000123";
+    const CNPJ_FIRMA = "48744127000141";
 
     // ── Beneficiário / Cedente ───────────────────────────────────────────────
     let beneficiario = null;
@@ -1567,9 +1491,9 @@ router.post("/api/livro-caixa/boleto/parse-pdf", authenticate, upload.single("bo
       beneficiario = mBenefLabel[1].replace(/\s*\([^)]*$/, "").replace(/[\s\-]+$/, "").trim();
       cnpjBeneficiario = mBenefLabel[2].trim();
     }
-    // 2. Fallback: "...Advogados – CNPJ" mas somente se não aparece antes de "PAGADOR"
+    // 2. Fallback: "NOME - CNPJ" mas somente se não aparece antes de "PAGADOR"
     if (!beneficiario) {
-      const reBenef = /([A-Za-zÀ-ú\s]+Advogados)\s*[-–]\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/;
+      const reBenef = /([A-Za-zÀ-ú0-9\s\-\.\/&]{3,80})\s*[-–]\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/;
       const mBenef = textoCompleto.match(reBenef);
       if (mBenef) {
         const idxMatch = textoCompleto.search(reBenef);
@@ -2086,7 +2010,7 @@ router.patch("/api/livro-caixa/lancamentos/:id/confirmar", authenticate, async (
 
     const cf = String(existing.clienteFornecedor || "").trim();
     if (!cf) {
-      return res.status(400).json({ message: "Informe Cliente/Fornecedor ou Advogado antes de confirmar." });
+      return res.status(400).json({ message: "Informe Cliente/Fornecedor antes de confirmar." });
     }
 
     // Data de recebimento: vem do body ou usa hoje
@@ -2142,15 +2066,6 @@ router.patch("/api/livro-caixa/lancamentos/:id/confirmar", authenticate, async (
               valorRecebido: existing.valorCentavos / 100,
             },
           });
-          // Dispara e-mail e cria base para repasse (fire-and-forget)
-          enviarEmailNovoLancamentoAdvogados(parcelaId, {
-            data: dt,
-            clienteFornecedor: parcela.contrato?.cliente?.nomeRazaoSocial || null,
-            historico: `Parcela ${parcela.numero} — Contrato ${parcela.contrato?.numeroContrato || ""}`,
-            valorCentavos: existing.valorCentavos,
-            competenciaAno: dt.getFullYear(),
-            competenciaMes: dt.getMonth() + 1,
-          }).catch(() => {});
         }
       }
     }
@@ -2853,13 +2768,12 @@ router.get("/api/livro-caixa/pdf", authenticate, async (req, res) => {
     const drawPageHeader = () => {
       const headerY = 22;
 
-      // Uma linha: Addere - Livro Caixa (esquerda) | Amanda Maia (centro) | Mês (direita)
+      // Uma linha: Addere - Livro Caixa (esquerda) | Addere (centro) | Mês (direita)
       doc.font("Helvetica-Bold").fontSize(10).fillColor(colorHeader);
       doc.text(`Addere - Livro Caixa ${ano}`, startX, headerY, { width: 200, align: "left" });
 
-      // Amanda Maia Ramalho Advogados - centered
       doc.font("Helvetica").fontSize(9).fillColor("#333");
-      doc.text("Amanda Maia Ramalho Advogados", startX, headerY, { width: pageWidth, align: "center" });
+      doc.text("Addere", startX, headerY, { width: pageWidth, align: "center" });
 
       // Mês - right aligned
       doc.font("Helvetica-Bold").fontSize(10).fillColor(colorHeader);
@@ -3106,36 +3020,6 @@ router.get("/api/livro-caixa/pdf", authenticate, async (req, res) => {
   }
 });
 
-// ----------------------------
-// ENDPOINT DE TESTE: simular “Repasse Realizado” (gera pendência)
-// ----------------------------
-router.post("/api/livro-caixa/teste/simular-repasse", authenticate, async (req, res) => {
-  const { competenciaAno, competenciaMes, dataBR, valorCentavos, historico } = req.body || {};
-
-  const data = parseDateDDMMYYYY(dataBR);
-  if (!data) return res.status(400).json({ message: "dataBR inválida (DD/MM/AAAA)." });
-
-  const lancamento = await prisma.livroCaixaLancamento.create({
-    data: {
-      competenciaAno: Number(competenciaAno),
-      competenciaMes: Number(competenciaMes),
-      data,
-      documento: "RC",
-      es: "S",
-      clienteFornecedor: "Repasses",
-      historico: historico || "Repasse realizado — precisa informar conta",
-      valorCentavos: Number(valorCentavos),
-      origem: "REPASSES_REALIZADOS",
-      status: "PENDENTE_CONTA",
-      contaId: null,
-      localLabelFallback: "⚠ Informar conta",
-      referenciaOrigem: `SIMULADO_${Date.now()}`,
-    },
-  });
-
-  res.status(201).json({ lancamento });
-});
-
 // ============================================================
 // ✅ OPCIONAL: Endpoint para criar/atualizar saldo inicial
 // ============================================================
@@ -3191,312 +3075,6 @@ router.get("/api/livro-caixa/saldo-inicial", authenticate, async (req, res) => {
   } catch (e) {
     console.error("❌ Erro ao buscar saldos iniciais:", e);
     res.status(400).json({ message: e.message });
-  }
-});
-
-// ============================================================
-
-// ============================================================
-// PARCELAS FIXAS NO LIVRO CAIXA
-// ============================================================
-
-router.post("/api/livro-caixa/gerar-parcelas-fixas-mes", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const { ano, mes } = req.body;
-
-    if (!ano || !mes) {
-      return res.status(400).json({ message: "ano e mes são obrigatórios" });
-    }
-
-    console.log(`\n🔄 Gerando parcelas fixas para ${mes}/${ano}...`);
-
-    // Buscar advogados com parcela fixa ativa
-    const advogados = await prisma.advogado.findMany({
-      where: { parcelaFixaAtiva: true },
-      select: {
-        id: true,
-        nome: true,
-        parcelaFixaValor: true,
-        parcelaFixaNome: true,
-      },
-    });
-
-    console.log(`📋 ${advogados.length} advogados com parcela fixa ativa`);
-
-    if (advogados.length === 0) {
-      return res.json({ 
-        message: "Nenhum advogado com parcela fixa ativa",
-        gerados: 0,
-        ignorados: 0,
-      });
-    }
-
-    let gerados = 0;
-    let ignorados = 0;
-
-    for (const adv of advogados) {
-      const referenciaOrigem = `PARCELA_FIXA_${adv.id}_${ano}_${mes}`;
-
-      // Verificar se já existe
-      const existe = await prisma.livroCaixaLancamento.findFirst({
-        where: {
-          origem: "PARCELA_FIXA_AUTOMATICA",
-          referenciaOrigem,
-        },
-      });
-
-      if (existe) {
-        console.log(`  ⏭️  ${adv.nome}: Já existe`);
-        ignorados++;
-        continue;
-      }
-
-      // Criar lançamento PREVISTO
-      const valorCentavos = Math.round(parseFloat(adv.parcelaFixaValor) * 100);
-      
-      await prisma.livroCaixaLancamento.create({
-        data: {
-          competenciaAno: parseInt(ano),
-          competenciaMes: parseInt(mes),
-          data: new Date(Date.UTC(Number(ano), Number(mes) - 1, 5, 12, 0, 0)), // Dia 5 do mês T12Z
-          documento: null,
-          es: "S",
-          clienteFornecedor: adv.nome,
-          historico: adv.parcelaFixaNome || "Pró Labore",
-          valorCentavos,
-          contaId: null,
-          ordemDia: 0,
-          origem: "PARCELA_FIXA_AUTOMATICA",
-          status: "PENDENTE_CONTA",
-          statusFluxo: "PREVISTO",
-          localLabelFallback: null,
-          referenciaOrigem,
-        },
-      });
-
-      console.log(`  ✅ ${adv.nome}: R$ ${(valorCentavos / 100).toFixed(2)}`);
-      gerados++;
-    }
-
-    console.log(`\n✅ Concluído: ${gerados} gerados, ${ignorados} ignorados\n`);
-
-    res.json({
-      message: `${gerados} parcela(s) fixa(s) gerada(s) com sucesso`,
-      gerados,
-      ignorados,
-      total: advogados.length,
-    });
-
-  } catch (error) {
-    console.error("❌ Erro ao gerar parcelas fixas:", error);
-    res.status(500).json({ 
-      message: "Erro ao gerar parcelas fixas",
-      error: error.message,
-    });
-  }
-});
-
-// ============================================================
-// 2. POST /api/livro-caixa/confirmar-parcela-fixa
-// Confirma parcela fixa: PREVISTO → EFETIVADO
-// ============================================================
-router.post("/api/livro-caixa/confirmar-parcela-fixa", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const { lancamentoId, contaId, data } = req.body;
-
-    console.log(`\n✓ Confirmando parcela fixa: ${lancamentoId}`);
-
-    if (!lancamentoId || !contaId || !data) {
-      return res.status(400).json({ 
-        message: "lancamentoId, contaId e data são obrigatórios" 
-      });
-    }
-
-    // Buscar lançamento
-    const lancamento = await prisma.livroCaixaLancamento.findUnique({
-      where: { id: parseInt(lancamentoId) },
-    });
-
-    if (!lancamento) {
-      return res.status(404).json({ message: "Lançamento não encontrado" });
-    }
-
-    if (lancamento.statusFluxo !== "PREVISTO") {
-      return res.status(400).json({ 
-        message: "Apenas lançamentos PREVISTOS podem ser confirmados" 
-      });
-    }
-
-    if (lancamento.origem !== "PARCELA_FIXA_AUTOMATICA") {
-      return res.status(400).json({ 
-        message: "Este lançamento não é uma parcela fixa automática" 
-      });
-    }
-
-    // Parse data DD/MM/AAAA
-    const [dia, mes, ano] = data.split("/");
-    const dataEfetivacao = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-
-    if (isNaN(dataEfetivacao.getTime())) {
-      return res.status(400).json({ message: "Data inválida (use DD/MM/AAAA)" });
-    }
-
-    // Atualizar: PREVISTO → EFETIVADO
-    const atualizado = await prisma.livroCaixaLancamento.update({
-      where: { id: parseInt(lancamentoId) },
-      data: {
-        statusFluxo: "EFETIVADO",
-        contaId: parseInt(contaId),
-        data: dataEfetivacao,
-        status: "OK",
-      },
-    });
-
-    console.log(`✅ Parcela fixa confirmada: ${lancamento.historico}`);
-
-    res.json({
-      message: "Parcela fixa confirmada com sucesso",
-      lancamento: atualizado,
-    });
-
-  } catch (error) {
-    console.error("❌ Erro ao confirmar parcela fixa:", error);
-    res.status(500).json({ 
-      message: "Erro ao confirmar parcela fixa",
-      error: error.message,
-    });
-  }
-});
-
-// ============================================================
-// 3. PUT /api/livro-caixa/editar-parcela-fixa
-// Edita valor e confirma parcela fixa
-// ============================================================
-router.put("/api/livro-caixa/editar-parcela-fixa", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const { lancamentoId, novoValor, contaId, data } = req.body;
-
-    console.log(`\n✏️ Editando parcela fixa: ${lancamentoId}`);
-
-    if (!lancamentoId || !novoValor || !contaId || !data) {
-      return res.status(400).json({ 
-        message: "lancamentoId, novoValor, contaId e data são obrigatórios" 
-      });
-    }
-
-    // Buscar lançamento
-    const lancamento = await prisma.livroCaixaLancamento.findUnique({
-      where: { id: parseInt(lancamentoId) },
-    });
-
-    if (!lancamento) {
-      return res.status(404).json({ message: "Lançamento não encontrado" });
-    }
-
-    if (lancamento.statusFluxo !== "PREVISTO") {
-      return res.status(400).json({ 
-        message: "Apenas lançamentos PREVISTOS podem ser editados" 
-      });
-    }
-
-    if (lancamento.origem !== "PARCELA_FIXA_AUTOMATICA") {
-      return res.status(400).json({ 
-        message: "Este lançamento não é uma parcela fixa automática" 
-      });
-    }
-
-    // Validar valor
-    const valorNum = parseFloat(novoValor);
-    if (isNaN(valorNum) || valorNum <= 0) {
-      return res.status(400).json({ message: "Valor inválido" });
-    }
-
-    const valorCentavos = Math.round(valorNum * 100);
-
-    // Parse data DD/MM/AAAA
-    const [dia, mes, ano] = data.split("/");
-    const dataEfetivacao = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia));
-
-    if (isNaN(dataEfetivacao.getTime())) {
-      return res.status(400).json({ message: "Data inválida (use DD/MM/AAAA)" });
-    }
-
-    // Atualizar valor e status
-    const atualizado = await prisma.livroCaixaLancamento.update({
-      where: { id: parseInt(lancamentoId) },
-      data: {
-        valorCentavos,
-        statusFluxo: "EFETIVADO",
-        contaId: parseInt(contaId),
-        data: dataEfetivacao,
-        status: "OK",
-      },
-    });
-
-    console.log(`✅ Parcela fixa editada: ${lancamento.historico} - Novo valor: R$ ${(valorCentavos / 100).toFixed(2)}`);
-
-    res.json({
-      message: "Parcela fixa editada e confirmada com sucesso",
-      lancamento: atualizado,
-    });
-
-  } catch (error) {
-    console.error("❌ Erro ao editar parcela fixa:", error);
-    res.status(500).json({ 
-      message: "Erro ao editar parcela fixa",
-      error: error.message,
-    });
-  }
-});
-
-// ============================================================
-// 4. DELETE /api/livro-caixa/remover-parcela-fixa/:id
-// Remove parcela fixa PREVISTA
-// ============================================================
-router.delete("/api/livro-caixa/remover-parcela-fixa/:id", authenticate, requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    console.log(`\n❌ Removendo parcela fixa: ${id}`);
-
-    // Buscar lançamento
-    const lancamento = await prisma.livroCaixaLancamento.findUnique({
-      where: { id: parseInt(id) },
-    });
-
-    if (!lancamento) {
-      return res.status(404).json({ message: "Lançamento não encontrado" });
-    }
-
-    if (lancamento.statusFluxo !== "PREVISTO") {
-      return res.status(400).json({ 
-        message: "Apenas lançamentos PREVISTOS podem ser removidos. Lançamentos EFETIVADOS são permanentes." 
-      });
-    }
-
-    if (lancamento.origem !== "PARCELA_FIXA_AUTOMATICA") {
-      return res.status(400).json({ 
-        message: "Este lançamento não é uma parcela fixa automática" 
-      });
-    }
-
-    // Deletar
-    await prisma.livroCaixaLancamento.delete({
-      where: { id: parseInt(id) },
-    });
-
-    console.log(`✅ Parcela fixa removida: ${lancamento.historico}`);
-
-    res.json({
-      message: "Parcela fixa removida com sucesso",
-    });
-
-  } catch (error) {
-    console.error("❌ Erro ao remover parcela fixa:", error);
-    res.status(500).json({ 
-      message: "Erro ao remover parcela fixa",
-      error: error.message,
-    });
   }
 });
 
@@ -3594,38 +3172,6 @@ router.post("/api/livro-caixa/vencidos-em-aberto/enviar-email", authenticate, re
       enviados++;
     }
 
-    // Advogados — apenas suas parcelas
-    const parcelaVencidos = enriched.filter(l => l.origem === "PARCELA_PREVISTA" && l.referenciaOrigem);
-    if (parcelaVencidos.length > 0) {
-      const parcelaIdParaLanc = new Map();
-      for (const l of parcelaVencidos) {
-        const m = String(l.referenciaOrigem).match(/PARCELA_(\d+)/);
-        if (m) parcelaIdParaLanc.set(Number(m[1]), l);
-      }
-      const splits = await prisma.parcelaSplitAdvogado.findMany({
-        where: { parcelaId: { in: [...parcelaIdParaLanc.keys()] } },
-        include: { advogado: { select: { id: true, nome: true, email: true, ativo: true } } },
-      });
-      const porAdvogado = new Map();
-      for (const split of splits) {
-        const adv = split.advogado;
-        if (!adv.ativo || !adv.email) continue;
-        const lanc = parcelaIdParaLanc.get(split.parcelaId);
-        if (!lanc) continue;
-        if (!porAdvogado.has(adv.id)) porAdvogado.set(adv.id, { nome: adv.nome, email: adv.email, vencidos: [] });
-        const bucket = porAdvogado.get(adv.id);
-        if (!bucket.vencidos.find(v => v.id === lanc.id)) bucket.vencidos.push(lanc);
-      }
-      for (const { nome, email, vencidos } of porAdvogado.values()) {
-        await sendEmail({
-          to: email,
-          subject: `📋 Addere — ${vencidos.length} parcela(s) vencida(s) em aberto`,
-          html: buildEmailVencidosAdvogado(nome, vencidos),
-        });
-        enviados++;
-      }
-    }
-
     res.json({ ok: true, enviados, vencidos: items.length });
   } catch (e) {
     console.error("❌ Erro ao enviar e-mail manual de vencidos:", e);
@@ -3636,7 +3182,6 @@ router.post("/api/livro-caixa/vencidos-em-aberto/enviar-email", authenticate, re
 // GET /api/livro-caixa/vencidos-em-aberto/contagem (rota leve para o badge do menu)
 router.get("/api/livro-caixa/vencidos-em-aberto/contagem", authenticate, async (req, res) => {
   try {
-    const isAdmin = String(req.user?.role || "").toUpperCase() === "ADMIN";
     const hoje = new Date();
     const inicioDia = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate(), 3, 0, 0)); // T03:00Z = meia-noite BRT
 
@@ -3649,17 +3194,6 @@ router.get("/api/livro-caixa/vencidos-em-aberto/contagem", authenticate, async (
       where = { ...where, NOT: { origem: "PARCELA_PREVISTA", referenciaOrigem: { in: refsOrfas } } };
     }
 
-    if (!isAdmin) {
-      const advogadoId = await getUserAdvogadoId(req.user?.id);
-      if (!advogadoId) return res.json({ total: 0 });
-      const splits = await prisma.parcelaSplitAdvogado.findMany({
-        where: { advogadoId },
-        select: { parcelaId: true },
-      });
-      const referenciaPatterns = splits.map(s => `PARCELA_${s.parcelaId}`);
-      where = { ...where, origem: "PARCELA_PREVISTA", referenciaOrigem: { in: referenciaPatterns } };
-    }
-
     const total = await prisma.livroCaixaLancamento.count({ where });
     res.json({ total });
   } catch (e) {
@@ -3670,7 +3204,6 @@ router.get("/api/livro-caixa/vencidos-em-aberto/contagem", authenticate, async (
 // GET /api/livro-caixa/vencidos-em-aberto
 router.get("/api/livro-caixa/vencidos-em-aberto", authenticate, async (req, res) => {
   try {
-    const isAdmin = String(req.user?.role || "").toUpperCase() === "ADMIN";
     const hoje = new Date();
     const inicioDia = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate(), 3, 0, 0)); // T03:00Z = meia-noite BRT
 
@@ -3686,27 +3219,6 @@ router.get("/api/livro-caixa/vencidos-em-aberto", authenticate, async (req, res)
       where = {
         ...where,
         NOT: { origem: "PARCELA_PREVISTA", referenciaOrigem: { in: refsOrfas } },
-      };
-    }
-
-    // Usuário não-admin: filtra apenas as parcelas em que aparece no split
-    if (!isAdmin) {
-      const advogadoId = await getUserAdvogadoId(req.user?.id);
-      if (!advogadoId) {
-        return res.json({ items: [], totalValorCentavos: 0, contagens: { normal: 0, atencao: 0, altoRisco: 0, duvidoso: 0 } });
-      }
-      // Busca os parcelaIds em que esse advogado está no split
-      const splits = await prisma.parcelaSplitAdvogado.findMany({
-        where: { advogadoId },
-        select: { parcelaId: true },
-      });
-      const parcelaIds = splits.map(s => s.parcelaId);
-      // Monta referenciaOrigem patterns para filtrar: "PARCELA_123"
-      const referenciaPatterns = parcelaIds.map(id => `PARCELA_${id}`);
-      where = {
-        ...where,
-        origem: "PARCELA_PREVISTA",
-        referenciaOrigem: { in: referenciaPatterns },
       };
     }
 
@@ -3770,13 +3282,7 @@ router.post("/api/livro-caixa/vencidos-em-aberto/:id/liquidar", authenticate, as
     // Resolve conta
     let contaId = b.contaId ? Number(b.contaId) : null;
     if (!contaId && b.contaNome) {
-      const nome = String(b.contaNome).trim();
-      let conta = await prisma.livroCaixaConta.findFirst({ where: { nome } });
-      if (!conta) {
-        conta = await prisma.livroCaixaConta.create({
-          data: { nome, tipo: "OUTROS", ativo: true },
-        });
-      }
+      const conta = await getOrCreateContaContabilImportada(b.contaNome);
       contaId = conta.id;
     }
     if (!contaId && original.contaId) contaId = original.contaId;

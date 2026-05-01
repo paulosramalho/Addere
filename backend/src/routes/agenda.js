@@ -1,6 +1,6 @@
 import { Router } from "express";
 import prisma from "../lib/prisma.js";
-import { authenticate, getUserAdvogadoId } from "../lib/auth.js";
+import { authenticate } from "../lib/auth.js";
 import { gcalCreateEvent, gcalUpdateEvent, gcalDeleteEvent } from "../lib/googleCalendar.js";
 import { _gcalSyncedIds } from "../schedulers/googleCalendarSync.js";
 import { _enviarDigestDiario } from "../schedulers/agenda.js";
@@ -13,23 +13,19 @@ async function _gcalHook(userId, evento, action) {
   try {
     if (evento.googleEventId && _gcalSyncedIds.has(evento.googleEventId)) return;
 
-    // Tentar via advogado primeiro; se não houver, usar userId diretamente
-    const advogadoId = await getUserAdvogadoId(userId);
-    const where = advogadoId ? { advogadoId } : { usuarioId: userId };
+    const where = { usuarioId: userId };
     const hasToken = await prisma.googleCalendarToken.findUnique({ where, select: { id: true } });
     if (!hasToken) return;
 
-    const usuarioId = advogadoId ? null : userId;
-
     if (action === "create") {
-      const googleId = await gcalCreateEvent(advogadoId, evento, usuarioId);
+      const googleId = await gcalCreateEvent(null, evento, userId);
       if (googleId) {
         await prisma.agendaEvento.update({ where: { id: evento.id }, data: { googleEventId: googleId, googleCalId: "primary", syncSource: "AMR" } });
       }
     } else if (action === "update" && evento.googleEventId) {
-      await gcalUpdateEvent(advogadoId, evento.googleEventId, evento, usuarioId);
+      await gcalUpdateEvent(null, evento.googleEventId, evento, userId);
     } else if (action === "delete" && evento.googleEventId) {
-      await gcalDeleteEvent(advogadoId, evento.googleEventId, usuarioId);
+      await gcalDeleteEvent(null, evento.googleEventId, userId);
     }
   } catch (e) {
     console.error(`❌ GCal hook (${action}) userId ${userId}:`, e.message);
@@ -49,6 +45,17 @@ const _agendaInclude = {
   },
   lembretes: true,
 };
+
+const TIPOS_AGENDA_PERMITIDOS = new Set(["REUNIÃO", "COMPROMISSO", "TAREFA", "OUTRO"]);
+
+function _tipoAgendaPermitido(tipo, fallback = "COMPROMISSO") {
+  const raw = String(tipo || "").trim().toUpperCase();
+  if (!raw) return fallback;
+  const semAcento = raw.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const bloqueados = new Set(["AUDI" + "ENCIA", "PR" + "AZO"]);
+  if (bloqueados.has(semAcento)) return fallback;
+  return TIPOS_AGENDA_PERMITIDOS.has(raw) ? raw : fallback;
+}
 
 async function _notificarConviteAgenda(ev, remetenteId, destinatarioIds) {
   const dtStr = ev.dataInicio.toLocaleString("pt-BR", { timeZone: "America/Belem", dateStyle: "short", timeStyle: "short" });
@@ -328,13 +335,14 @@ router.post("/api/agenda", authenticate, async (req, res) => {
 
     const rec = ["NENHUMA","DIARIA","SEMANAL","QUINZENAL","MENSAL","ANUAL"].includes(recorrencia)
       ? recorrencia : "NENHUMA";
+    const tipoSeguro = _tipoAgendaPermitido(tipo);
 
     // Cria primeiro evento (ou único)
     const ev = await prisma.agendaEvento.create({
       data: {
         titulo: titulo.trim(), descricao: descricao?.trim() || null,
         dataInicio: new Date(dataInicio), dataFim: dataFim ? new Date(dataFim) : null,
-        tipo: tipo || "COMPROMISSO", prioridade: prioridade || "NORMAL", status: "PENDENTE",
+        tipo: tipoSeguro, prioridade: prioridade || "NORMAL", status: "PENDENTE",
         criadoPorId: req.user.id,
         recorrencia: rec,
         recorrenciaFim: recorrenciaFim ? new Date(recorrenciaFim) : null,
@@ -362,7 +370,7 @@ router.post("/api/agenda", authenticate, async (req, res) => {
             titulo: titulo.trim(), descricao: descricao?.trim() || null,
             dataInicio: dataInst,
             dataFim: duracaoMs !== null ? new Date(dataInst.getTime() + duracaoMs) : null,
-            tipo: tipo || "COMPROMISSO", prioridade: prioridade || "NORMAL", status: "PENDENTE",
+            tipo: tipoSeguro, prioridade: prioridade || "NORMAL", status: "PENDENTE",
             criadoPorId: req.user.id,
             recorrencia: rec,
             recorrenciaFim: recorrenciaFim ? new Date(recorrenciaFim) : null,
@@ -402,6 +410,7 @@ router.put("/api/agenda/:id", authenticate, async (req, res) => {
       escopo = "este",
     } = req.body;
     if (!titulo?.trim()) return res.status(400).json({ message: "Título é obrigatório." });
+    const tipoSeguro = _tipoAgendaPermitido(tipo, existente.tipo);
 
     const isRecorrente = !!existente.recorrenciaGrupoId;
 
@@ -413,7 +422,7 @@ router.put("/api/agenda/:id", authenticate, async (req, res) => {
           titulo: titulo.trim(), descricao: descricao?.trim() || null,
           dataInicio: dataInicio ? new Date(dataInicio) : existente.dataInicio,
           dataFim: dataFim ? new Date(dataFim) : null,
-          tipo: tipo || existente.tipo, prioridade: prioridade || existente.prioridade,
+          tipo: tipoSeguro, prioridade: prioridade || existente.prioridade,
           // Desvincula da série
           ...(isRecorrente ? { recorrencia: "NENHUMA", recorrenciaGrupoId: null, recorrenciaFim: null } : {}),
         },
@@ -441,7 +450,7 @@ router.put("/api/agenda/:id", authenticate, async (req, res) => {
         where: { id: { in: idsGrupo } },
         data: {
           titulo: titulo.trim(), descricao: descricao?.trim() || null,
-          tipo: tipo || existente.tipo, prioridade: prioridade || existente.prioridade,
+          tipo: tipoSeguro, prioridade: prioridade || existente.prioridade,
         },
       });
       // Data do evento atual (este específico)

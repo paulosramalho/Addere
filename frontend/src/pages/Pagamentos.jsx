@@ -271,7 +271,6 @@ export default function PagamentosPage({ user }) {
   const [q, setQ] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterForma, setFilterForma] = useState("");
-  const [filterAdvogadoId, setFilterAdvogadoId] = useState("");
   const [filterDateDe, setFilterDateDe] = useState("");
   const [filterDateAte, setFilterDateAte] = useState("");
   const location = useLocation();
@@ -545,7 +544,6 @@ export default function PagamentosPage({ user }) {
   function clearFilters() {
     setFilterStatus("");
     setFilterForma("");
-    setFilterAdvogadoId("");
     setFilterDateDe("");
     setFilterDateAte("");
   }
@@ -914,7 +912,7 @@ export default function PagamentosPage({ user }) {
       const XLSX = await import("xlsx");
       const STATUS_LABEL = { ATIVO: "Ativo", QUITADO: "Quitado", CANCELADO: "Cancelado", RENEGOCIADO: "Renegociado", EM_ATRASO: "Em atraso" };
       const FORMA_LABEL = { AVISTA: "À vista", PARCELADO: "Parcelado", ENTRADA_PARCELAS: "Entrada+Parcelas" };
-      const wsData = [["Nº Contrato", "Cliente", "Forma", "Status", "Valor Total (R$)", "Parcelas", "Pagas", "Em atraso", "Advogado"]];
+      const wsData = [["Nº Contrato", "Cliente", "Forma", "Status", "Valor Total (R$)", "Parcelas", "Pagas", "Em atraso"]];
       for (const c of filtered) {
         const parcelas = c.parcelas || [];
         const pagas = parcelas.filter(p => p.status === "RECEBIDA" || p.status === "REPASSE_EFETUADO").length;
@@ -928,7 +926,6 @@ export default function PagamentosPage({ user }) {
           parcelas.length,
           pagas,
           atrasadas,
-          c.repasseAdvogadoPrincipal?.nome || "",
         ]);
       }
       const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -942,18 +939,7 @@ export default function PagamentosPage({ user }) {
     }
   }
 
-  const advogadoOptions = useMemo(() => {
-    const map = new Map();
-    for (const c of rows || []) {
-      const princ = c?.repasseAdvogadoPrincipal;
-      if (princ?.id && princ?.nome) map.set(princ.id, { id: princ.id, nome: princ.nome });
-      const indic = c?.repasseIndicacaoAdvogado;
-      if (indic?.id && indic?.nome) map.set(indic.id, { id: indic.id, nome: indic.nome });
-    }
-    return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [rows]);
-
-  const hasActiveFilters = !!(filterStatus || filterForma || filterAdvogadoId || filterDateDe || filterDateAte);
+  const hasActiveFilters = !!(filterStatus || filterForma || filterDateDe || filterDateAte);
 
   const filtered = useMemo(() => {
     let result = rows || [];
@@ -984,15 +970,7 @@ export default function PagamentosPage({ user }) {
       result = result.filter((c) => String(c?.formaPagamento || "").toUpperCase() === filterForma);
     }
 
-    // 4) Advogado
-    if (filterAdvogadoId) {
-      const advId = Number(filterAdvogadoId);
-      result = result.filter((c) =>
-        c?.repasseAdvogadoPrincipal?.id === advId || c?.repasseIndicacaoAdvogado?.id === advId
-      );
-    }
-
-    // 5) Date range (parcela vencimento)
+    // 4) Date range (parcela vencimento)
     if (filterDateDe || filterDateAte) {
       const de = filterDateDe ? toDateOnly(filterDateDe) : null;
       const ate = filterDateAte ? toDateOnly(filterDateAte) : null;
@@ -1010,7 +988,7 @@ export default function PagamentosPage({ user }) {
     }
 
     return result;
-  }, [rows, q, filterStatus, filterForma, filterAdvogadoId, filterDateDe, filterDateAte]);
+  }, [rows, q, filterStatus, filterForma, filterDateDe, filterDateAte]);
 
   const parcelasDoContrato = selectedContrato?.parcelas || [];
 
@@ -1092,20 +1070,6 @@ export default function PagamentosPage({ user }) {
         </select>
       </label>
 
-      <label className="block min-w-[200px]">
-        <span className="text-xs font-medium text-slate-600">Advogado</span>
-        <select
-          value={filterAdvogadoId}
-          onChange={(e) => setFilterAdvogadoId(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200"
-        >
-          <option value="">Todos</option>
-          {advogadoOptions.map((adv) => (
-            <option key={adv.id} value={String(adv.id)}>{adv.nome}</option>
-          ))}
-        </select>
-      </label>
-
       <label className="block min-w-[150px]">
         <span className="text-xs font-medium text-slate-600">Vencimento de</span>
         <input
@@ -1169,16 +1133,6 @@ export default function PagamentosPage({ user }) {
                   </button>
                 </Tooltip>
 
-                <Tooltip content="Criar recebimento avulso (sem contrato)">
-                  <button
-                    type="button"
-                    onClick={() => navigate("/pagamentos-avulsos")}
-                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-100 transition"
-                    disabled={loading}
-                  >
-                    + Novo Recebimento
-                  </button>
-                </Tooltip>
               </>
             )}
           </div>
@@ -1629,7 +1583,7 @@ export default function PagamentosPage({ user }) {
                         ) : p.status === "RECEBIDA" ? (
                           <Badge tone="green">Recebida</Badge>
                         ) : p.status === "REPASSE_EFETUADO" ? (
-                          <Badge tone="green">Repasse efetuado</Badge>
+                          <Badge tone="green">Recebida</Badge>
                         ) : isParcelaAtrasada(p) ? (
                           <Badge tone="red">Atrasada</Badge>
                         ) : (

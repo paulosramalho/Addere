@@ -57,6 +57,42 @@ async function seedAdminInicial() {
   console.log(`  Admin ${email} criado.`);
 }
 
+function normalizarContaKey(conta) {
+  const nome = String(conta.nome || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+  const tipo = String(conta.tipo || "").trim().toUpperCase();
+  return `${tipo}|${nome}`;
+}
+
+async function deduplicarContasContabeis() {
+  const contas = await prisma.livroCaixaConta.findMany({
+    orderBy: [{ tipo: "asc" }, { nome: "asc" }, { id: "asc" }],
+  });
+  const porChave = new Map();
+
+  for (const conta of contas) {
+    const key = normalizarContaKey(conta);
+    if (!porChave.has(key)) {
+      porChave.set(key, conta);
+      continue;
+    }
+
+    const principal = porChave.get(key);
+    await prisma.$transaction([
+      prisma.livroCaixaLancamento.updateMany({ where: { contaId: conta.id }, data: { contaId: principal.id } }),
+      prisma.pixPagamento.updateMany({ where: { contaId: conta.id }, data: { contaId: principal.id } }),
+      prisma.pagamentoBoleto.updateMany({ where: { contaId: conta.id }, data: { contaId: principal.id } }),
+      prisma.pagamentoDarf.updateMany({ where: { contaId: conta.id }, data: { contaId: principal.id } }),
+      prisma.livroCaixaConta.delete({ where: { id: conta.id } }),
+    ]);
+    console.log(`  Conta duplicada removida: ${conta.nome} (${conta.tipo}) -> #${principal.id}`);
+  }
+}
+
 async function main() {
   console.log("Iniciando seed do Addere Control...");
 
@@ -98,12 +134,21 @@ async function main() {
     }
   }
 
+  await deduplicarContasContabeis();
+
   const cfg = await prisma.configEscritorio.findFirst();
   const configData = {
-    nome: "Addere On Comunicação, Treinamentos e Eventos Corporativos",
+    nome: "Addere",
     nomeFantasia: "Addere",
-    cidade: "São Paulo",
-    estado: "SP",
+    cnpj: "48.744.127/0001-41",
+    oabRegistro: "",
+    logradouro: "Rua Antônio Barreto",
+    numero: "130",
+    complemento: "Sala 1403",
+    bairro: "Umarizal",
+    cidade: "Belém",
+    estado: "PA",
+    cep: "66055-050",
   };
 
   if (cfg) {
@@ -115,92 +160,7 @@ async function main() {
     await prisma.configEscritorio.create({ data: configData });
   }
 
-  // Modelos de distribuição A–G (planilha Addere)
-  // Estrutura: ModeloDistribuicao (cabeçalho) + ModeloDistribuicaoItem (linhas)
-  const modelos = [
-    {
-      codigo: "A",
-      descricao: "Escritório / Incidental",
-      itens: [
-        { ordem: 1, origem: "ESCRITÓRIO", periodicidade: "INCIDENTAL", destinoTipo: "FUNDO",    destinatario: "FUNDO DE RESERVA", percentualBp: 30 },
-        { ordem: 2, origem: "ESCRITÓRIO", periodicidade: "INCIDENTAL", destinoTipo: "SOCIO",    destinatario: "SÓCIO",            percentualBp: 30 },
-        { ordem: 3, origem: "ESCRITÓRIO", periodicidade: "INCIDENTAL", destinoTipo: "ESCRITORIO", destinatario: "ESCRITÓRIO",      percentualBp: 40 },
-      ],
-    },
-    {
-      codigo: "B",
-      descricao: "Escritório / Mensal-Recorrente",
-      itens: [
-        { ordem: 1, origem: "ESCRITÓRIO", periodicidade: "MENSAL/RECORRENTE", destinoTipo: "FUNDO",     destinatario: "FUNDO DE RESERVA", percentualBp: 30 },
-        { ordem: 2, origem: "ESCRITÓRIO", periodicidade: "MENSAL/RECORRENTE", destinoTipo: "ESCRITORIO", destinatario: "ESCRITÓRIO",      percentualBp: 70 },
-      ],
-    },
-    {
-      codigo: "C",
-      descricao: "Sócio / Incidental",
-      itens: [
-        { ordem: 1, origem: "SÓCIO", periodicidade: "INCIDENTAL", destinoTipo: "FUNDO",     destinatario: "FUNDO DE RESERVA", percentualBp: 30 },
-        { ordem: 2, origem: "SÓCIO", periodicidade: "INCIDENTAL", destinoTipo: "SOCIO",     destinatario: "SÓCIO",            percentualBp: 50 },
-        { ordem: 3, origem: "SÓCIO", periodicidade: "INCIDENTAL", destinoTipo: "ESCRITORIO", destinatario: "ESCRITÓRIO",      percentualBp: 20 },
-      ],
-    },
-    {
-      codigo: "D",
-      descricao: "Sócio / Mensal-Recorrente",
-      itens: [
-        { ordem: 1, origem: "SÓCIO", periodicidade: "MENSAL/RECORRENTE", destinoTipo: "FUNDO",     destinatario: "FUNDO DE RESERVA", percentualBp: 30 },
-        { ordem: 2, origem: "SÓCIO", periodicidade: "MENSAL/RECORRENTE", destinoTipo: "SOCIO",     destinatario: "SÓCIO",            percentualBp: 50 },
-        { ordem: 3, origem: "SÓCIO", periodicidade: "MENSAL/RECORRENTE", destinoTipo: "ESCRITORIO", destinatario: "ESCRITÓRIO",      percentualBp: 20 },
-      ],
-    },
-    {
-      codigo: "E",
-      descricao: "Distribuição de Lucro / Semestral",
-      itens: [
-        { ordem: 1, origem: "DISTRIBUIÇÃO DE LUCRO (FUNDO DE RESERVA)", periodicidade: "SEMESTRAL", destinoTipo: "SOCIO", destinatario: "S. PATRIMONIAL", percentualBp: 70 },
-        { ordem: 2, origem: "DISTRIBUIÇÃO DE LUCRO (FUNDO DE RESERVA)", periodicidade: "SEMESTRAL", destinoTipo: "SOCIO", destinatario: "S. DE SERVIÇO",  percentualBp: 15 },
-        { ordem: 3, origem: "DISTRIBUIÇÃO DE LUCRO (FUNDO DE RESERVA)", periodicidade: "SEMESTRAL", destinoTipo: "SOCIO", destinatario: "S. DE SERVIÇO",  percentualBp: 15 },
-      ],
-    },
-    {
-      codigo: "F",
-      descricao: "Sócio para Outro Sócio / Incidental",
-      itens: [
-        { ordem: 1, origem: "SÓCIO PARA OUTRO SÓCIO", periodicidade: "INCIDENTAL", destinoTipo: "INDICACAO",  destinatario: "INDICAÇÃO",        percentualBp: 20 },
-        { ordem: 2, origem: "SÓCIO PARA OUTRO SÓCIO", periodicidade: "INCIDENTAL", destinoTipo: "SOCIO",      destinatario: "SÓCIO",            percentualBp: 30 },
-        { ordem: 3, origem: "SÓCIO PARA OUTRO SÓCIO", periodicidade: "INCIDENTAL", destinoTipo: "FUNDO",      destinatario: "FUNDO DE RESERVA", percentualBp: 30 },
-        { ordem: 4, origem: "SÓCIO PARA OUTRO SÓCIO", periodicidade: "INCIDENTAL", destinoTipo: "ESCRITORIO", destinatario: "ESCRITÓRIO",       percentualBp: 20 },
-      ],
-    },
-    {
-      codigo: "G",
-      descricao: "Sócio para Outro Sócio / Mensal-Recorrente",
-      itens: [
-        { ordem: 1, origem: "SÓCIO PARA OUTRO SÓCIO", periodicidade: "MENSAL/RECORRENTE", destinoTipo: "INDICACAO",  destinatario: "INDICAÇÃO",        percentualBp: 20 },
-        { ordem: 2, origem: "SÓCIO PARA OUTRO SÓCIO", periodicidade: "MENSAL/RECORRENTE", destinoTipo: "SOCIO",      destinatario: "SÓCIO",            percentualBp: 30 },
-        { ordem: 3, origem: "SÓCIO PARA OUTRO SÓCIO", periodicidade: "MENSAL/RECORRENTE", destinoTipo: "FUNDO",      destinatario: "FUNDO DE RESERVA", percentualBp: 30 },
-        { ordem: 4, origem: "SÓCIO PARA OUTRO SÓCIO", periodicidade: "MENSAL/RECORRENTE", destinoTipo: "ESCRITORIO", destinatario: "ESCRITÓRIO",       percentualBp: 20 },
-      ],
-    },
-  ];
-
-  for (const m of modelos) {
-    const exists = await prisma.modeloDistribuicao.findUnique({ where: { codigo: m.codigo } });
-    if (exists) {
-      console.log(`  Modelo ${m.codigo} já existe, pulando.`);
-      continue;
-    }
-    await prisma.modeloDistribuicao.create({
-      data: {
-        codigo: m.codigo,
-        descricao: m.descricao,
-        itens: {
-          create: m.itens,
-        },
-      },
-    });
-    console.log(`  Modelo ${m.codigo} criado.`);
-  }
+  console.log("  Modelos de distribuição não são semeados na Addere.");
 
   console.log("Seed concluído com sucesso.");
 }

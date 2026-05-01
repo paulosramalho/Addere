@@ -1,6 +1,6 @@
 // src/App.jsx - Design Modernizado + Ajustes - 26/01/26
 import React, { useEffect, useMemo, useState, useRef, useCallback, Suspense, lazy } from "react";
-import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import logoSrc from "./assets/logo.png";
 import { BASE_URL, apiFetch, setAuth, getUser, getToken, clearAuth } from "./lib/api";
 import { brlFromCentavos } from "./lib/formatters";
@@ -8,25 +8,15 @@ import "./styles/dossie_print.css";
 
 // Lazy loading — cada página é carregada apenas quando acessada pela primeira vez.
 // Reduz o bundle inicial de ~2.5 MB para ~200 kB.
-const DashboardRepasses             = lazy(() => import("./pages/DashboardRepasses"));
 const DashboardFinanceiro           = lazy(() => import("./pages/DashboardFinanceiro"));
-const Indicadores                   = lazy(() => import("./pages/Indicadores"));
 const ContratoPage                  = lazy(() => import("./pages/Contrato"));
 const PagamentosPage                = lazy(() => import("./pages/Pagamentos"));
-const PagamentosAvulsos             = lazy(() => import("./pages/PagamentosAvulsos"));
 const Boletos                       = lazy(() => import("./pages/Boletos"));
 const PixManager                    = lazy(() => import("./pages/PixManager"));
 const SantanderPagarBoleto          = lazy(() => import("./pages/SantanderPagarBoleto"));
 const InterPagarBoleto              = lazy(() => import("./pages/InterPagarBoleto"));
-const Repasses                      = lazy(() => import("./pages/Repasses"));
-const RepassesARealizar             = lazy(() => import("./pages/RepassesARealizar"));
-const RepassesRealizados            = lazy(() => import("./pages/RepassesRealizados"));
-const RepassesSaldos                = lazy(() => import("./pages/RepassesSaldos"));
-const AdvogadosPage                 = lazy(() => import("./pages/Advogados"));
 const ClientesPage                  = lazy(() => import("./pages/Clientes"));
-const ContaCorrenteClientesPage     = lazy(() => import("./pages/ContaCorrenteClientes"));
 const UsuariosPage                  = lazy(() => import("./pages/Usuarios"));
-const ModeloDistribuicaoPage        = lazy(() => import("./pages/ModeloDistribuicao"));
 const AliquotasPage                 = lazy(() => import("./pages/Aliquotas"));
 const LivroCaixaContas              = lazy(() => import("./pages/LivroCaixaContas"));
 const LivroCaixaLancamentos         = lazy(() => import("./pages/LivroCaixaLancamentos"));
@@ -34,11 +24,8 @@ const LivroCaixaVisualizacao        = lazy(() => import("./pages/LivroCaixaVisua
 const LivroCaixaEmissao             = lazy(() => import("./pages/LivroCaixaEmissao"));
 const VencidosEmAberto              = lazy(() => import("./pages/VencidosEmAberto"));
 const ImportacaoLivroCaixaPdf       = lazy(() => import("./pages/ImportacaoLivroCaixaPdf"));
-const UtilitariosRepassesManuais    = lazy(() => import("./pages/UtilitariosRepassesManuais"));
 const UtilitariosDisparoEmail       = lazy(() => import("./pages/UtilitariosDisparoEmail"));
 const ComprovantesRecebidos         = lazy(() => import("./pages/ComprovantesRecebidos"));
-const RelatorioRepasses             = lazy(() => import("./pages/RepassesReport.copia"));
-const EmprestimosSocios             = lazy(() => import("./pages/EmprestimosSocios"));
 const RelatorioFluxoCaixaConsolidado= lazy(() => import("./pages/RelatorioFluxoCaixaConsolidado"));
 const RelatorioFluxoCaixaDiario     = lazy(() => import("./pages/RelatorioFluxoCaixaDiario"));
 const RelatorioFluxoCaixaGrafico    = lazy(() => import("./pages/RelatorioFluxoCaixaGrafico"));
@@ -57,7 +44,7 @@ const LogOperacoes                  = lazy(() => import("./pages/LogOperacoes"))
 const DuplicadosClientes            = lazy(() => import("./pages/DuplicadosClientes"));
 const EmissaoNotaFiscal             = lazy(() => import("./pages/EmissaoNotaFiscal"));
 const DocumentosCliente             = lazy(() => import("./pages/DocumentosCliente"));
-const ConfiguracaoEscritorio        = lazy(() => import("./pages/ConfiguracaoEscritorio"));
+const ConfiguracaoEmpresa           = lazy(() => import("./pages/ConfiguracaoEmpresa"));
 const WhatsAppInbox                 = lazy(() => import("./pages/WhatsAppInbox"));
 const InstagramInbox                = lazy(() => import("./pages/InstagramInbox"));
 const DossieReport                  = lazy(() => import("./components/DossieReport"));
@@ -447,7 +434,7 @@ function HistoricoPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-semibold text-slate-700">Contratos / Pagamentos Avulsos</label>
+                  <label className="text-sm font-semibold text-slate-700">Contratos / Recebimentos</label>
                   <div className="mt-1 max-h-56 overflow-auto border border-slate-200 rounded-xl p-3">
                     {!clienteId ? (
                       <div className="text-sm text-slate-500">Selecione um cliente para listar os itens.</div>
@@ -1174,7 +1161,6 @@ function Shell({ user, onLogout }) {
   const userLabel = isSecretaria ? "Secretária Virtual" : isAdmin ? "Administrador" : "Usuário";
   const [openSettings, setOpenSettings] = useState(false);
   const [openLivroCaixa, setOpenLivroCaixa] = useState(false);
-  const [openRepasses, setOpenRepasses] = useState(false);
   const [openDashboard, setOpenDashboard] = useState(false);
   const [openRelatorios, setOpenRelatorios] = useState(false);
   const [openUtilitarios, setOpenUtilitarios] = useState(false);
@@ -1514,8 +1500,8 @@ function Shell({ user, onLogout }) {
           {/* Logo Header - Compacto */}
           <div
             className="px-4 py-3 border-b border-slate-200 bg-gradient-to-br from-slate-50 to-white cursor-pointer hover:bg-slate-100 transition-colors"
-            onClick={() => navigate("/configuracao-escritorio")}
-            title="Dados do Escritório"
+            onClick={() => navigate("/configuracao-empresa")}
+            title="Dados da Empresa"
           >
             <div className="text-center">
               <div className="inline-block p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-md mb-2">
@@ -1536,7 +1522,6 @@ function Shell({ user, onLogout }) {
               if (item.type === "group") {
                 const opened =
                   item.label === "Configurações" ? openSettings :
-                  item.label === "Repasses" ? openRepasses :
                   item.label === "Livro Caixa" ? openLivroCaixa :
                   item.label === "Dashboard" ? openDashboard :
                   item.label === "Relatórios" ? openRelatorios :
@@ -1548,7 +1533,6 @@ function Shell({ user, onLogout }) {
 
                 const toggle =
                   item.label === "Configurações" ? setOpenSettings :
-                  item.label === "Repasses" ? setOpenRepasses :
                   item.label === "Livro Caixa" ? setOpenLivroCaixa :
                   item.label === "Dashboard" ? setOpenDashboard :
                   item.label === "Relatórios" ? setOpenRelatorios :
@@ -1712,12 +1696,9 @@ function Shell({ user, onLogout }) {
             <Route path="/noticeboard" element={<NoticeBoard user={currentUser} />} />
             <Route path="/agenda" element={<Agenda user={currentUser} />} />
             <Route path="/dashboard" element={<DashboardFinanceiro user={user} />} />
-            <Route path="/dashboard/repasses" element={<DashboardRepasses user={user} />} />
-            <Route path="/indicadores" element={<Indicadores user={user} />} />
             <Route path="/contratos/:id" element={<ContratoPage user={user} />} />
             <Route path="/pagamentos" element={<PagamentosPage user={user} />} />
             <Route path="/recebimentos" element={<PagamentosPage user={user} />} />
-            <Route path="/pagamentos-avulsos" element={<PagamentosAvulsos user={user} />} />
             <Route path="/boletos" element={<Boletos user={user} bank="inter" />} />
             <Route path="/pix" element={<PixManager user={user} bank="inter" />} />
             <Route path="/inter/pagar-boleto" element={<InterPagarBoleto user={user} />} />
@@ -1727,11 +1708,6 @@ function Shell({ user, onLogout }) {
             <Route path="/santander/operacoes/receber-pix" element={<PixManager user={user} bank="santander" />} />
             <Route path="/santander/operacoes/pagar-boletos" element={<SantanderPagarBoleto user={user} />} />
             <Route path="/santander/operacoes/pagar-boleto" element={<SantanderPagarBoleto user={user} />} />
-            <Route path="/repasses" element={<Repasses user={user} />} />
-            <Route path="/repasses/arealizar" element={<RepassesARealizar user={user} />} />
-            <Route path="/repasses/realizados" element={<RepassesRealizados user={user} />} />
-            <Route path="/repasses/saldos" element={<RepassesSaldos user={user} />} />
-            <Route path="/repasses/emprestimos" element={<EmprestimosSocios user={user} />} />
             <Route path="/livro-caixa/contas" element={<LivroCaixaContas user={user} />} />
             <Route path="/contas-contabeis" element={<LivroCaixaContas user={user} />} />
             <Route path="/livro-caixa/lancamentos" element={<LivroCaixaLancamentos user={user} />} />
@@ -1740,27 +1716,22 @@ function Shell({ user, onLogout }) {
             <Route path="/livro-caixa/fluxo" element={<FluxodeCaixa user={user} />} />
             <Route path="/livro-caixa/vencidos" element={<VencidosEmAberto user={user} />} />
             <Route path="/historico" element={<DossieReport />} />
-            <Route path="/advogados" element={<AdvogadosPage user={user} />} />
             <Route path="/clientes" element={<ClientesPage user={user} />} />
-            <Route path="/conta-corrente-clientes" element={<ContaCorrenteClientesPage user={user} />} />
             <Route path="/usuarios" element={<UsuariosPage user={user} />} />
-            <Route path="/modelo-distribuicao" element={<ModeloDistribuicaoPage user={user} />} />
             <Route path="/aliquotas" element={<AliquotasPage user={user} />} />
             <Route path="/auditoria" element={<Auditoria user={user} />} />
             <Route path="/utilitarios/importacao-pdf" element={<ImportacaoLivroCaixaPdf user={user} />} />
             <Route path="/utilitarios/importacao-processos" element={<ImportacaoProcessos user={user} />} />
-            <Route path="/utilitarios/repasses-manuais" element={<UtilitariosRepassesManuais user={user} />} />
             <Route path="/utilitarios/disparo-email" element={<UtilitariosDisparoEmail user={user} />} />
             <Route path="/utilitarios/comprovantes" element={<ComprovantesRecebidos user={user} />} />
             <Route path="/utilitarios/log-operacoes" element={<LogOperacoes user={user} />} />
             <Route path="/utilitarios/duplicados-clientes" element={<DuplicadosClientes user={user} />} />
             <Route path="/utilitarios/nota-fiscal" element={<EmissaoNotaFiscal />} />
             <Route path="/clientes/:id/documentos" element={<DocumentosCliente user={user} />} />
-            <Route path="/configuracao-escritorio" element={<ConfiguracaoEscritorio user={user} />} />
+            <Route path="/configuracao-empresa" element={<ConfiguracaoEmpresa user={user} />} />
+            <Route path="/configuracao-escritorio" element={<Navigate to="/configuracao-empresa" replace />} />
             <Route path="/whatsapp-inbox" element={<WhatsAppInbox user={user} />} />
             <Route path="/instagram-inbox" element={<InstagramInbox user={user} />} />
-            <Route path="/relatorios" element={<RelatorioRepasses />} />
-            <Route path="/relatorios/repasses" element={<RelatorioRepasses />} />
             <Route path="/relatorios/fluxo-caixa/consolidado" element={<RelatorioFluxoCaixaConsolidado />} />
             <Route path="/relatorios/fluxo-caixa/diario" element={<RelatorioFluxoCaixaDiario />} />
             <Route path="/relatorios/fluxo-caixa/grafico" element={<RelatorioFluxoCaixaGrafico />} />

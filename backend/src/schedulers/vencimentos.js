@@ -642,7 +642,7 @@ export function startVencimentosScheduler() {
       const d2 = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate() + 2));
       const d7 = new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate() + 7, 23, 59, 59, 999));
 
-      const [rawD1, rawD7, repassesPend, saidasD1, saidasD7] = await Promise.all([
+      const [rawD1, rawD7, saidasD1, saidasD7] = await Promise.all([
         prisma.parcelaContrato.findMany({
           where: { status: { in: ["PREVISTA", "ATRASADA"] }, vencimento: { gte: amanha, lte: amanhaFim } },
           include: { contrato: { select: { numeroContrato: true, cliente: { select: { id: true, nomeRazaoSocial: true, email: true, naoEnviarEmails: true, telefone: true } } } } },
@@ -652,11 +652,6 @@ export function startVencimentosScheduler() {
           where: { status: { in: ["PREVISTA", "ATRASADA"] }, vencimento: { gte: d2, lte: d7 } },
           include: { contrato: { select: { numeroContrato: true, cliente: { select: { id: true, nomeRazaoSocial: true, email: true, naoEnviarEmails: true, telefone: true } } } } },
           orderBy: { vencimento: "asc" },
-        }),
-        prisma.repassePagamento.findMany({
-          where: { status: "PENDENTE" },
-          include: { advogado: { select: { nome: true } } },
-          orderBy: { competenciaId: "asc" },
         }),
         prisma.livroCaixaLancamento.findMany({
           where: { es: "S", statusFluxo: "PREVISTO", data: { gte: amanha, lte: amanhaFim } },
@@ -670,11 +665,7 @@ export function startVencimentosScheduler() {
         }),
       ]);
 
-      // Repasses só entram no alerta a partir do dia 6 do mês
-      const diaMesBelem = parseInt(agora.toLocaleDateString("pt-BR", { timeZone: "America/Belem", day: "numeric" }));
-      const repassesAlerta = diaMesBelem > 5 ? repassesPend : [];
-
-      if (rawD1.length === 0 && rawD7.length === 0 && repassesAlerta.length === 0 && saidasD1.length === 0 && saidasD7.length === 0) return;
+      if (rawD1.length === 0 && rawD7.length === 0 && saidasD1.length === 0 && saidasD7.length === 0) return;
 
       // Normaliza dados para o template
       const norm1 = rawD1.map(p => ({ ...p, clienteNome: p.contrato?.cliente?.nomeRazaoSocial, contratoNumero: p.contrato?.numeroContrato }));
@@ -687,8 +678,8 @@ export function startVencimentosScheduler() {
 
       await Promise.allSettled(admins.map(admin => sendEmail({
         to: admin.email,
-        subject: `⏰ Addere — Alertas financeiros: ${rawD1.length} entrada(s) amanhã · ${saidasD1.length} saída(s) amanhã · ${repassesAlerta.length} repasse(s) pend.`,
-        html: buildEmailAlertaVencimentos(admin.nome, norm1, norm7, repassesAlerta, saidasD1, saidasD7),
+        subject: `⏰ Addere — Alertas financeiros: ${rawD1.length} entrada(s) amanhã · ${saidasD1.length} saída(s) amanhã`,
+        html: buildEmailAlertaVencimentos(admin.nome, norm1, norm7, [], saidasD1, saidasD7),
       })));
       for (const admin of admins) {
 
@@ -701,7 +692,6 @@ export function startVencimentosScheduler() {
             `🟡 Entradas próx. 7 dias: *${rawD7.length}*`,
             `🟠 Saídas amanhã: *${saidasD1.length}*`,
             `🟢 Saídas próx. 7 dias: *${saidasD7.length}*`,
-            `🔵 Repasses pendentes: *${repassesPend.length}*`,
           ];
           sendWhatsApp(admin.whatsapp || admin.telefone, linhas.join("\n")).catch(() => {});
         }

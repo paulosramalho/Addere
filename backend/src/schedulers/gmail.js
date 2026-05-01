@@ -506,7 +506,7 @@ export function startGmailScheduler() {
     }
 
     let beneficiario = null, cnpjBeneficiario = null;
-    // Padrão 1: "Nome Advogados - 27.678.566/0001-23"
+    // Padrão 1: "Nome Empresa - 48.744.127/0001-41"
     const mBenef = texto.match(/([A-Za-zÀ-ú\s]+Advogados)\s*[-–]\s*(\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2})/);
     if (mBenef) { beneficiario = mBenef[1].trim(); cnpjBeneficiario = mBenef[2].trim(); }
     // Padrão 2: seção BENEFICIÁRIO/FAVORECIDO/CEDENTE com CNPJ na linha seguinte ou próxima
@@ -516,7 +516,7 @@ export function startGmailScheduler() {
     }
     // Padrão 3: CNPJ da firma aparece em qualquer contexto de beneficiário no documento
     if (!cnpjBeneficiario && /27\.678\.566\/0001-23|27678566000123/.test(texto)) {
-      cnpjBeneficiario = "27.678.566/0001-23";
+      cnpjBeneficiario = "48.744.127/0001-41";
     }
 
     let numeroDocumento = null;

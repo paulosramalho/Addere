@@ -60,10 +60,10 @@ async function _gerarPdfBoleto(boleto, cliente) {
   const QRCode      = require("qrcode");
 
   // ── Constantes fixas Addere / Inter ──────────────────────────────────────────
-  const B_NOME  = "AMANDA MAIA RAMALHO ADVOGADOS";
-  const B_CNPJ  = "27.678.566/0001-23";
-  const B_END1  = "ANTONIO BARRETO 130 EDIF VILLAGE OFFICE SALA";
-  const B_END2  = "1403 , 66055-050 UMARIZAL BELEM - PA";
+  const B_NOME  = "ADDERE";
+  const B_CNPJ  = "48.744.127/0001-41";
+  const B_END1  = "RUA ANTONIO BARRETO, 130, SALA 1403";
+  const B_END2  = "UMARIZAL, BELEM/PA, 66055-050";
   const AG_COD  = "00019/254311490";
   const CART    = "112";
   const LOC_PAG = "PAGÁVEL EM QUALQUER BANCO";

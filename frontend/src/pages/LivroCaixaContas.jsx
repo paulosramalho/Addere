@@ -688,7 +688,7 @@ export default function LivroCaixaContas({ user }) {
                     />
                     <div>
                       <span className="text-sm font-semibold text-slate-700">Conta Inter PJ (API Banking)</span>
-                      <p className="text-xs text-slate-400">Habilita envio de Pix automático nos repasses.</p>
+                      <p className="text-xs text-slate-400">Habilita integração com a API Banking.</p>
                     </div>
                   </label>
                 </div>

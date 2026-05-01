@@ -48,7 +48,6 @@ function Secao({ titulo, dados }) {
               <li>Entradas D-7: <strong>{contagens.entradasD7}</strong></li>
               <li>Saídas D-1: <strong>{contagens.saidasD1}</strong></li>
               <li>Saídas D-7: <strong>{contagens.saidasD7}</strong></li>
-              <li>Repasses pendentes: <strong>{contagens.repassesPendentes}</strong></li>
             </ul>
           )}
           {totalItens !== undefined && (

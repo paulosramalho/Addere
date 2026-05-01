@@ -931,7 +931,7 @@ export default function ContaCorrenteClientes({ user }) {
 
       // — Config e emissor
       let cfg = {};
-      try { cfg = await apiFetch("/config-escritorio"); } catch (_) {}
+      try { cfg = await apiFetch("/config-empresa"); } catch (_) {}
       const now = new Date();
       const emitidoEm = now.toLocaleDateString('pt-BR') + ' às ' +
         now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });

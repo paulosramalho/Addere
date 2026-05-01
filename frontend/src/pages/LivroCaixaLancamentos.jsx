@@ -78,7 +78,6 @@ export default function LivroCaixaLancamentos() {
 
   const [contas, setContas] = useState([]);
   const [clientes, setClientes] = useState([]);
-  const [advogados, setAdvogados] = useState([]);
   const [lancamentos, setLancamentos] = useState([]);
   const [pendencias, setPendencias] = useState([]);
 
@@ -97,7 +96,6 @@ export default function LivroCaixaLancamentos() {
     valorMasked: "",
     documento: "",
     clienteFornecedor: "",
-    advogadoId: "",
     historico: "",
     contaId: "",
     clienteContaId: "",
@@ -113,65 +111,6 @@ export default function LivroCaixaLancamentos() {
   const [editOpen, setEditOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [editErr, setEditErr] = useState("");
-
-  // ── Criar AV vinculado a LC existente ──
-  const [criarAvLc, setCriarAvLc] = useState(null); // lancamento selecionado
-  const [criarAvAdv, setCriarAvAdv] = useState("");
-  const [criarAvDescricao, setCriarAvDescricao] = useState("");
-  const [criarAvLoading, setCriarAvLoading] = useState(false);
-  const [criarAvErr, setCriarAvErr] = useState("");
-
-  function openCriarAV(l) {
-    setCriarAvLc(l);
-    setCriarAvAdv("");
-    setCriarAvDescricao(l.historico || "");
-    setCriarAvErr("");
-    setCriarAvLoading(false);
-  }
-
-  async function handleCriarAV() {
-    if (!criarAvLc) return;
-    setCriarAvErr("");
-    if (!criarAvLc.contaId) { setCriarAvErr("Lançamento sem conta definida. Defina a conta antes de criar o AV."); return; }
-    if (!criarAvLc.clienteFornecedor) { setCriarAvErr("Lançamento sem cliente/fornecedor. Edite o lançamento e defina o cliente primeiro."); return; }
-
-    // busca clienteId pelo nome
-    const clienteMatch = clientes.find(c => (c.nomeRazaoSocial || c.nome) === criarAvLc.clienteFornecedor);
-    if (!clienteMatch) { setCriarAvErr(`Cliente "${criarAvLc.clienteFornecedor}" não encontrado. Verifique o cadastro.`); return; }
-
-    // formata data DD/MM/AAAA a partir do lançamento
-    const dataLc = criarAvLc.data
-      ? (() => { const d = new Date(criarAvLc.data); const pad = n => String(n).padStart(2,"0"); return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`; })()
-      : null;
-    if (!dataLc) { setCriarAvErr("Data do lançamento inválida."); return; }
-
-    // formata valor
-    const valorBRL = `R$ ${(criarAvLc.valorCentavos / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-
-    setCriarAvLoading(true);
-    try {
-      const resp = await apiFetch("/pagamentos-avulsos", {
-        method: "POST",
-        body: {
-          clienteId: clienteMatch.id,
-          contaId: criarAvLc.contaId,
-          descricao: criarAvDescricao || null,
-          dataRecebimento: dataLc,
-          valorRecebido: valorBRL,
-          meioRecebimento: "PIX",
-          advogadoPrincipalId: criarAvAdv || null,
-          lcExistenteId: criarAvLc.id,
-        },
-      });
-      setCriarAvLc(null);
-      addToast(`AV criado: ${resp.numeroContrato}`, "success");
-      await loadAll();
-    } catch (e) {
-      setCriarAvErr(e?.message || "Falha ao criar AV.");
-    } finally {
-      setCriarAvLoading(false);
-    }
-  }
 
   // ── Filtros de busca ──
   const [fEs, setFEs] = useState("");
@@ -251,17 +190,15 @@ export default function LivroCaixaLancamentos() {
     }
 
     try {
-      const [c1, l1, p1, cli, adv] = await Promise.all([
+      const [c1, l1, p1, cli] = await Promise.all([
         apiFetch("/livro-caixa/contas"),
         apiFetch(`/livro-caixa/lancamentos?ano=${ano}&mes=${mes}`),
         apiFetch(`/livro-caixa/pendencias?ano=${ano}&mes=${mes}`),
         apiFetch("/clients"),
-        apiFetch("/advogados"),
       ]);
 
       setContas(normalizeContas(c1));
       setClientes(Array.isArray(cli) ? cli : []);
-      setAdvogados(Array.isArray(adv) ? adv : []);
 
       const base = l1.lancamentos || [];
       const saldoCent = Number(l1.saldoAnteriorCentavos || 0);
@@ -330,26 +267,6 @@ export default function LivroCaixaLancamentos() {
     }
   }
 
-  async function simularRepasse() {
-    try {
-      const dataBR = isoToBR(novo.dataISO) || new Date().toLocaleDateString("pt-BR");
-      await apiFetch("/livro-caixa/teste/simular-repasse", {
-        method: "POST",
-        body: {
-          competenciaAno: ano,
-          competenciaMes: mes,
-          dataBR,
-          valorCentavos: 123456,
-          historico: "Repasse (teste) ⚠ precisa informar conta",
-        },
-      });
-      addToast("Repasse simulado com sucesso!", "success");
-      await loadAll();
-    } catch (e) {
-      addToast(e?.message || "Erro ao simular repasse", "error");
-    }
-  }
-
   async function sincronizarPagamentos() {
     setLoading(true);
     try {
@@ -399,7 +316,7 @@ export default function LivroCaixaLancamentos() {
   const resetNovo = () => {
     setNovo({
       dataISO: "", es: "", valorMasked: "", documento: "",
-      clienteFornecedor: "", advogadoId: "", historico: "",
+      clienteFornecedor: "", historico: "",
       contaId: "", clienteContaId: "", contaOrigemId: "", contaDestinoId: "",
       confirmarAgora: false,
     });
@@ -478,13 +395,7 @@ export default function LivroCaixaLancamentos() {
       // Conta obrigatória apenas quando confirmando agora
       if (novo.confirmarAgora && !clienteContaIdNum && !contaIdNum) throw new Error("Selecione a conta/local para confirmar o lançamento.");
 
-      const advogadoNome =
-        novo.advogadoId
-          ? (advogados.find((a) => String(a.id) === String(novo.advogadoId))?.nome || "")
-          : "";
-
       const clienteFornecedorFinal =
-        advogadoNome ||
         (novo.clienteFornecedor === "__INCLUIR__" ? customCliente.trim() || null : novo.clienteFornecedor || null);
 
       // Competência sempre derivada da data do lançamento, não da página
@@ -589,15 +500,13 @@ export default function LivroCaixaLancamentos() {
 
   function openEditModal(lancamento) {
     const cf = lancamento.clienteFornecedor || "";
-    const advMatch = advogados.find((a) => String(a.nome || "").trim() === String(cf).trim());
     setEditData({
       id: lancamento.id,
       dataISO: dateToISO(lancamento.data),
       es: lancamento.es || "",
       valorMasked: maskBRLFromDigits(lancamento.valorCentavos),
       documento: lancamento.documento || "",
-      clienteFornecedor: advMatch ? "" : (lancamento.clienteFornecedor || ""),
-      advogadoId: advMatch ? String(advMatch.id) : "",
+      clienteFornecedor: cf,
       historico: lancamento.historico || "",
       contaId: lancamento.contaId ? String(lancamento.contaId) : "",
       clienteContaId: lancamento.clienteContaId ? String(lancamento.clienteContaId) : "",
@@ -617,11 +526,7 @@ export default function LivroCaixaLancamentos() {
       const valorCentavos = centavosFromMasked(editData.valorMasked);
       if (!Number.isInteger(valorCentavos) || valorCentavos <= 0) throw new Error("Informe um valor válido.");
 
-      const advogadoNome =
-        editData.advogadoId
-          ? (advogados.find((a) => String(a.id) === String(editData.advogadoId))?.nome || "")
-          : "";
-      const clienteFornecedorFinal = String(advogadoNome || editData.clienteFornecedor || "").trim() || null;
+      const clienteFornecedorFinal = String(editData.clienteFornecedor || "").trim() || null;
 
       await apiFetch(`/livro-caixa/lancamentos/${editData.id}`, {
         method: "PUT",
@@ -780,7 +685,7 @@ export default function LivroCaixaLancamentos() {
 
       {loading ? <div>Carregando…</div> : null}
 
-      <LancamentosTable lancamentos={filteredLancamentos} onDefinirConta={openDefinirConta} onRefresh={loadAll} onEditar={openEditModal} onExcluir={openExcluirModal} isAdmin={isAdmin} onCriarAV={openCriarAV} contas={contas} />
+      <LancamentosTable lancamentos={filteredLancamentos} onDefinirConta={openDefinirConta} onRefresh={loadAll} onEditar={openEditModal} onExcluir={openExcluirModal} isAdmin={isAdmin} contas={contas} />
 
       <DefinirContaModal
         open={modalContaOpen}
@@ -816,86 +721,6 @@ export default function LivroCaixaLancamentos() {
           onClose={() => setBoletoOpen(false)}
           onSaved={() => { setBoletoOpen(false); loadAll(); }}
         />
-      )}
-
-      {/* Modal: Criar AV vinculado a LC */}
-      {criarAvLc && (
-        <div style={styles.backdrop}>
-          <div style={{ ...styles.modal, maxWidth: 480 }}>
-            <h3 style={{ margin: "0 0 4px" }}>Criar contrato AV vinculado</h3>
-            <p style={{ margin: "0 0 16px", fontSize: 13, color: "#64748b" }}>
-              O lançamento existente será atualizado — nenhuma entrada duplicada será criada.
-            </p>
-
-            {criarAvErr && (
-              <div style={ui.modalError}><strong>Erro:</strong> {criarAvErr}</div>
-            )}
-
-            <div style={styles.form}>
-              <div style={styles.row}>
-                <label style={styles.field}>
-                  <span style={styles.label}>Cliente/Fornecedor</span>
-                  <input style={{ ...styles.input, background: "#f1f5f9" }} value={criarAvLc.clienteFornecedor || "—"} disabled readOnly />
-                </label>
-                <label style={styles.field}>
-                  <span style={styles.label}>Data</span>
-                  <input style={{ ...styles.input, background: "#f1f5f9" }} value={criarAvLc.data ? new Date(criarAvLc.data).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"} disabled readOnly />
-                </label>
-              </div>
-              <div style={styles.row}>
-                <label style={styles.field}>
-                  <span style={styles.label}>Valor</span>
-                  <input style={{ ...styles.input, background: "#f1f5f9" }} value={`R$ ${((criarAvLc.valorCentavos || 0) / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} disabled readOnly />
-                </label>
-                <label style={styles.field}>
-                  <span style={styles.label}>Conta</span>
-                  <input style={{ ...styles.input, background: "#f1f5f9" }} value={contas.find(c => c.id === criarAvLc.contaId)?.nome || criarAvLc.contaId || "—"} disabled readOnly />
-                </label>
-              </div>
-              <label style={styles.field}>
-                <span style={styles.label}>Advogado responsável (opcional)</span>
-                <select
-                  value={criarAvAdv}
-                  onChange={e => setCriarAvAdv(e.target.value)}
-                  style={styles.input}
-                  disabled={criarAvLoading}
-                >
-                  <option value="">— Sem advogado / sem modelo de distribuição —</option>
-                  {advogados.map(a => (
-                    <option key={a.id} value={a.id}>{a.nome}</option>
-                  ))}
-                </select>
-              </label>
-              <label style={styles.field}>
-                <span style={styles.label}>Descrição / Histórico</span>
-                <input
-                  style={styles.input}
-                  value={criarAvDescricao}
-                  onChange={e => setCriarAvDescricao(e.target.value)}
-                  placeholder="Ex.: Honorários advocatícios"
-                  disabled={criarAvLoading}
-                />
-              </label>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-              <button
-                style={ui.btnSecondary}
-                onClick={() => setCriarAvLc(null)}
-                disabled={criarAvLoading}
-              >
-                Cancelar
-              </button>
-              <button
-                style={{ ...ui.btnPrimary, background: "#d97706", borderColor: "#d97706" }}
-                onClick={handleCriarAV}
-                disabled={criarAvLoading}
-              >
-                {criarAvLoading ? "Criando..." : "Criar AV"}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Modal: Novo lançamento */}
@@ -982,12 +807,10 @@ export default function LivroCaixaLancamentos() {
                     <span style={styles.label}>Cliente/Fornecedor</span>
                     <select
                       value={novo.clienteFornecedor}
-                      disabled={!!novo.advogadoId}
                       onChange={(e) =>
                         setNovo((s) => ({
                           ...s,
                           clienteFornecedor: e.target.value,
-                          advogadoId: "",
                         }))
                       }
                       style={styles.input}
@@ -1013,31 +836,6 @@ export default function LivroCaixaLancamentos() {
                     addToast={addToast}
                   />
                 )}
-
-              <Tooltip content="Selecione um advogado relacionado ao lançamento (opcional)">
-                  <label style={styles.field}>
-                    <span style={styles.label}>Advogado</span>
-                    <select
-                      value={novo.advogadoId}
-                      disabled={!!novo.clienteFornecedor}
-                      onChange={(e) =>
-                        setNovo((s) => ({
-                          ...s,
-                          advogadoId: e.target.value,
-                          clienteFornecedor: "", // ✅ exclusividade
-                        }))
-                      }
-                      style={styles.input}
-                    >
-                      <option value="">Selecione...</option>
-                      {advogados.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </Tooltip>
 
               </div>
               )}
@@ -1263,18 +1061,16 @@ export default function LivroCaixaLancamentos() {
                 </Tooltip>
 
                 <div style={styles.row}>
-                  <Tooltip content="Digite para buscar cliente/fornecedor (OU selecione um advogado)">
+                  <Tooltip content="Digite para buscar cliente/fornecedor">
                     <label style={styles.field}>
                       <span style={styles.label}>Cliente/Fornecedor</span>
                       <input
                         list="edit-clientes-list"
                         value={editData.clienteFornecedor}
-                        disabled={!!editData.advogadoId}
                         onChange={(e) =>
                           setEditData((s) => ({
                             ...s,
                             clienteFornecedor: e.target.value,
-                            advogadoId: "",
                           }))
                         }
                         placeholder="Digite para buscar..."
@@ -1285,31 +1081,6 @@ export default function LivroCaixaLancamentos() {
                           <option key={c.id} value={c.nomeRazaoSocial || c.nome} />
                         ))}
                       </datalist>
-                    </label>
-                  </Tooltip>
-
-                  <Tooltip content="Selecione um advogado (apenas um)">
-                    <label style={styles.field}>
-                      <span style={styles.label}>Advogado</span>
-                      <select
-                        value={editData.advogadoId}
-                        disabled={!!editData.clienteFornecedor}
-                        onChange={(e) =>
-                          setEditData((s) => ({
-                            ...s,
-                            advogadoId: e.target.value,
-                            clienteFornecedor: "", // ✅ exclusividade
-                          }))
-                        }
-                        style={styles.input}
-                      >
-                        <option value="">Selecione...</option>
-                        {advogados.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.nome}
-                          </option>
-                        ))}
-                      </select>
                     </label>
                   </Tooltip>
                 </div>
