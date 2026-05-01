@@ -659,6 +659,10 @@ function contaPreferidaParaLocal(contas, local, historico = "") {
     return porNomeExato("c6 bank") || porNomeExato("c6") || null;
   }
 
+  if (localNorm === "inter") {
+    return porNomeExato("banco inter", "inter") || null;
+  }
+
   if (localNorm === "apl inter" || localNorm === "aplicacao inter") {
     if (historicoEhRendimento(historico)) {
       return porNomeExato("apl inter", "aplicacao inter") || null;

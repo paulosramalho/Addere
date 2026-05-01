@@ -248,6 +248,43 @@ async function corrigirLancamentosAplInter2024() {
   console.log(`  Lancamentos 2024 Local=Apl Inter atualizados: Banco Inter=${idsBancoInter.length}, Apl Inter=${idsAplInter.length}.`);
 }
 
+async function corrigirLancamentosInterBanco() {
+  const contaBancoInter = await buscarContaPorKey("BANCO|INTER");
+
+  if (!contaBancoInter) {
+    console.warn("  Banco Inter nao encontrado; correcao dos lancamentos Local=Inter ignorada.");
+    return;
+  }
+
+  const lancamentos = await prisma.livroCaixaLancamento.findMany({
+    where: {
+      localLabelFallback: { not: null },
+    },
+    select: { id: true, localLabelFallback: true, contaId: true },
+  });
+
+  const ids = lancamentos
+    .filter((lancamento) => normalizarNomeConta(lancamento.localLabelFallback) === "INTER")
+    .filter((lancamento) => lancamento.contaId !== contaBancoInter.id || normalizarNomeConta(lancamento.localLabelFallback) !== "BANCO INTER")
+    .map((lancamento) => lancamento.id);
+
+  if (ids.length === 0) {
+    console.log("  Lancamentos Local=Inter ja estao em Banco Inter.");
+    return;
+  }
+
+  await prisma.livroCaixaLancamento.updateMany({
+    where: { id: { in: ids } },
+    data: {
+      contaId: contaBancoInter.id,
+      localLabelFallback: "Banco Inter",
+      status: "OK",
+    },
+  });
+
+  console.log(`  Lancamentos Local=Inter atualizados para Banco Inter: ${ids.length}.`);
+}
+
 async function deduplicarContasContabeis() {
   const contas = await prisma.livroCaixaConta.findMany({
     orderBy: { id: "asc" },
@@ -316,6 +353,7 @@ async function main() {
   await deduplicarContasContabeis();
   await corrigirLancamentosC6Bank2024();
   await corrigirLancamentosAplInter2024();
+  await corrigirLancamentosInterBanco();
 
   const cfg = await prisma.configEscritorio.findFirst();
   const configData = {
