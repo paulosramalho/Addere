@@ -646,13 +646,24 @@ function brMoneyToCentavos(v) {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 }
 
-function contaPreferidaParaLocal(contas, local) {
+function historicoEhRendimento(historico) {
+  return normTxt(historico).startsWith("rendimento");
+}
+
+function contaPreferidaParaLocal(contas, local, historico = "") {
   const localNorm = normTxt(local);
   if (!localNorm) return null;
 
-  const porNomeExato = (nome) => contas.find((conta) => normTxt(conta.nome) === nome);
+  const porNomeExato = (...nomes) => contas.find((conta) => nomes.includes(normTxt(conta.nome)));
   if (localNorm === "c6") {
     return porNomeExato("c6 bank") || porNomeExato("c6") || null;
+  }
+
+  if (localNorm === "apl inter" || localNorm === "aplicacao inter") {
+    if (historicoEhRendimento(historico)) {
+      return porNomeExato("apl inter", "aplicacao inter") || null;
+    }
+    return porNomeExato("banco inter", "inter") || null;
   }
 
   const exata = contas.find((conta) => normTxt(conta.nome) === localNorm);
@@ -912,7 +923,7 @@ router.post(
         const valorCentavos = brMoneyToCentavos(r.valorBR);
 
         // sugestão de conta pelo "local"
-        const contaSug = contaPreferidaParaLocal(contas, r.local);
+        const contaSug = contaPreferidaParaLocal(contas, r.local, r.historico);
 
         const rowId = `PDF_${ano}_${mes}_${idx}`;
         items.push({

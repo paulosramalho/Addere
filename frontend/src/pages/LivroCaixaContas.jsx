@@ -377,7 +377,7 @@ export default function LivroCaixaContas({ user }) {
     ...tipoConfig,
     contas: contas
       .filter((c) => c.tipo === tipoConfig.value)
-      .sort((a, b) => a.ordem - b.ordem),
+      .sort((a, b) => (a.ordem - b.ordem) || (a.id - b.id)),
   })).filter((grupo) => grupo.contas.length > 0);
 
   if (loading) {
@@ -437,8 +437,9 @@ export default function LivroCaixaContas({ user }) {
                   className="px-4 py-3 flex items-center justify-between hover:bg-slate-50"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="text-sm text-slate-500 w-8">
-                      #{conta.ordem}
+                    <div className="text-xs text-slate-500 w-16 shrink-0 leading-tight">
+                      <div>ID #{conta.id}</div>
+                      <div>Ordem {conta.ordem}</div>
                     </div>
                     <div>
                       <div className="font-medium text-slate-900">
