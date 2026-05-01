@@ -32,13 +32,13 @@ function _gerarDocNum(nomeCliente, parcela, totalParcelas, dataVencimento) {
   if (parcela && totalParcelas != null) {
     const nn = String(parcela.numero).padStart(2, "0").slice(-2);
     const tt = String(totalParcelas).padStart(2, "0").slice(-2);
-    return `${ini}${nn}/${tt}AMR`;
+    return `${ini}${nn}/${tt}ADD`;
   }
 
   const venc = dataVencimento instanceof Date ? dataVencimento : new Date(dataVencimento);
   const mm   = String(venc.getUTCMonth() + 1).padStart(2, "0");
   const yy   = String(venc.getUTCFullYear()).slice(-2);
-  return `${ini}${mm}/${yy}AMR`;
+  return `${ini}${mm}/${yy}ADD`;
 }
 
 // ── POST /api/boletos/emitir ──────────────────────────────────────────────────
@@ -89,7 +89,7 @@ router.post("/boletos/emitir", authenticate, async (req, res) => {
       cliente       = parcelaObj.contrato.cliente;
       valorFinal    = valorFinal ?? Math.round(Number(parcelaObj.valorPrevisto) * 100);
       vencFinal     = vencFinal  ?? parcelaObj.vencimento.toISOString().slice(0, 10);
-      seuNumero     = seuNumero  ?? `AMR-P${parcelaIdFinal}`;
+      seuNumero     = seuNumero  ?? `ADD-P${parcelaIdFinal}`;
       totalParcelas = await prisma.parcelaContrato.count({
         where: { contratoId: parcelaObj.contratoId },
       });
@@ -102,7 +102,7 @@ router.post("/boletos/emitir", authenticate, async (req, res) => {
       cliente   = await prisma.cliente.findUnique({ where: { id: Number(clienteId) } });
       if (!cliente) return res.status(404).json({ error: "Cliente não encontrado" });
 
-      seuNumero = seuNumero ?? `AMR-${Date.now()}`;
+      seuNumero = seuNumero ?? `ADD-${Date.now()}`;
     }
 
     const docNum = _gerarDocNum(

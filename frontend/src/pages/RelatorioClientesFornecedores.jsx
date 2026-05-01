@@ -468,7 +468,7 @@ export default function RelatorioClientesFornecedores() {
                         <!-- Header -->
                         <div class="header">
                           <img src="${logoSrc}" alt="Logo Addere" />
-                          <div class="company">Amanda Maia Ramalho Advogados</div>
+                          <div class="company">Addere</div>
                           <div class="report-title">Relatório de ${tipoLabel}</div>
                         </div>
 

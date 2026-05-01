@@ -34,7 +34,7 @@ export default function DossieHeader({ cliente, contrato, metadata }) {
           style={{height:'18px', margin:'0 auto 6px', display:'block'}}
           onError={(e) => { e.target.style.display = 'none'; }}
         />
-        <div style={{fontSize:'15px', fontWeight:'bold'}}>Amanda Maia Ramalho Advogados</div>
+        <div style={{fontSize:'15px', fontWeight:'bold'}}>Addere</div>
         <div style={{fontSize:'13px', fontWeight:'600', marginTop:'3px'}}>Dossiê de Pagamentos</div>
       </div>
 

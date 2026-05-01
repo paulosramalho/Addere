@@ -50,13 +50,13 @@ function _gerarDocNum(nomeCliente, parcela, totalParcelas, dataVencimento) {
   if (parcela && totalParcelas != null) {
     const nn = String(parcela.numero).padStart(2, "0").slice(-2);
     const tt = String(totalParcelas).padStart(2, "0").slice(-2);
-    return `${ini}${nn}/${tt}AMR`;
+    return `${ini}${nn}/${tt}ADD`;
   }
 
   const venc = dataVencimento instanceof Date ? dataVencimento : new Date(dataVencimento);
   const mm   = String(venc.getUTCMonth() + 1).padStart(2, "0");
   const yy   = String(venc.getUTCFullYear()).slice(-2);
-  return `${ini}${mm}/${yy}AMR`;
+  return `${ini}${mm}/${yy}ADD`;
 }
 
 // ── E-mail de notificação ao admin ───────────────────────────────────────────
@@ -210,7 +210,7 @@ export async function runBoletosAgendadosAgora() {
       });
 
       const vencFinal = parcela.vencimento.toISOString().slice(0, 10);
-      const seuNumero = `AMR-P${parcela.id}`;
+      const seuNumero = `ADD-P${parcela.id}`;
       const docNum    = _gerarDocNum(cliente.nomeRazaoSocial, parcela, totalParcelas, vencFinal);
 
       const result = await emitirBoleto({

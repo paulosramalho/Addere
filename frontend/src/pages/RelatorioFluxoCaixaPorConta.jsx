@@ -170,13 +170,13 @@ export default function RelatorioFluxoCaixaPorConta() {
             <div style={{ textAlign: "center", marginBottom: 8 }}>
               <img
                 src={logoAMR}
-                alt="Amanda Maia Ramalho Advogados"
+                alt="Addere"
                 style={{ maxHeight: 17, maxWidth: 220, objectFit: "contain", display: "block", margin: "0 auto" }}
               />
             </div>
 
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>Amanda Maia Ramalho Advogados</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>Addere</div>
               <div style={{ fontSize: 14, fontWeight: 700, marginTop: 4 }}>Fluxo de Caixa — Por Conta</div>
             </div>
 
