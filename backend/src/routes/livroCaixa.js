@@ -2933,7 +2933,8 @@ router.get("/api/livro-caixa/pdf", authenticate, async (req, res) => {
       }
     }
 
-    // Montar lista de contas para exibição: saldo acumulado > 0
+    // Montar lista de contas para exibição: qualquer conta com movimento no mês
+    // ou saldo acumulado diferente de zero. Contas negativas também devem aparecer.
     const contasParaExibir = todasContasAtivas
       .map(c => ({
         local: c.nome,
@@ -2941,7 +2942,7 @@ router.get("/api/livro-caixa/pdf", authenticate, async (req, res) => {
         saidas:   totaisPorConta[c.nome]?.saidas   || 0,
         saldo:    saldoAcumPDF.get(c.id) || 0,
       }))
-      .filter(c => c.saldo > 0);
+      .filter(c => c.entradas !== 0 || c.saidas !== 0 || c.saldo !== 0);
 
     // Verificar espaço para saldo final + tabela de contas (estimativa: ~20 + 18 + 16*nContas)
     const contasCount = contasParaExibir.length;
