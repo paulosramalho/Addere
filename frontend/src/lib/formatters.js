@@ -104,6 +104,18 @@ export function decimalToPercentDigits(dec) {
 }
 
 /**
+ * Aplica máscara em CPF (000.000.000-00) ou CNPJ (00.000.000/0000-00).
+ * Devolve o input cru se não tiver 11 nem 14 dígitos.
+ */
+export function formatCpfCnpj(value) {
+  if (value == null) return "";
+  const d = String(value).replace(/\D/g, "");
+  if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  return String(value);
+}
+
+/**
  * Converte "DD/MM/AAAA" para "AAAA-MM-DD" (usado em inputs date).
  */
 export function parseDateDDMMYYYY(str) {

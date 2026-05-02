@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Addere — Plano e Status (Réplica de Controles-AMR)</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; color: #1f2937; font-size: 10.5pt; line-height: 1.45; }
+    .cover { page-break-after: always; padding: 60px 0; text-align: center; }
+    .cover .kicker { font-size: 11pt; letter-spacing: 0.18em; text-transform: uppercase; color: #6b7280; margin: 0 0 8px; }
+    .cover h1 { font-size: 30pt; font-weight: 700; margin: 0 0 12px; color: #0f172a; }
+    .cover .sub { font-size: 14pt; color: #374151; margin: 0 0 32px; }
+    .cover .meta { display: inline-block; border: 1px solid #cbd5e1; border-radius: 8px; padding: 16px 22px; font-size: 10.5pt; color: #334155; text-align: left; margin-top: 18px; }
+    .cover .meta b { color: #0f172a; }
+    .cover .legend { margin-top: 40px; display: inline-flex; gap: 12px; font-size: 10pt; flex-wrap: wrap; justify-content: center; }
+    h2 { font-size: 16pt; margin: 28px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #0f172a; color: #0f172a; }
+    h3 { font-size: 12.5pt; margin: 18px 0 6px; color: #1e3a8a; }
+    p { margin: 6px 0; }
+    ul, ol { margin: 6px 0 6px 22px; padding: 0; }
+    li { margin: 3px 0; }
+    code { font-family: Consolas, "Courier New", monospace; background: #f1f5f9; padding: 1px 4px; border-radius: 3px; font-size: 9.5pt; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 10pt; }
+    th, td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: top; text-align: left; }
+    th { background: #e2e8f0; font-weight: 600; color: #0f172a; }
+    tr.todo { background: #f8fafc; }
+    tr.doing { background: #fff7ed; }
+    tr.done { background: #f0fdf4; }
+    .badge { display: inline-block; font-size: 8.5pt; font-weight: 700; letter-spacing: 0.06em; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; white-space: nowrap; }
+    .badge.todo { background: #e2e8f0; color: #475569; }
+    .badge.doing { background: #fed7aa; color: #9a3412; }
+    .badge.done { background: #bbf7d0; color: #166534; }
+    .callout { border-left: 4px solid #1e3a8a; background: #eff6ff; padding: 8px 12px; margin: 10px 0; font-size: 10pt; }
+    .callout.warn { border-color: #c2410c; background: #fff7ed; }
+    .callout.danger { border-color: #b91c1c; background: #fef2f2; }
+    section { page-break-inside: auto; }
+    h2 { page-break-after: avoid; }
+    table, h3 { page-break-inside: avoid; }
+  </style>
+</head>
+<body>
+
+<div class="cover">
+  <p class="kicker">Plano e Status de Implementação</p>
+  <h1>Addere — Réplica de Controles-AMR</h1>
+  <p class="sub">Análise, Plano em Fases e Acompanhamento</p>
+  <div class="meta">
+    <b>Projeto:</b> Addere (gestão de SaaS de marketing digital)<br>
+    <b>Localização:</b> C:\Addere<br>
+    <b>Stack:</b> Node.js / Express / Prisma / Postgres (Neon) + React / Vite / Tailwind<br>
+    <b>Origem:</b> Réplica de C:\Controles-AMR (escritório de advocacia)<br>
+    <b>Documento:</b> Documentos/PLANO_E_STATUS.pdf<br>
+    <b>Última atualização:</b> <span id="updatedAt">2026-05-02 — Fase 0 concluída · aguardando aprovação para Fase 1</span><br>
+    <b>Responsável:</b> Paulo Soares Ramalho
+  </div>
+  <div class="legend">
+    <span class="badge todo">A EXECUTAR</span>
+    <span class="badge doing">EM EXECUÇÃO</span>
+    <span class="badge done">PRONTO</span>
+  </div>
+</div>
+
+<section>
+  <h2>1. Identidade e Intenção</h2>
+  <p>A <b>Addere</b> é um SaaS de gestão financeira/operacional para uma empresa de marketing digital (Addere On — produto Ads Intelligence + serviços para profissionais liberais). O projeto começou como landing page (<code>index.html</code>) e ganhou full-stack <b>copiando seletivamente</b> o Controles-AMR (sistema de escritório de advocacia). A cópia preservou módulos genéricos (Notice Board, Agenda, Dashboard financeiro, Livro Caixa, Recebimentos, Configurações) mas trouxe junto resíduos jurídicos que não fazem sentido neste domínio.</p>
+  <p><b>Decisões de produto devem favorecer:</b></p>
+  <ol>
+    <li><b>Pruning</b> — remover código jurídico (Processos, Intimações, Alíquotas, Repasses, Inadimplência judicial) que confunde o usuário Addere</li>
+    <li><b>Sincronização</b> — manter os módulos compartilhados alinhados com o AMR conforme melhorias acontecem lá</li>
+    <li><b>Domínio</b> — adaptar gradualmente labels e fluxos para "empresa de marketing" (Cliente = empresa atendida, Fornecedor = Google/Meta Ads, Nota Fiscal de Serviço, Recebimento de mensalidade)</li>
+  </ol>
+</section>
+
+<section>
+  <h2>2. Diagnóstico</h2>
+
+  <h3>2.1 ✅ O que está OK</h3>
+  <ul>
+    <li>Módulos compartilhados <b>bem adaptados</b> e funcionais: Notice Board, Agenda, Dashboard financeiro, Livro Caixa (contas, lançamentos, visualização, emissão), Recebimentos, Configurações (clientes, usuários, contas contábeis, 2FA)</li>
+    <li>Branding <b>já trocado</b> para "Addere" nos cabeçalhos do Dossiê (verificado em <code>DossieHeader.jsx</code>, <code>DossiePreview.jsx</code>, <code>DossieReport.jsx</code>)</li>
+    <li>Integrações de <b>pagamento</b> compatíveis (PIX, Boletos Inter/Santander) — fazem sentido para SaaS recebendo mensalidade</li>
+    <li>Páginas <b>próprias do domínio</b> Addere já presentes: <code>EmissaoNotaFiscal.jsx</code>, <code>InstagramInbox.jsx</code>, <code>WhatsAppInbox.jsx</code>, <code>ConfiguracaoEmpresa.jsx</code></li>
+    <li>Stack idêntica ao AMR (mesmo <code>package.json</code> e dependências) — facilita transferência de melhorias</li>
+    <li>Histórico recente do git mostra <b>limpeza em curso</b>: commits <code>f856a6c</code> e <code>d3ea68b</code> removeram ~28 mil linhas de módulos jurídicos</li>
+  </ul>
+
+  <h3>2.2 ⚠️ O que precisa melhorar</h3>
+  <table>
+    <thead><tr><th style="width: 35%;">Item</th><th>Risco / Impacto</th></tr></thead>
+    <tbody>
+      <tr><td><b>Histórico (Dossiê) defasado em relação ao AMR</b></td><td>Faltam: máscara CPF/CNPJ, grid responsivo dos cards do Resumo Financeiro (valores extrapolando), suporte a multi-contrato no mesmo dossiê</td></tr>
+      <tr><td>Páginas <code>Aliquotas.jsx</code>, <code>Processos.jsx</code>, <code>Intimacoes.jsx</code>, <code>EmprestimosSocios.jsx</code> ainda existem no <code>frontend/src/pages</code></td><td>Algumas têm rotas em <code>App.jsx</code>; usuário pode chegar via URL direta. Confunde e infla bundle</td></tr>
+      <tr><td>Schema Prisma carrega ~18 modelos jurídicos (<code>Advogado</code>, <code>Aliquota</code>, <code>ProcessoJudicial</code>, <code>Intimacao</code>, family <code>Repasse*</code>)</td><td>Ocupa espaço no DB de produção (Neon). Schema fica difícil de ler. Migração precisa de cuidado</td></tr>
+      <tr><td>Backend ainda registra rotas e schedulers jurídicos (<code>processos.js</code>, <code>intimacoes.js</code>)</td><td>Schedulers rodam sem necessidade, gastam ciclos e poluem logs</td></tr>
+      <tr><td><code>sistema.html</code> (réplica HTML estática inicial, 78 KB) ainda no root</td><td>Confuso ter dois "sistemas" no repo (este vs <code>frontend/dist</code>); merece ser arquivado em <code>_arquivo/</code> ou removido</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 🚨 O que está errado e precisa de conserto</h3>
+  <table>
+    <thead><tr><th>Problema</th><th>Por que importa</th></tr></thead>
+    <tbody>
+      <tr><td><b>Multi-contrato no Dossiê não funciona</b> (form aceita só 1 contrato)</td><td>Cliente Addere assina vários produtos/contratos; gerar 1 dossiê por contrato é trabalhoso</td></tr>
+      <tr><td><b>CPF/CNPJ exibido sem máscara</b> em <code>DossieHeader</code> e <code>DossiePreview</code></td><td>Documento financeiro/fiscal deve respeitar o padrão BR; afeta credibilidade</td></tr>
+      <tr><td><b>Cards do Resumo Financeiro extrapolando</b> em valores acima de R$ 1k (grid <code>lg:grid-cols-4</code> com 3 cards = 4ª coluna vazia)</td><td>Visual do PDF compromete profissionalismo do documento entregue ao cliente</td></tr>
+      <tr><td><b>Módulos legados ativos no backend</b> (rotas/schedulers de processos e intimações)</td><td>Schedulers tentam acionar APIs jurídicas (DJe, scrapers) que não existem na Addere; geram erros recorrentes</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>3. Plano de Implementação por Fases</h2>
+  <p>Cada fase é independente. Documento atualizado ao final de cada passo com status: <span class="badge todo">A EXECUTAR</span>, <span class="badge doing">EM EXECUÇÃO</span>, <span class="badge done">PRONTO</span>.</p>
+
+  <h3>Fase 0 — Histórico sincronizado com AMR (≈30 min, baixo risco)</h3>
+  <table>
+    <thead><tr><th style="width: 7%;">#</th><th>Tarefa</th><th style="width: 18%;">Status</th></tr></thead>
+    <tbody>
+      <tr class="done"><td>0.1</td><td>Adicionar <code>formatCpfCnpj</code> em <code>frontend/src/lib/formatters.js</code></td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>0.2</td><td>Aplicar máscara CPF/CNPJ em <code>DossieHeader.jsx</code>, <code>DossiePreview.jsx</code>, <code>DossieExport.jsx</code></td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>0.3</td><td>Tornar grid de cards responsivo em <code>DossieContrato.jsx</code> (3 cols quando 3 cards, 4 cols quando 4)</td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>0.4</td><td>Multi-contrato: checkboxes em <code>DossieForm.jsx</code> + <code>contratoIds[]</code></td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>0.5</td><td>Multi-contrato: <code>handleGenerate</code> aceita array, fetch paralelo e merge em <code>grupos[]</code> em <code>DossieReport.jsx</code></td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>0.6</td><td>Multi-contrato: render de <code>grupos[]</code> em <code>DossiePreview.jsx</code> (separador "PRÓXIMO CONTRATO")</td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>0.7</td><td>Multi-contrato: Excel iterando <code>cadeiaFlat</code> em <code>DossieExport.jsx</code></td><td><span class="badge done">PRONTO</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Fase 1 — Remover resíduos jurídicos do frontend (≈30 min, baixo risco)</h3>
+  <table>
+    <thead><tr><th style="width: 7%;">#</th><th>Tarefa</th><th style="width: 18%;">Status</th></tr></thead>
+    <tbody>
+      <tr class="todo"><td>1.1</td><td>Remover páginas: <code>Aliquotas.jsx</code>, <code>Processos.jsx</code>, <code>ProcessoDetalhe.jsx</code>, <code>Intimacoes.jsx</code>, <code>ImportacaoProcessos.jsx</code>, <code>RelatorioInadimplencia.jsx</code>, <code>EmprestimosSocios.jsx</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>1.2</td><td>Remover rotas e imports correspondentes em <code>App.jsx</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>1.3</td><td>Validar build limpo + testar navegação no menu</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Fase 2 — Remover resíduos jurídicos do backend (≈45 min, médio risco)</h3>
+  <table>
+    <thead><tr><th style="width: 7%;">#</th><th>Tarefa</th><th style="width: 18%;">Status</th></tr></thead>
+    <tbody>
+      <tr class="todo"><td>2.1</td><td>Remover routes <code>processos.js</code>, <code>intimacoes.js</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>2.2</td><td>Remover schedulers <code>processos.js</code>, <code>intimacoes.js</code> + parar <code>start*Scheduler()</code> em <code>server.js</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>2.3</td><td>Remover libs auxiliares (<code>scraperDJe</code> se não for usada por outro módulo)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>2.4</td><td>Validar boot do servidor + smoke test no Render</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Fase 3 — Limpeza do schema Prisma (médio risco — destrutivo no DB)</h3>
+  <table>
+    <thead><tr><th style="width: 7%;">#</th><th>Tarefa</th><th style="width: 18%;">Status</th></tr></thead>
+    <tbody>
+      <tr class="todo"><td>3.1</td><td>Listar models órfãos sem dados em produção (Neon Addere): <code>Advogado</code>, <code>Aliquota</code>, <code>ModeloDistribuicao*</code>, família <code>Repasse*</code>, <code>ProcessoJudicial</code>, <code>ProcessoAndamento</code>, <code>Intimacao</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>3.2</td><td>Migration de remoção (após confirmar que nenhuma rota ativa lê esses models)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>3.3</td><td>Aplicar via <code>migrate deploy</code> no Render</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Fase 4 — Adaptação de domínio Addere (variável, depende de prioridades)</h3>
+  <table>
+    <thead><tr><th style="width: 7%;">#</th><th>Tarefa</th><th style="width: 18%;">Status</th></tr></thead>
+    <tbody>
+      <tr class="todo"><td>4.1</td><td>Renomear labels específicos do AMR ainda presentes (ex.: "Honorários" → "Mensalidade"; "Cliente" → "Cliente atendido", se aplicável)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>4.2</td><td>Adicionar campo <b>ramo de atividade / vertical</b> no Cliente (jurídico, saúde, educação, imobiliário, financeiro)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>4.3</td><td>Decidir destino de <code>sistema.html</code> (mover para <code>_arquivo/</code> ou remover)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>4.4</td><td>Avaliar criação de páginas próprias do domínio (ex.: vincular contas Google/Meta Ads ao Cliente, se for parte do produto)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>4. Histórico de Alterações deste Documento</h2>
+  <table id="changelog">
+    <thead><tr><th style="width: 22%;">Data/Hora</th><th>Evento</th></tr></thead>
+    <tbody>
+      <tr><td>2026-05-02</td><td>Documento criado. Análise inicial concluída comparando Addere vs Controles-AMR. Plano em 4 fases. Fase 0.1 iniciada.</td></tr>
+      <tr><td>2026-05-02</td><td>Fase 0 concluída — Histórico (Dossiê) sincronizado com as melhorias recentes do Controles-AMR. Aplicado: <code>formatCpfCnpj</code> em <code>formatters.js</code>; máscara em <code>DossieHeader</code>, <code>DossiePreview</code> e Excel; grid responsivo dinâmico em <code>DossieContrato</code> (3 cols quando 3 cards, 4 cols quando 4); multi-contrato no <code>DossieForm</code> (checkboxes + "Marcar todos"), <code>DossieReport</code> (Promise.all + merge em <code>grupos[]</code>), <code>DossiePreview</code> (renderiza grupos com separador azul "PRÓXIMO CONTRATO"), <code>DossieExport</code> (Excel itera <code>cadeiaFlat</code>). Branding "Addere" preservado em todos os arquivos. <b>Build limpo.</b> Aguardando aprovação para Fase 1.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</body>
+</html>

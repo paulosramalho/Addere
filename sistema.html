@@ -1,0 +1,1686 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Addere Control</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-2: #eef2f7;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d9e0eb;
+      --brand: #5349d8;
+      --brand-2: #1f7a8c;
+      --ok: #138a5b;
+      --warn: #b76e00;
+      --bad: #bc2f3a;
+      --orange: #de6b35;
+      --shadow: 0 18px 50px rgba(23, 32, 51, .08);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); }
+    body { line-height: 1.45; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .app { display: grid; grid-template-columns: 284px minmax(0, 1fr); min-height: 100vh; }
+
+    .sidebar {
+      background: #101527;
+      color: #eef2ff;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 8px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+
+    .brand img {
+      width: 104px;
+      max-height: 36px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 7px;
+      padding: 5px 8px;
+    }
+
+    .brand small { display: block; color: #aab2c8; margin-top: 2px; font-size: 12px; }
+    .nav-section { display: grid; gap: 6px; }
+    .nav-title {
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #8d97b3;
+      padding: 8px 10px 4px;
+      font-weight: 800;
+    }
+
+    .nav-link {
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      width: 100%;
+      border: 0;
+      text-align: left;
+      color: #cdd5ea;
+      background: transparent;
+      padding: 10px;
+      border-radius: var(--radius);
+      min-height: 42px;
+    }
+
+    .nav-link:hover { background: rgba(255,255,255,.07); color: #fff; }
+    .nav-link.active { background: #fff; color: #172033; box-shadow: var(--shadow); }
+    .nav-link .ico {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.09);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .nav-link.active .ico { background: #ecebff; color: var(--brand); }
+    .nav-badge {
+      min-width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .sidebar-foot {
+      margin-top: auto;
+      border-top: 1px solid rgba(255,255,255,.12);
+      padding-top: 14px;
+      color: #aab2c8;
+      font-size: 12px;
+    }
+
+    .main { min-width: 0; }
+    .topbar {
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 28px;
+      background: rgba(245, 247, 251, .88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .page-title { display: grid; gap: 2px; }
+    .page-title h1 { margin: 0; font-size: 24px; line-height: 1.1; letter-spacing: 0; }
+    .page-title p { margin: 0; color: var(--muted); font-size: 13px; }
+    .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .clock {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 9px 12px;
+      min-width: 166px;
+      text-align: right;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .clock strong { display: block; color: var(--ink); font-size: 14px; }
+    .content { padding: 26px 28px 42px; }
+
+    .grid { display: grid; gap: 16px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid.aside { grid-template-columns: minmax(0, 1.35fr) 360px; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-head h2 { margin: 0; font-size: 16px; letter-spacing: 0; }
+    .panel-head p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .panel-body { padding: 18px; }
+
+    .metric {
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      min-height: 124px;
+      display: grid;
+      align-content: space-between;
+      box-shadow: var(--shadow);
+    }
+    .metric span { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+    .metric strong { display: block; font-size: 28px; letter-spacing: 0; line-height: 1.05; margin-top: 12px; }
+    .metric small { color: var(--muted); margin-top: 8px; display: block; }
+    .metric.ok { border-top: 4px solid var(--ok); }
+    .metric.warn { border-top: 4px solid var(--warn); }
+    .metric.bad { border-top: 4px solid var(--bad); }
+    .metric.brand { border-top: 4px solid var(--brand); }
+
+    .btn {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: var(--radius);
+      padding: 8px 12px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn:hover { border-color: #b8c2d1; background: #f8fafc; }
+    .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+    .btn.primary:hover { background: #4338ca; }
+    .btn.teal { background: var(--brand-2); border-color: var(--brand-2); color: #fff; }
+    .btn.bad { background: var(--bad); border-color: var(--bad); color: #fff; }
+    .btn.slim { min-height: 30px; padding: 5px 9px; font-size: 12px; }
+    .btn.icon { width: 38px; padding: 0; }
+
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .tab {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      padding: 8px 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .tab.active { background: #ecebff; border-color: #d8d5ff; color: var(--brand); }
+
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; background: #f8fafc; }
+    td { font-size: 14px; }
+    tr:hover td { background: #fbfcff; }
+
+    .form-grid { display: grid; gap: 12px; }
+    .form-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .form-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .field { display: grid; gap: 6px; }
+    .field label { font-size: 12px; font-weight: 800; color: #344054; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 10px 11px;
+      min-height: 40px;
+      outline: none;
+    }
+    .field textarea { min-height: 88px; resize: vertical; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(83, 73, 216, .12); }
+    .field small { color: var(--muted); }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid transparent;
+    }
+    .pill.ok { color: #05603a; background: #e7f7ef; border-color: #b9ecd1; }
+    .pill.warn { color: #8a4b00; background: #fff2db; border-color: #ffdca6; }
+    .pill.bad { color: #a11d2a; background: #ffeaed; border-color: #ffc5cc; }
+    .pill.info { color: #175cd3; background: #e9f1ff; border-color: #c7dbff; }
+    .pill.neutral { color: #475467; background: #eef2f7; border-color: #d9e0eb; }
+
+    .list { display: grid; gap: 10px; }
+    .item {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .item-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .item-title { font-weight: 900; }
+    .muted { color: var(--muted); }
+    .tiny { font-size: 12px; }
+    .amount-pos { color: var(--ok); font-weight: 900; }
+    .amount-neg { color: var(--bad); font-weight: 900; }
+    .empty { padding: 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); background: #fbfcff; }
+
+    .bar-row { display: grid; grid-template-columns: 124px 1fr 92px; align-items: center; gap: 10px; margin: 10px 0; }
+    .bar-bg { height: 12px; border-radius: 999px; background: #edf1f7; overflow: hidden; }
+    .bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); min-width: 4px; }
+
+    .chat-shell { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 580px; }
+    .chat-people { border-right: 1px solid var(--line); padding: 12px; background: #fbfcff; }
+    .person {
+      width: 100%;
+      border: 1px solid transparent;
+      background: transparent;
+      text-align: left;
+      border-radius: var(--radius);
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+    .person.active, .person:hover { background: #fff; border-color: var(--line); }
+    .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      background: #ecebff;
+      color: var(--brand);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+    }
+    .chat-stream { padding: 14px; display: grid; align-content: start; gap: 10px; max-height: 435px; overflow: auto; background: #f8fafc; }
+    .bubble { max-width: 78%; border: 1px solid var(--line); background: #fff; border-radius: var(--radius); padding: 10px 12px; justify-self: start; }
+    .bubble.me { justify-self: end; background: #ecebff; border-color: #d8d5ff; }
+    .bubble strong { display: block; margin-bottom: 4px; font-size: 12px; }
+    .composer { border-top: 1px solid var(--line); padding: 12px; background: #fff; display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+    .composer input { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }
+
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+    .day {
+      min-height: 96px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 8px;
+      display: grid;
+      align-content: start;
+      gap: 6px;
+    }
+    .day strong { font-size: 12px; color: var(--muted); }
+    .dot { min-height: 22px; border-radius: 6px; padding: 3px 6px; background: #e9f1ff; color: #175cd3; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dot.urgent { background: #ffeaed; color: #a11d2a; }
+    .dot.done { background: #e7f7ef; color: #05603a; }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 80;
+      background: #101527;
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+      display: none;
+      max-width: min(420px, calc(100vw - 40px));
+    }
+    .toast.show { display: block; }
+
+    .mobile-menu { display: none; }
+
+    @media (max-width: 1100px) {
+      .grid.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid.three, .grid.aside { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; position: fixed; z-index: 60; inset: 0 auto 0 0; width: min(310px, 86vw); }
+      .sidebar.open { display: flex; }
+      .mobile-menu { display: inline-flex; }
+      .topbar { align-items: flex-start; padding: 14px 16px; }
+      .content { padding: 18px 16px 32px; }
+      .grid.two, .grid.four, .form-grid.two, .form-grid.three, .chat-shell { grid-template-columns: 1fr; }
+      .chat-people { border-right: 0; border-bottom: 1px solid var(--line); }
+      .calendar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .clock { display: none; }
+      .page-title h1 { font-size: 20px; }
+    }
+
+    @media print {
+      .sidebar, .topbar, .btn, .tabs, form { display: none !important; }
+      .app { display: block; }
+      .content { padding: 0; }
+      .panel, .metric { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <button class="btn icon mobile-menu" onclick="toggleSidebar()" aria-label="Abrir menu">☰</button>
+        <div class="page-title">
+          <h1 id="viewTitle">Dashboard</h1>
+          <p id="viewSubtitle">Replica operacional Addere baseada no Controles-AMR.</p>
+        </div>
+        <div class="top-actions">
+          <button class="btn" onclick="resetDemo()">Restaurar demo</button>
+          <div class="clock"><span id="dateLine"></span><strong id="timeLine"></strong></div>
+        </div>
+      </header>
+      <section id="content" class="content"></section>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const STORE_KEY = "addere-control-replica-v1";
+    const today = new Date();
+    const currentUserId = 1;
+    let state = loadState();
+    let route = location.hash.replace("#", "") || "dashboard";
+    let activeChatUserId = 2;
+    let noticeMode = "avisos";
+    let receiptFilter = "todos";
+    let ledgerFilter = { mes: String(today.getMonth() + 1), ano: String(today.getFullYear()) };
+    let pdfRows = [];
+
+    const views = {
+      notice: { title: "Notice Board", subtitle: "Avisos, chat interno, confirmacoes e vencimentos do dia." },
+      agenda: { title: "Agenda", subtitle: "Compromissos, participantes, recorrencia e lembretes." },
+      dashboard: { title: "Dashboard", subtitle: "KPIs financeiros, fluxo do mes e pendencias operacionais." },
+      recebimentos: { title: "Recebimentos", subtitle: "Contas a receber, comprovantes e baixa no Livro Caixa." },
+      livro: { title: "Livro Caixa", subtitle: "Lancamentos, contas, saldos e emissao mensal." },
+      clientes: { title: "Clientes", subtitle: "Cadastro de clientes, fornecedores e contas auxiliares." },
+      usuarios: { title: "Usuarios", subtitle: "Acessos, papeis, status e politicas de senha." },
+      contas: { title: "Contas Contabeis", subtitle: "Contas financeiras e categorias usadas no Livro Caixa." },
+      seguranca: { title: "Seguranca 2FA", subtitle: "Fluxo TOTP inspirado no AMR para administradores." },
+      importacao: { title: "Importacao PDF Livro Caixa", subtitle: "Parse assistido, revisao linha a linha e confirmacao." },
+      nota: { title: "Emissao de Nota Fiscal", subtitle: "Rascunho, emissao e conciliacao com recebimentos." }
+    };
+
+    const menu = [
+      { group: "Operacao", items: [
+        ["NB", "Notice Board", "notice"],
+        ["AG", "Agenda", "agenda"],
+        ["DB", "Dashboard", "dashboard"],
+        ["RC", "Recebimentos", "recebimentos"],
+        ["LC", "Livro Caixa", "livro"]
+      ]},
+      { group: "Configuracoes", items: [
+        ["CL", "Clientes", "clientes"],
+        ["US", "Usuarios", "usuarios"],
+        ["CC", "Contas Contabeis", "contas"],
+        ["2F", "Seguranca 2FA", "seguranca"]
+      ]},
+      { group: "Utilitarios", items: [
+        ["IP", "Importacao PDF", "importacao"],
+        ["NF", "Nota Fiscal", "nota"]
+      ]}
+    ];
+
+    function seedData() {
+      const y = today.getFullYear();
+      const m = today.getMonth();
+      const iso = (offset, hour = 12) => {
+        const d = new Date(y, m, today.getDate() + offset, hour, 0, 0);
+        return d.toISOString();
+      };
+      return {
+        clients: [
+          { id: 1, type: "C", name: "Clara Mendes Advocacia", doc: "12.345.678/0001-90", email: "financeiro@claramendes.com", phone: "(11) 95555-0101", city: "Sao Paulo", active: true, notes: "Cliente Business. Requer nota ate o dia 5." },
+          { id: 2, type: "C", name: "Clinica Vita Norte", doc: "23.456.789/0001-10", email: "adm@vitanorte.com", phone: "(91) 98888-0202", city: "Belem", active: true, notes: "Contrato Addere On + gestao de midia." },
+          { id: 3, type: "C", name: "Imob Prime Leads", doc: "34.567.890/0001-55", email: "contato@imobprime.com", phone: "(31) 97777-0303", city: "Belo Horizonte", active: true, notes: "Pilotando integracao Meta Ads." },
+          { id: 4, type: "F", name: "Meta Ads", doc: "00.000.000/0001-91", email: "billing@meta.com", phone: "", city: "Online", active: true, notes: "Fornecedor de midia." },
+          { id: 5, type: "F", name: "Google Ads", doc: "00.000.000/0001-92", email: "billing@google.com", phone: "", city: "Online", active: true, notes: "Fornecedor de midia." }
+        ],
+        users: [
+          { id: 1, name: "Admin Addere", email: "admin@addere.com.br", role: "ADMIN", type: "GESTAO", active: true, phone: "(11) 90000-0001", twofa: true, mustChangePassword: false },
+          { id: 2, name: "Marina Operacoes", email: "marina@addere.com.br", role: "USER", type: "OPERACAO", active: true, phone: "(11) 90000-0002", twofa: false, mustChangePassword: false },
+          { id: 3, name: "Joao Financeiro", email: "joao@addere.com.br", role: "ADMIN", type: "FINANCEIRO", active: true, phone: "(11) 90000-0003", twofa: true, mustChangePassword: false },
+          { id: 4, name: "Acesso Cliente", email: "cliente.demo@addere.com.br", role: "CLIENTE", type: "CLIENTE", active: false, phone: "", twofa: false, mustChangePassword: true }
+        ],
+        accounts: [
+          { id: 1, name: "Banco Inter PJ", kind: "BANCO", order: 1, initial: 3400000, active: true, agency: "0001", number: "102030-4" },
+          { id: 2, name: "Caixa Operacional", kind: "CAIXA", order: 2, initial: 450000, active: true, agency: "", number: "" },
+          { id: 3, name: "Cartao Ads", kind: "CARTAO", order: 3, initial: -380000, active: true, agency: "", number: "Final 2210" },
+          { id: 4, name: "Aplicacao Liquidez", kind: "APLICACAO", order: 4, initial: 1800000, active: true, agency: "", number: "" }
+        ],
+        ledger: [
+          { id: 1, date: iso(-12), document: "NFS-00081", es: "E", clientId: 1, history: "Mensalidade Addere On - Business", amount: 39700, accountId: 1, origin: "NFSE_EMAIL", status: "OK", flow: "REALIZADO" },
+          { id: 2, date: iso(-11), document: "META-0426", es: "S", clientId: 4, history: "Credito Meta Ads - Clara Mendes", amount: 280000, accountId: 3, origin: "FATURA_EMAIL", status: "OK", flow: "REALIZADO" },
+          { id: 3, date: iso(-8), document: "GOOGLE-0426", es: "S", clientId: 5, history: "Credito Google Ads - Vita Norte", amount: 210000, accountId: 3, origin: "FATURA_EMAIL", status: "OK", flow: "REALIZADO" },
+          { id: 4, date: iso(-6), document: "NFS-00082", es: "E", clientId: 2, history: "Gestao de midia + dashboard", amount: 249700, accountId: 1, origin: "NFSE_EMAIL", status: "OK", flow: "REALIZADO" },
+          { id: 5, date: iso(-3), document: "REC-103", es: "E", clientId: 3, history: "Setup piloto Imob Prime", amount: 79700, accountId: 1, origin: "PAGAMENTO_RECEBIDO", status: "OK", flow: "REALIZADO" },
+          { id: 6, date: iso(3), document: "PREV-017", es: "E", clientId: 1, history: "Relatorio executivo mensal", amount: 59700, accountId: 1, origin: "PARCELA_PREVISTA", status: "OK", flow: "PREVISTO" },
+          { id: 7, date: iso(5), document: "PEND-301", es: "S", clientId: 5, history: "Google Ads - reforco semanal", amount: 90000, accountId: null, origin: "BOLETO_EMAIL", status: "PENDENTE_CONTA", flow: "PREVISTO" }
+        ],
+        receipts: [
+          { id: 1, clientId: 1, description: "Addere On Business - Abril", dueDate: iso(-2), amount: 39700, status: "RECEBIDO", method: "PIX", proof: "pix_clara_abril.pdf", noteId: 1, paidAt: iso(-1) },
+          { id: 2, clientId: 2, description: "Gestao de midia - Abril", dueDate: iso(0), amount: 249700, status: "RECEBIDO", method: "TED", proof: "ted_vita_abril.pdf", noteId: 2, paidAt: iso(0) },
+          { id: 3, clientId: 3, description: "Setup piloto", dueDate: iso(-4), amount: 79700, status: "ATRASADO", method: "", proof: "", noteId: 3, paidAt: "" },
+          { id: 4, clientId: 1, description: "Relatorio executivo adicional", dueDate: iso(5), amount: 59700, status: "PREVISTO", method: "", proof: "", noteId: null, paidAt: "" }
+        ],
+        notes: [
+          { id: 1, number: "NFS-00081", clientId: 1, service: "Licenciamento de software Addere On", amount: 39700, status: "EMITIDA", issuedAt: iso(-12), city: "Sao Paulo" },
+          { id: 2, number: "NFS-00082", clientId: 2, service: "Gestao de trafego pago e inteligencia de dados", amount: 249700, status: "EMITIDA", issuedAt: iso(-6), city: "Belem" },
+          { id: 3, number: "RASC-00083", clientId: 3, service: "Setup de dashboard e contas de ads", amount: 79700, status: "RASCUNHO", issuedAt: "", city: "Belo Horizonte" }
+        ],
+        messages: [
+          { id: 1, type: "AVISO", from: 1, to: null, text: "Fechamento financeiro de abril sera revisado hoje as 17h. Confirmem as baixas pendentes.", requiresConfirmation: true, confirmations: [3], createdAt: iso(-1, 9), reactions: [] },
+          { id: 2, type: "AVISO", from: 3, to: null, text: "Importacao PDF do extrato Inter validada. Restam 2 linhas sem conta contabil.", requiresConfirmation: false, confirmations: [], createdAt: iso(-1, 11), reactions: [{ userId: 1, value: "ok" }] },
+          { id: 3, type: "CHAT", from: 2, to: 1, text: "O cliente Vita Norte pediu reemissao da nota com descricao detalhada.", requiresConfirmation: false, confirmations: [], createdAt: iso(0, 10), reactions: [] },
+          { id: 4, type: "CHAT", from: 1, to: 2, text: "Pode emitir com o servico de gestao + dashboard. Depois vincule ao recebimento.", requiresConfirmation: false, confirmations: [], createdAt: iso(0, 10), reactions: [] }
+        ],
+        events: [
+          { id: 1, title: "Revisao de contas Clara Mendes", description: "Validar CPL e custos Meta Ads.", start: iso(0, 15), end: iso(0, 16), type: "REUNIAO", priority: "ALTA", status: "PENDENTE", participants: [1,2], reminders: [60, 15], recurrence: "NENHUMA" },
+          { id: 2, title: "Fechamento Livro Caixa", description: "Emitir demonstrativo mensal e revisar pendencias.", start: iso(1, 10), end: iso(1, 11), type: "TAREFA", priority: "URGENTE", status: "PENDENTE", participants: [1,3], reminders: [1440, 60], recurrence: "MENSAL" },
+          { id: 3, title: "Onboarding Imob Prime", description: "Conectar Google Ads e Meta Ads.", start: iso(3, 14), end: iso(3, 15), type: "COMPROMISSO", priority: "NORMAL", status: "PENDENTE", participants: [1,2], reminders: [60], recurrence: "NENHUMA" }
+        ],
+        security: { twofaEnabled: true, pendingSecret: "", sessionMinutes: 30, lockAfterMinutes: 25 },
+        pdfSessions: []
+      };
+    }
+
+    function loadState() {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) {
+        const seeded = seedData();
+        localStorage.setItem(STORE_KEY, JSON.stringify(seeded));
+        return seeded;
+      }
+      try { return JSON.parse(raw); }
+      catch {
+        const seeded = seedData();
+        localStorage.setItem(STORE_KEY, JSON.stringify(seeded));
+        return seeded;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    }
+
+    function resetDemo() {
+      state = seedData();
+      saveState();
+      render();
+      toast("Dados de demonstracao restaurados.");
+    }
+
+    function nextId(items) {
+      return (items || []).reduce((max, item) => Math.max(max, Number(item.id) || 0), 0) + 1;
+    }
+
+    function clientName(id) {
+      return state.clients.find(c => Number(c.id) === Number(id))?.name || "Sem vinculo";
+    }
+
+    function userName(id) {
+      return state.users.find(u => Number(u.id) === Number(id))?.name || "Usuario";
+    }
+
+    function accountName(id) {
+      return state.accounts.find(a => Number(a.id) === Number(id))?.name || "Pendente";
+    }
+
+    function money(cents) {
+      const value = (Number(cents) || 0) / 100;
+      return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    }
+
+    function dateBR(value) {
+      if (!value) return "-";
+      const d = new Date(value);
+      return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+    }
+
+    function dateTimeBR(value) {
+      if (!value) return "-";
+      const d = new Date(value);
+      return d.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function centsFromInput(value) {
+      const normalized = String(value || "0").replace(/\./g, "").replace(",", ".");
+      return Math.round(Number(normalized || 0) * 100);
+    }
+
+    function isoFromDateInput(value) {
+      if (!value) return new Date().toISOString();
+      return new Date(value + "T12:00:00").toISOString();
+    }
+
+    function statusPill(status) {
+      const s = String(status || "").toUpperCase();
+      const tone = s.includes("RECEB") || s.includes("EMIT") || s.includes("OK") || s.includes("CONCL") ? "ok" :
+        s.includes("ATRAS") || s.includes("PENDENTE_CONTA") || s.includes("URGENTE") ? "bad" :
+        s.includes("PREV") || s.includes("RASC") || s.includes("PEND") ? "warn" : "neutral";
+      return `<span class="pill ${tone}">${escapeHtml(status || "-")}</span>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function toast(message) {
+      const el = document.getElementById("toast");
+      el.textContent = message;
+      el.classList.add("show");
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("open");
+    }
+
+    window.addEventListener("hashchange", () => {
+      route = location.hash.replace("#", "") || "dashboard";
+      document.getElementById("sidebar").classList.remove("open");
+      render();
+    });
+
+    function go(view) {
+      location.hash = view;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("dateLine").textContent = now.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
+      document.getElementById("timeLine").textContent = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+    setInterval(updateClock, 1000);
+
+    function renderSidebar() {
+      const pendingReceipts = state.receipts.filter(r => r.status !== "RECEBIDO").length;
+      const pendingLedger = state.ledger.filter(l => l.status === "PENDENTE_CONTA").length;
+      const pendingNotices = state.messages.filter(m => m.type === "AVISO" && m.requiresConfirmation && !m.confirmations.includes(currentUserId)).length;
+      const badgeByRoute = { recebimentos: pendingReceipts, livro: pendingLedger, notice: pendingNotices };
+      document.getElementById("sidebar").innerHTML = `
+        <div class="brand">
+          <img src="Documentos/logo.png" alt="Addere">
+          <div><strong>Control</strong><small>Replica AMR</small></div>
+        </div>
+        ${menu.map(section => `
+          <div class="nav-section">
+            <div class="nav-title">${section.group}</div>
+            ${section.items.map(([ico, label, key]) => `
+              <button class="nav-link ${route === key ? "active" : ""}" onclick="go('${key}')">
+                <span class="ico">${ico}</span>
+                <span>${label}</span>
+                ${badgeByRoute[key] ? `<span class="nav-badge">${badgeByRoute[key]}</span>` : ""}
+              </button>
+            `).join("")}
+          </div>
+        `).join("")}
+        <div class="sidebar-foot">
+          <strong>${escapeHtml(userName(currentUserId))}</strong><br>
+          Admin Addere · sessao local<br>
+          Dados persistem no navegador.
+        </div>
+      `;
+    }
+
+    function render() {
+      if (!views[route]) route = "dashboard";
+      renderSidebar();
+      document.getElementById("viewTitle").textContent = views[route].title;
+      document.getElementById("viewSubtitle").textContent = views[route].subtitle;
+      updateClock();
+      const map = {
+        notice: renderNotice,
+        agenda: renderAgenda,
+        dashboard: renderDashboard,
+        recebimentos: renderReceipts,
+        livro: renderLedger,
+        clientes: renderClients,
+        usuarios: renderUsers,
+        contas: renderAccounts,
+        seguranca: renderSecurity,
+        importacao: renderPdfImport,
+        nota: renderInvoices
+      };
+      document.getElementById("content").innerHTML = map[route]();
+    }
+
+    function dashboardStats() {
+      const month = today.getMonth() + 1;
+      const year = today.getFullYear();
+      const ledgerMonth = state.ledger.filter(l => {
+        const d = new Date(l.date);
+        return d.getMonth() + 1 === month && d.getFullYear() === year;
+      });
+      const entradas = ledgerMonth.filter(l => l.es === "E" && l.flow === "REALIZADO").reduce((s, l) => s + l.amount, 0);
+      const saidas = ledgerMonth.filter(l => l.es === "S" && l.flow === "REALIZADO").reduce((s, l) => s + l.amount, 0);
+      const saldo = state.accounts.reduce((sum, account) => {
+        const movimentado = state.ledger.filter(l => Number(l.accountId) === Number(account.id) && l.flow === "REALIZADO")
+          .reduce((s, l) => s + (l.es === "E" ? l.amount : -l.amount), 0);
+        return sum + account.initial + movimentado;
+      }, 0);
+      const openReceipts = state.receipts.filter(r => r.status !== "RECEBIDO").reduce((s, r) => s + r.amount, 0);
+      const overdue = state.receipts.filter(r => r.status === "ATRASADO").length;
+      const pendingLedger = state.ledger.filter(l => l.status === "PENDENTE_CONTA").length;
+      return { entradas, saidas, saldo, openReceipts, overdue, pendingLedger };
+    }
+
+    function renderDashboard() {
+      const stats = dashboardStats();
+      const accountBars = state.accounts.map(a => {
+        const movements = state.ledger.filter(l => Number(l.accountId) === Number(a.id) && l.flow === "REALIZADO")
+          .reduce((s, l) => s + (l.es === "E" ? l.amount : -l.amount), 0);
+        return { ...a, balance: a.initial + movements };
+      });
+      const maxBalance = Math.max(...accountBars.map(a => Math.abs(a.balance)), 1);
+      const agendaHoje = state.events.filter(e => dateBR(e.start) === dateBR(new Date().toISOString()));
+      const activity = [
+        ...state.ledger.slice(-4).map(l => ({ date: l.date, title: l.history, detail: `${l.es === "E" ? "Entrada" : "Saida"} · ${money(l.amount)}` })),
+        ...state.notes.slice(-3).map(n => ({ date: n.issuedAt || new Date().toISOString(), title: n.number, detail: `${n.status} · ${clientName(n.clientId)}` }))
+      ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
+
+      return `
+        <div class="grid four">
+          <div class="metric ok"><span>Saldo atual</span><strong>${money(stats.saldo)}</strong><small>Contas ativas + realizados</small></div>
+          <div class="metric brand"><span>Entradas do mes</span><strong>${money(stats.entradas)}</strong><small>Receitas confirmadas</small></div>
+          <div class="metric warn"><span>A receber</span><strong>${money(stats.openReceipts)}</strong><small>${stats.overdue} item(ns) atrasado(s)</small></div>
+          <div class="metric bad"><span>Pendencias</span><strong>${stats.pendingLedger}</strong><small>Livro Caixa sem conta</small></div>
+        </div>
+        <div class="grid aside" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-head">
+              <div><h2>Fluxo por conta</h2><p>Replica do dashboard financeiro do AMR adaptada para Addere.</p></div>
+              <button class="btn slim" onclick="go('livro')">Abrir Livro Caixa</button>
+            </div>
+            <div class="panel-body">
+              ${accountBars.map(a => `
+                <div class="bar-row">
+                  <strong class="tiny">${escapeHtml(a.name)}</strong>
+                  <div class="bar-bg"><div class="bar" style="width:${Math.max(6, Math.abs(a.balance) / maxBalance * 100)}%"></div></div>
+                  <span class="${a.balance >= 0 ? "amount-pos" : "amount-neg"}">${money(a.balance)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Agenda de hoje</h2><p>${agendaHoje.length} compromisso(s)</p></div></div>
+            <div class="panel-body list">
+              ${agendaHoje.length ? agendaHoje.map(e => `
+                <div class="item">
+                  <div class="item-row"><strong>${escapeHtml(e.title)}</strong>${statusPill(e.priority)}</div>
+                  <div class="tiny muted">${dateTimeBR(e.start)} · ${escapeHtml(e.type)}</div>
+                </div>
+              `).join("") : `<div class="empty">Nenhum compromisso para hoje.</div>`}
+            </div>
+          </div>
+        </div>
+        <div class="grid two" style="margin-top:16px">
+          <div class="panel">
+            <div class="panel-head"><div><h2>Recebimentos criticos</h2><p>Itens previstos ou atrasados.</p></div></div>
+            <div class="panel-body list">
+              ${state.receipts.filter(r => r.status !== "RECEBIDO").map(r => `
+                <div class="item">
+                  <div class="item-row"><strong>${escapeHtml(clientName(r.clientId))}</strong>${statusPill(r.status)}</div>
+                  <div>${escapeHtml(r.description)}</div>
+                  <div class="item-row tiny muted"><span>Vencimento ${dateBR(r.dueDate)}</span><strong>${money(r.amount)}</strong></div>
+                </div>
+              `).join("") || `<div class="empty">Nao ha recebimentos pendentes.</div>`}
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Ultimas atividades</h2><p>Livro Caixa e notas fiscais.</p></div></div>
+            <div class="panel-body list">
+              ${activity.map(a => `
+                <div class="item">
+                  <div class="item-row"><strong>${escapeHtml(a.title)}</strong><span class="tiny muted">${dateBR(a.date)}</span></div>
+                  <div class="tiny muted">${escapeHtml(a.detail)}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderNotice() {
+      const notices = state.messages.filter(m => m.type === "AVISO").sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const people = state.users.filter(u => u.id !== currentUserId && u.active);
+      const chat = state.messages.filter(m => m.type === "CHAT" && (
+        (m.from === currentUserId && m.to === activeChatUserId) ||
+        (m.from === activeChatUserId && m.to === currentUserId)
+      )).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      return `
+        <div class="tabs">
+          <button class="tab ${noticeMode === "avisos" ? "active" : ""}" onclick="setNoticeMode('avisos')">Avisos</button>
+          <button class="tab ${noticeMode === "chat" ? "active" : ""}" onclick="setNoticeMode('chat')">Chat</button>
+        </div>
+        ${noticeMode === "avisos" ? `
+          <div class="grid aside">
+            <div class="panel">
+              <div class="panel-head"><div><h2>Avisos internos</h2><p>Mensagens broadcast com confirmacao opcional.</p></div></div>
+              <div class="panel-body list">
+                ${notices.map(m => `
+                  <div class="item">
+                    <div class="item-row">
+                      <strong>${escapeHtml(userName(m.from))}</strong>
+                      <span class="tiny muted">${dateTimeBR(m.createdAt)}</span>
+                    </div>
+                    <div>${escapeHtml(m.text)}</div>
+                    <div class="item-row">
+                      <div class="tiny muted">${m.requiresConfirmation ? `${m.confirmations.length} confirmacao(oes)` : "Sem confirmacao obrigatoria"}</div>
+                      ${m.requiresConfirmation && !m.confirmations.includes(currentUserId) ? `<button class="btn slim primary" onclick="confirmNotice(${m.id})">Confirmar leitura</button>` : statusPill(m.requiresConfirmation ? "Confirmado" : "Aviso")}
+                    </div>
+                  </div>
+                `).join("") || `<div class="empty">Nenhum aviso publicado.</div>`}
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><div><h2>Novo aviso</h2><p>Publicado para todos os usuarios ativos.</p></div></div>
+              <div class="panel-body">
+                <form onsubmit="postNotice(event)" class="form-grid">
+                  <div class="field"><label>Mensagem</label><textarea name="text" required placeholder="Escreva o aviso..."></textarea></div>
+                  <label class="tiny"><input type="checkbox" name="requiresConfirmation"> Exigir confirmacao de leitura</label>
+                  <button class="btn primary" type="submit">Publicar aviso</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        ` : `
+          <div class="panel">
+            <div class="chat-shell">
+              <div class="chat-people">
+                ${people.map(u => `
+                  <button class="person ${activeChatUserId === u.id ? "active" : ""}" onclick="selectChat(${u.id})">
+                    <span class="avatar">${initials(u.name)}</span>
+                    <span><strong>${escapeHtml(u.name)}</strong><br><span class="tiny muted">${escapeHtml(u.type)} · online</span></span>
+                  </button>
+                `).join("")}
+              </div>
+              <div>
+                <div class="chat-stream">
+                  ${chat.map(m => `
+                    <div class="bubble ${m.from === currentUserId ? "me" : ""}">
+                      <strong>${escapeHtml(userName(m.from))} · ${dateTimeBR(m.createdAt)}</strong>
+                      ${escapeHtml(m.text)}
+                    </div>
+                  `).join("") || `<div class="empty">Sem mensagens nesta conversa.</div>`}
+                </div>
+                <form class="composer" onsubmit="postChat(event)">
+                  <input name="text" required placeholder="Mensagem para ${escapeHtml(userName(activeChatUserId))}">
+                  <button class="btn primary" type="submit">Enviar</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        `}
+      `;
+    }
+
+    function setNoticeMode(mode) {
+      noticeMode = mode;
+      render();
+    }
+
+    function selectChat(id) {
+      activeChatUserId = id;
+      render();
+    }
+
+    function initials(name) {
+      return String(name || "U").split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join("").toUpperCase();
+    }
+
+    function postNotice(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      state.messages.push({
+        id: nextId(state.messages),
+        type: "AVISO",
+        from: currentUserId,
+        to: null,
+        text: fd.get("text"),
+        requiresConfirmation: fd.get("requiresConfirmation") === "on",
+        confirmations: [],
+        createdAt: new Date().toISOString(),
+        reactions: []
+      });
+      saveState();
+      render();
+      toast("Aviso publicado.");
+    }
+
+    function postChat(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      state.messages.push({
+        id: nextId(state.messages),
+        type: "CHAT",
+        from: currentUserId,
+        to: activeChatUserId,
+        text: fd.get("text"),
+        requiresConfirmation: false,
+        confirmations: [],
+        createdAt: new Date().toISOString(),
+        reactions: []
+      });
+      saveState();
+      render();
+      toast("Mensagem enviada.");
+    }
+
+    function confirmNotice(id) {
+      const msg = state.messages.find(m => m.id === id);
+      if (msg && !msg.confirmations.includes(currentUserId)) msg.confirmations.push(currentUserId);
+      saveState();
+      render();
+      toast("Leitura confirmada.");
+    }
+
+    function renderAgenda() {
+      const sorted = [...state.events].sort((a, b) => new Date(a.start) - new Date(b.start));
+      const days = [];
+      for (let i = 0; i < 14; i++) {
+        const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i, 12);
+        const events = sorted.filter(e => dateBR(e.start) === dateBR(d.toISOString()));
+        days.push({ d, events });
+      }
+      return `
+        <div class="grid aside">
+          <div class="panel">
+            <div class="panel-head"><div><h2>Proximos 14 dias</h2><p>Visualizacao compacta inspirada na Agenda AMR.</p></div></div>
+            <div class="panel-body calendar-grid">
+              ${days.map(day => `
+                <div class="day">
+                  <strong>${day.d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit" })}</strong>
+                  ${day.events.map(e => `<div class="dot ${e.priority === "URGENTE" ? "urgent" : e.status === "CONCLUIDO" ? "done" : ""}" title="${escapeHtml(e.title)}">${escapeHtml(e.title)}</div>`).join("")}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Novo evento</h2><p>Participantes e lembretes locais.</p></div></div>
+            <div class="panel-body">
+              <form onsubmit="addEvent(event)" class="form-grid">
+                <div class="field"><label>Titulo</label><input name="title" required></div>
+                <div class="form-grid two">
+                  <div class="field"><label>Data</label><input type="date" name="date" required></div>
+                  <div class="field"><label>Hora</label><input type="time" name="time" value="10:00" required></div>
+                </div>
+                <div class="form-grid two">
+                  <div class="field"><label>Tipo</label><select name="type">${["REUNIAO","TAREFA","COMPROMISSO","ENTREGA","OUTRO"].map(v => `<option>${v}</option>`).join("")}</select></div>
+                  <div class="field"><label>Prioridade</label><select name="priority">${["NORMAL","ALTA","URGENTE","BAIXA"].map(v => `<option>${v}</option>`).join("")}</select></div>
+                </div>
+                <div class="field"><label>Participantes</label><select name="participants" multiple size="4">${state.users.filter(u => u.active).map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join("")}</select></div>
+                <div class="field"><label>Descricao</label><textarea name="description"></textarea></div>
+                <button class="btn primary" type="submit">Salvar evento</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="panel-head"><div><h2>Lista de eventos</h2><p>Status, convidados e recorrencia.</p></div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Data</th><th>Evento</th><th>Participantes</th><th>Status</th><th>Acoes</th></tr></thead>
+              <tbody>
+                ${sorted.map(e => `
+                  <tr>
+                    <td>${dateTimeBR(e.start)}</td>
+                    <td><strong>${escapeHtml(e.title)}</strong><br><span class="tiny muted">${escapeHtml(e.type)} · ${escapeHtml(e.priority)} · ${escapeHtml(e.recurrence || "NENHUMA")}</span></td>
+                    <td>${(e.participants || []).map(userName).map(escapeHtml).join("<br>") || "-"}</td>
+                    <td>${statusPill(e.status)}</td>
+                    <td>
+                      <button class="btn slim" onclick="setEventStatus(${e.id}, 'CONCLUIDO')">Concluir</button>
+                      <button class="btn slim bad" onclick="setEventStatus(${e.id}, 'CANCELADO')">Cancelar</button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function addEvent(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      const date = fd.get("date");
+      const time = fd.get("time") || "10:00";
+      const participants = Array.from(event.currentTarget.elements.participants.selectedOptions).map(o => Number(o.value));
+      state.events.push({
+        id: nextId(state.events),
+        title: fd.get("title"),
+        description: fd.get("description"),
+        start: new Date(`${date}T${time}:00`).toISOString(),
+        end: "",
+        type: fd.get("type"),
+        priority: fd.get("priority"),
+        status: "PENDENTE",
+        participants,
+        reminders: [60],
+        recurrence: "NENHUMA"
+      });
+      saveState();
+      render();
+      toast("Evento criado.");
+    }
+
+    function setEventStatus(id, status) {
+      const event = state.events.find(e => e.id === id);
+      if (event) event.status = status;
+      saveState();
+      render();
+      toast("Status atualizado.");
+    }
+
+    function renderReceipts() {
+      const rows = state.receipts.filter(r => receiptFilter === "todos" ? true : r.status === receiptFilter);
+      return `
+        <div class="tabs">
+          ${["todos","PREVISTO","ATRASADO","RECEBIDO"].map(f => `<button class="tab ${receiptFilter === f ? "active" : ""}" onclick="setReceiptFilter('${f}')">${f === "todos" ? "Todos" : f}</button>`).join("")}
+        </div>
+        <div class="grid aside">
+          <div class="panel">
+            <div class="panel-head"><div><h2>Recebimentos</h2><p>Baixa gera entrada no Livro Caixa, como no fluxo financeiro AMR.</p></div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Cliente</th><th>Descricao</th><th>Vencimento</th><th>Valor</th><th>Status</th><th>Comprovante</th><th>Acoes</th></tr></thead>
+                <tbody>
+                  ${rows.map(r => `
+                    <tr>
+                      <td>${escapeHtml(clientName(r.clientId))}</td>
+                      <td>${escapeHtml(r.description)}</td>
+                      <td>${dateBR(r.dueDate)}</td>
+                      <td><strong>${money(r.amount)}</strong></td>
+                      <td>${statusPill(r.status)}</td>
+                      <td>${escapeHtml(r.proof || "-")}</td>
+                      <td>
+                        ${r.status !== "RECEBIDO" ? `<button class="btn slim primary" onclick="receivePayment(${r.id})">Dar baixa</button>` : `<button class="btn slim" onclick="go('livro')">Ver caixa</button>`}
+                      </td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Novo recebimento</h2><p>Previsao ou comprovante recebido.</p></div></div>
+            <div class="panel-body">
+              <form onsubmit="addReceipt(event)" class="form-grid">
+                <div class="field"><label>Cliente</label><select name="clientId" required>${state.clients.filter(c => c.type === "C" && c.active).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("")}</select></div>
+                <div class="field"><label>Descricao</label><input name="description" required></div>
+                <div class="form-grid two">
+                  <div class="field"><label>Vencimento</label><input type="date" name="dueDate" required></div>
+                  <div class="field"><label>Valor</label><input name="amount" placeholder="397,00" required></div>
+                </div>
+                <div class="field"><label>Comprovante</label><input type="file" name="proof"></div>
+                <button class="btn primary" type="submit">Registrar</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function setReceiptFilter(value) {
+      receiptFilter = value;
+      render();
+    }
+
+    function addReceipt(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      const file = event.currentTarget.elements.proof.files[0];
+      state.receipts.push({
+        id: nextId(state.receipts),
+        clientId: Number(fd.get("clientId")),
+        description: fd.get("description"),
+        dueDate: isoFromDateInput(fd.get("dueDate")),
+        amount: centsFromInput(fd.get("amount")),
+        status: file ? "RECEBIDO" : "PREVISTO",
+        method: file ? "COMPROVANTE" : "",
+        proof: file ? file.name : "",
+        noteId: null,
+        paidAt: file ? new Date().toISOString() : ""
+      });
+      saveState();
+      render();
+      toast("Recebimento registrado.");
+    }
+
+    function receivePayment(id) {
+      const r = state.receipts.find(item => item.id === id);
+      if (!r) return;
+      r.status = "RECEBIDO";
+      r.method = "PIX";
+      r.paidAt = new Date().toISOString();
+      r.proof = r.proof || `baixa_${id}.pdf`;
+      state.ledger.push({
+        id: nextId(state.ledger),
+        date: new Date().toISOString(),
+        document: `REC-${String(id).padStart(3, "0")}`,
+        es: "E",
+        clientId: r.clientId,
+        history: r.description,
+        amount: r.amount,
+        accountId: 1,
+        origin: "PAGAMENTO_RECEBIDO",
+        status: "OK",
+        flow: "REALIZADO"
+      });
+      saveState();
+      render();
+      toast("Recebimento baixado e lancado no Livro Caixa.");
+    }
+
+    function renderLedger() {
+      const month = Number(ledgerFilter.mes);
+      const year = Number(ledgerFilter.ano);
+      const rows = state.ledger.filter(l => {
+        const d = new Date(l.date);
+        return d.getMonth() + 1 === month && d.getFullYear() === year;
+      }).sort((a, b) => new Date(a.date) - new Date(b.date));
+      const entradas = rows.filter(l => l.es === "E").reduce((s, l) => s + l.amount, 0);
+      const saidas = rows.filter(l => l.es === "S").reduce((s, l) => s + l.amount, 0);
+      return `
+        <div class="grid three">
+          <div class="metric ok"><span>Entradas</span><strong>${money(entradas)}</strong><small>${rows.filter(l => l.es === "E").length} lancamento(s)</small></div>
+          <div class="metric bad"><span>Saidas</span><strong>${money(saidas)}</strong><small>${rows.filter(l => l.es === "S").length} lancamento(s)</small></div>
+          <div class="metric brand"><span>Resultado</span><strong>${money(entradas - saidas)}</strong><small>Competencia ${String(month).padStart(2, "0")}/${year}</small></div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="panel-head">
+            <div><h2>Livro Caixa</h2><p>Lancamentos manuais, importados e gerados por recebimentos.</p></div>
+            <div class="top-actions">
+              <select onchange="ledgerFilter.mes=this.value; render()" class="btn">${Array.from({length:12}, (_,i) => `<option value="${i+1}" ${month === i+1 ? "selected" : ""}>${String(i+1).padStart(2,"0")}</option>`).join("")}</select>
+              <select onchange="ledgerFilter.ano=this.value; render()" class="btn">${[year-1, year, year+1].map(y => `<option ${year === y ? "selected" : ""}>${y}</option>`).join("")}</select>
+              <button class="btn" onclick="window.print()">Emitir livro</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Data</th><th>Doc.</th><th>E/S</th><th>Cliente/Fornecedor</th><th>Historico</th><th>Conta</th><th>Valor</th><th>Status</th></tr></thead>
+              <tbody>
+                ${rows.map(l => `
+                  <tr>
+                    <td>${dateBR(l.date)}</td>
+                    <td>${escapeHtml(l.document || "-")}</td>
+                    <td>${l.es}</td>
+                    <td>${escapeHtml(clientName(l.clientId))}</td>
+                    <td>${escapeHtml(l.history)}<br><span class="tiny muted">${escapeHtml(l.origin)} · ${escapeHtml(l.flow)}</span></td>
+                    <td>${escapeHtml(accountName(l.accountId))}</td>
+                    <td class="${l.es === "E" ? "amount-pos" : "amount-neg"}">${money(l.amount)}</td>
+                    <td>${statusPill(l.status)}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="panel-head"><div><h2>Novo lancamento</h2><p>Equivalente ao cadastro manual do Livro Caixa AMR.</p></div></div>
+          <div class="panel-body">
+            <form onsubmit="addLedger(event)" class="form-grid three">
+              <div class="field"><label>Data</label><input type="date" name="date" required></div>
+              <div class="field"><label>Documento</label><input name="document" placeholder="NFS-00084"></div>
+              <div class="field"><label>Entrada/Saida</label><select name="es"><option value="E">Entrada</option><option value="S">Saida</option></select></div>
+              <div class="field"><label>Cliente/Fornecedor</label><select name="clientId">${state.clients.filter(c => c.active).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("")}</select></div>
+              <div class="field"><label>Conta</label><select name="accountId">${state.accounts.filter(a => a.active).map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join("")}</select></div>
+              <div class="field"><label>Valor</label><input name="amount" placeholder="1000,00" required></div>
+              <div class="field" style="grid-column:1/-1"><label>Historico</label><input name="history" required></div>
+              <button class="btn primary" type="submit">Adicionar lancamento</button>
+            </form>
+          </div>
+        </div>
+      `;
+    }
+
+    function addLedger(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      state.ledger.push({
+        id: nextId(state.ledger),
+        date: isoFromDateInput(fd.get("date")),
+        document: fd.get("document"),
+        es: fd.get("es"),
+        clientId: Number(fd.get("clientId")),
+        history: fd.get("history"),
+        amount: centsFromInput(fd.get("amount")),
+        accountId: Number(fd.get("accountId")),
+        origin: "MANUAL",
+        status: "OK",
+        flow: "REALIZADO"
+      });
+      saveState();
+      render();
+      toast("Lancamento incluido.");
+    }
+
+    function renderClients() {
+      return `
+        <div class="grid aside">
+          <div class="panel">
+            <div class="panel-head"><div><h2>Clientes e fornecedores</h2><p>Modelo Cliente do AMR com tipos C, F e A.</p></div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Nome</th><th>Tipo</th><th>Documento</th><th>Contato</th><th>Cidade</th><th>Status</th><th>Acoes</th></tr></thead>
+                <tbody>
+                  ${state.clients.map(c => `
+                    <tr>
+                      <td><strong>${escapeHtml(c.name)}</strong><br><span class="tiny muted">${escapeHtml(c.notes || "")}</span></td>
+                      <td>${statusPill(c.type === "C" ? "Cliente" : c.type === "F" ? "Fornecedor" : "Auxiliar")}</td>
+                      <td>${escapeHtml(c.doc)}</td>
+                      <td>${escapeHtml(c.email || "-")}<br><span class="tiny muted">${escapeHtml(c.phone || "")}</span></td>
+                      <td>${escapeHtml(c.city || "-")}</td>
+                      <td>${statusPill(c.active ? "Ativo" : "Inativo")}</td>
+                      <td><button class="btn slim" onclick="toggleClient(${c.id})">${c.active ? "Inativar" : "Ativar"}</button></td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Novo cadastro</h2><p>Dados usados em recebimentos e Livro Caixa.</p></div></div>
+            <div class="panel-body">
+              <form onsubmit="addClient(event)" class="form-grid">
+                <div class="field"><label>Nome/Razao social</label><input name="name" required></div>
+                <div class="form-grid two">
+                  <div class="field"><label>Tipo</label><select name="type"><option value="C">Cliente</option><option value="F">Fornecedor</option><option value="A">Auxiliar</option></select></div>
+                  <div class="field"><label>CPF/CNPJ</label><input name="doc" required></div>
+                </div>
+                <div class="field"><label>E-mail</label><input name="email" type="email"></div>
+                <div class="field"><label>Telefone</label><input name="phone"></div>
+                <div class="field"><label>Cidade</label><input name="city"></div>
+                <div class="field"><label>Observacoes</label><textarea name="notes"></textarea></div>
+                <button class="btn primary" type="submit">Salvar cadastro</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function addClient(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      state.clients.push({
+        id: nextId(state.clients),
+        type: fd.get("type"),
+        name: fd.get("name"),
+        doc: fd.get("doc"),
+        email: fd.get("email"),
+        phone: fd.get("phone"),
+        city: fd.get("city"),
+        active: true,
+        notes: fd.get("notes")
+      });
+      saveState();
+      render();
+      toast("Cadastro criado.");
+    }
+
+    function toggleClient(id) {
+      const c = state.clients.find(item => item.id === id);
+      if (c) c.active = !c.active;
+      saveState();
+      render();
+      toast("Status do cadastro atualizado.");
+    }
+
+    function renderUsers() {
+      return `
+        <div class="grid aside">
+          <div class="panel">
+            <div class="panel-head"><div><h2>Usuarios</h2><p>Papeis, status e exigencia de troca de senha.</p></div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Usuario</th><th>Perfil</th><th>Telefone</th><th>2FA</th><th>Status</th><th>Acoes</th></tr></thead>
+                <tbody>
+                  ${state.users.map(u => `
+                    <tr>
+                      <td><strong>${escapeHtml(u.name)}</strong><br><span class="tiny muted">${escapeHtml(u.email)}</span></td>
+                      <td>${escapeHtml(u.role)}<br><span class="tiny muted">${escapeHtml(u.type)}</span></td>
+                      <td>${escapeHtml(u.phone || "-")}</td>
+                      <td>${statusPill(u.twofa ? "Ativo" : "Inativo")}</td>
+                      <td>${statusPill(u.active ? "Ativo" : "Inativo")}</td>
+                      <td><button class="btn slim" onclick="toggleUser(${u.id})">${u.active ? "Inativar" : "Ativar"}</button></td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Novo usuario</h2><p>Replica do cadastro administrativo AMR.</p></div></div>
+            <div class="panel-body">
+              <form onsubmit="addUser(event)" class="form-grid">
+                <div class="field"><label>Nome</label><input name="name" required></div>
+                <div class="field"><label>E-mail</label><input name="email" type="email" required></div>
+                <div class="form-grid two">
+                  <div class="field"><label>Role</label><select name="role"><option>USER</option><option>ADMIN</option><option>CLIENTE</option></select></div>
+                  <div class="field"><label>Tipo</label><select name="type"><option>OPERACAO</option><option>FINANCEIRO</option><option>GESTAO</option><option>CLIENTE</option></select></div>
+                </div>
+                <div class="field"><label>Telefone</label><input name="phone"></div>
+                <label class="tiny"><input type="checkbox" name="mustChangePassword" checked> Exigir troca de senha no primeiro login</label>
+                <button class="btn primary" type="submit">Criar usuario</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function addUser(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      state.users.push({
+        id: nextId(state.users),
+        name: fd.get("name"),
+        email: fd.get("email"),
+        role: fd.get("role"),
+        type: fd.get("type"),
+        active: true,
+        phone: fd.get("phone"),
+        twofa: false,
+        mustChangePassword: fd.get("mustChangePassword") === "on"
+      });
+      saveState();
+      render();
+      toast("Usuario criado.");
+    }
+
+    function toggleUser(id) {
+      const u = state.users.find(item => item.id === id);
+      if (u) u.active = !u.active;
+      saveState();
+      render();
+      toast("Status do usuario atualizado.");
+    }
+
+    function renderAccounts() {
+      const rows = state.accounts.sort((a, b) => a.order - b.order);
+      return `
+        <div class="grid aside">
+          <div class="panel">
+            <div class="panel-head"><div><h2>Contas contabeis</h2><p>Fonte de saldos e classificacao dos lancamentos.</p></div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Ordem</th><th>Conta</th><th>Tipo</th><th>Banco</th><th>Saldo inicial</th><th>Status</th><th>Acoes</th></tr></thead>
+                <tbody>
+                  ${rows.map(a => `
+                    <tr>
+                      <td>${a.order}</td>
+                      <td><strong>${escapeHtml(a.name)}</strong></td>
+                      <td>${escapeHtml(a.kind)}</td>
+                      <td>${escapeHtml([a.agency, a.number].filter(Boolean).join(" / ") || "-")}</td>
+                      <td>${money(a.initial)}</td>
+                      <td>${statusPill(a.active ? "Ativa" : "Inativa")}</td>
+                      <td><button class="btn slim" onclick="toggleAccount(${a.id})">${a.active ? "Inativar" : "Ativar"}</button></td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Nova conta</h2><p>Banco, caixa, cartao ou aplicacao.</p></div></div>
+            <div class="panel-body">
+              <form onsubmit="addAccount(event)" class="form-grid">
+                <div class="field"><label>Nome</label><input name="name" required></div>
+                <div class="form-grid two">
+                  <div class="field"><label>Tipo</label><select name="kind"><option>BANCO</option><option>CAIXA</option><option>CARTAO</option><option>APLICACAO</option></select></div>
+                  <div class="field"><label>Ordem</label><input name="order" type="number" value="${rows.length + 1}"></div>
+                </div>
+                <div class="form-grid two">
+                  <div class="field"><label>Agencia</label><input name="agency"></div>
+                  <div class="field"><label>Conta</label><input name="number"></div>
+                </div>
+                <div class="field"><label>Saldo inicial</label><input name="initial" placeholder="0,00"></div>
+                <button class="btn primary" type="submit">Salvar conta</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function addAccount(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      state.accounts.push({
+        id: nextId(state.accounts),
+        name: fd.get("name"),
+        kind: fd.get("kind"),
+        order: Number(fd.get("order")) || state.accounts.length + 1,
+        initial: centsFromInput(fd.get("initial")),
+        active: true,
+        agency: fd.get("agency"),
+        number: fd.get("number")
+      });
+      saveState();
+      render();
+      toast("Conta criada.");
+    }
+
+    function toggleAccount(id) {
+      const a = state.accounts.find(item => item.id === id);
+      if (a) a.active = !a.active;
+      saveState();
+      render();
+      toast("Status da conta atualizado.");
+    }
+
+    function renderSecurity() {
+      const sec = state.security;
+      return `
+        <div class="grid two">
+          <div class="panel">
+            <div class="panel-head"><div><h2>Autenticacao em duas etapas</h2><p>Fluxo TOTP local para demonstracao.</p></div></div>
+            <div class="panel-body list">
+              <div class="item">
+                <div class="item-row"><strong>Status do administrador</strong>${statusPill(sec.twofaEnabled ? "Ativo" : "Inativo")}</div>
+                <div class="tiny muted">No backend AMR, isso usa otplib, QRCode e segredo salvo no Usuario.</div>
+              </div>
+              ${sec.pendingSecret ? `
+                <div class="item">
+                  <strong>Chave manual</strong>
+                  <code>${escapeHtml(sec.pendingSecret)}</code>
+                  <div class="empty" style="padding:18px">QR mock: ADDERE-${escapeHtml(sec.pendingSecret.slice(-6))}</div>
+                  <form onsubmit="verify2FA(event)" class="form-grid two">
+                    <div class="field"><label>Codigo</label><input name="code" maxlength="6" placeholder="123456"></div>
+                    <button class="btn primary" type="submit">Verificar</button>
+                  </form>
+                </div>
+              ` : ""}
+              <div class="top-actions">
+                <button class="btn primary" onclick="start2FA()">Iniciar setup</button>
+                <button class="btn bad" onclick="disable2FA()">Desativar 2FA</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Politicas de sessao</h2><p>Replica das regras de bloqueio e expiracao.</p></div></div>
+            <div class="panel-body">
+              <form onsubmit="saveSecurity(event)" class="form-grid">
+                <div class="field"><label>Bloquear tela apos (min)</label><input name="lockAfterMinutes" type="number" value="${sec.lockAfterMinutes}"></div>
+                <div class="field"><label>Expirar sessao apos (min)</label><input name="sessionMinutes" type="number" value="${sec.sessionMinutes}"></div>
+                <button class="btn primary" type="submit">Salvar politicas</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function start2FA() {
+      state.security.pendingSecret = "ADDERE-" + Math.random().toString(36).slice(2, 10).toUpperCase();
+      saveState();
+      render();
+      toast("Setup iniciado. Use codigo 123456 nesta replica.");
+    }
+
+    function verify2FA(event) {
+      event.preventDefault();
+      const code = new FormData(event.currentTarget).get("code");
+      if (code !== "123456") {
+        toast("Codigo invalido para a demo.");
+        return;
+      }
+      state.security.twofaEnabled = true;
+      state.security.pendingSecret = "";
+      state.users.find(u => u.id === currentUserId).twofa = true;
+      saveState();
+      render();
+      toast("2FA ativado.");
+    }
+
+    function disable2FA() {
+      state.security.twofaEnabled = false;
+      state.security.pendingSecret = "";
+      state.users.find(u => u.id === currentUserId).twofa = false;
+      saveState();
+      render();
+      toast("2FA desativado nesta replica.");
+    }
+
+    function saveSecurity(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      state.security.lockAfterMinutes = Number(fd.get("lockAfterMinutes")) || 25;
+      state.security.sessionMinutes = Number(fd.get("sessionMinutes")) || 30;
+      saveState();
+      render();
+      toast("Politicas atualizadas.");
+    }
+
+    function renderPdfImport() {
+      return `
+        <div class="grid aside">
+          <div class="panel">
+            <div class="panel-head"><div><h2>Importar extrato PDF</h2><p>Simula o parse por colunas do AMR e revisao antes de confirmar.</p></div></div>
+            <div class="panel-body">
+              <form onsubmit="parsePdf(event)" class="form-grid">
+                <div class="form-grid two">
+                  <div class="field"><label>Competencia</label><input type="month" name="competence" value="${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}" required></div>
+                  <div class="field"><label>Arquivo PDF</label><input type="file" name="pdf" accept="application/pdf" required></div>
+                </div>
+                <button class="btn primary" type="submit">Ler PDF</button>
+              </form>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Sessoes</h2><p>Historico local de importacoes.</p></div></div>
+            <div class="panel-body list">
+              ${state.pdfSessions.map(s => `
+                <div class="item">
+                  <div class="item-row"><strong>${escapeHtml(s.fileName)}</strong>${statusPill(`${s.confirmed}/${s.total}`)}</div>
+                  <div class="tiny muted">Competencia ${escapeHtml(s.competence)} · ${dateTimeBR(s.createdAt)}</div>
+                </div>
+              `).join("") || `<div class="empty">Nenhum PDF processado.</div>`}
+            </div>
+          </div>
+        </div>
+        <div class="panel" style="margin-top:16px">
+          <div class="panel-head">
+            <div><h2>Linhas extraidas</h2><p>Confirme somente depois de escolher cliente/fornecedor e conta.</p></div>
+            ${pdfRows.length ? `<button class="btn primary" onclick="confirmAllPdfRows()">Confirmar todas</button>` : ""}
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Data</th><th>Doc.</th><th>E/S</th><th>Historico</th><th>Valor</th><th>Conta</th><th>Acoes</th></tr></thead>
+              <tbody>
+                ${pdfRows.map(r => `
+                  <tr>
+                    <td>${dateBR(r.date)}</td>
+                    <td>${escapeHtml(r.document)}</td>
+                    <td>${r.es}</td>
+                    <td>${escapeHtml(r.history)}<br><span class="tiny muted">${escapeHtml(clientName(r.clientId))}</span></td>
+                    <td class="${r.es === "E" ? "amount-pos" : "amount-neg"}">${money(r.amount)}</td>
+                    <td>${escapeHtml(accountName(r.accountId))}</td>
+                    <td>${r.confirmed ? statusPill("Confirmada") : `<button class="btn slim primary" onclick="confirmPdfRow('${r.rowId}')">Confirmar</button>`}</td>
+                  </tr>
+                `).join("") || `<tr><td colspan="7"><div class="empty">Envie um PDF para gerar linhas de revisao.</div></td></tr>`}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+
+    function parsePdf(event) {
+      event.preventDefault();
+      const file = event.currentTarget.elements.pdf.files[0];
+      const competence = new FormData(event.currentTarget).get("competence");
+      const [year, month] = String(competence).split("-").map(Number);
+      pdfRows = [
+        { rowId: "pdf-1", date: new Date(year, month - 1, 3, 12).toISOString(), document: "PIX-CLIENTE", es: "E", clientId: 1, history: "Recebimento Clara Mendes extraido do PDF", amount: 39700, accountId: 1, confirmed: false },
+        { rowId: "pdf-2", date: new Date(year, month - 1, 5, 12).toISOString(), document: "TARIFA", es: "S", clientId: 1, history: "Tarifa bancaria Inter", amount: 1290, accountId: 1, confirmed: false },
+        { rowId: "pdf-3", date: new Date(year, month - 1, 8, 12).toISOString(), document: "GOOGLE", es: "S", clientId: 5, history: "Google Ads extraido do PDF", amount: 90000, accountId: 3, confirmed: false },
+        { rowId: "pdf-4", date: new Date(year, month - 1, 13, 12).toISOString(), document: "NFS-e", es: "E", clientId: 2, history: "NFS-e Vita Norte detectada", amount: 249700, accountId: 1, confirmed: false }
+      ];
+      state.pdfSessions.push({ id: nextId(state.pdfSessions), fileName: file.name, competence, total: pdfRows.length, confirmed: 0, createdAt: new Date().toISOString() });
+      saveState();
+      render();
+      toast("PDF lido. Revise as linhas antes de confirmar.");
+    }
+
+    function confirmPdfRow(rowId) {
+      const row = pdfRows.find(r => r.rowId === rowId);
+      if (!row || row.confirmed) return;
+      row.confirmed = true;
+      state.ledger.push({
+        id: nextId(state.ledger),
+        date: row.date,
+        document: row.document,
+        es: row.es,
+        clientId: row.clientId,
+        history: row.history,
+        amount: row.amount,
+        accountId: row.accountId,
+        origin: "IMPORT_PDF",
+        status: "OK",
+        flow: "REALIZADO"
+      });
+      const session = state.pdfSessions[state.pdfSessions.length - 1];
+      if (session) session.confirmed += 1;
+      saveState();
+      render();
+      toast("Linha confirmada no Livro Caixa.");
+    }
+
+    function confirmAllPdfRows() {
+      pdfRows.filter(r => !r.confirmed).forEach(r => confirmPdfRow(r.rowId));
+    }
+
+    function renderInvoices() {
+      return `
+        <div class="grid aside">
+          <div class="panel">
+            <div class="panel-head"><div><h2>Notas fiscais</h2><p>Emissao mock com numero sequencial e vinculo a recebimento.</p></div></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Numero</th><th>Cliente</th><th>Servico</th><th>Valor</th><th>Status</th><th>Emissao</th><th>Acoes</th></tr></thead>
+                <tbody>
+                  ${state.notes.map(n => `
+                    <tr>
+                      <td><strong>${escapeHtml(n.number)}</strong></td>
+                      <td>${escapeHtml(clientName(n.clientId))}</td>
+                      <td>${escapeHtml(n.service)}</td>
+                      <td>${money(n.amount)}</td>
+                      <td>${statusPill(n.status)}</td>
+                      <td>${dateBR(n.issuedAt)}</td>
+                      <td>${n.status === "RASCUNHO" ? `<button class="btn slim primary" onclick="issueInvoice(${n.id})">Emitir</button>` : `<button class="btn slim" onclick="createReceiptFromInvoice(${n.id})">Gerar recebimento</button>`}</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><div><h2>Nova nota</h2><p>Campos essenciais para integracao futura com prefeitura.</p></div></div>
+            <div class="panel-body">
+              <form onsubmit="addInvoice(event)" class="form-grid">
+                <div class="field"><label>Cliente</label><select name="clientId">${state.clients.filter(c => c.type === "C" && c.active).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("")}</select></div>
+                <div class="field"><label>Servico</label><textarea name="service" required>Licenciamento de software e inteligencia de trafego pago</textarea></div>
+                <div class="form-grid two">
+                  <div class="field"><label>Valor</label><input name="amount" placeholder="397,00" required></div>
+                  <div class="field"><label>Municipio</label><input name="city" value="Sao Paulo"></div>
+                </div>
+                <button class="btn primary" type="submit">Criar rascunho</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function addInvoice(event) {
+      event.preventDefault();
+      const fd = new FormData(event.currentTarget);
+      const id = nextId(state.notes);
+      state.notes.push({
+        id,
+        number: `RASC-${String(80 + id).padStart(5, "0")}`,
+        clientId: Number(fd.get("clientId")),
+        service: fd.get("service"),
+        amount: centsFromInput(fd.get("amount")),
+        status: "RASCUNHO",
+        issuedAt: "",
+        city: fd.get("city")
+      });
+      saveState();
+      render();
+      toast("Rascunho criado.");
+    }
+
+    function issueInvoice(id) {
+      const note = state.notes.find(n => n.id === id);
+      if (!note) return;
+      note.status = "EMITIDA";
+      note.number = `NFS-${String(80 + id).padStart(5, "0")}`;
+      note.issuedAt = new Date().toISOString();
+      saveState();
+      render();
+      toast("Nota fiscal emitida na replica.");
+    }
+
+    function createReceiptFromInvoice(id) {
+      const note = state.notes.find(n => n.id === id);
+      if (!note) return;
+      state.receipts.push({
+        id: nextId(state.receipts),
+        clientId: note.clientId,
+        description: `Recebimento ${note.number}`,
+        dueDate: new Date(Date.now() + 7 * 86400000).toISOString(),
+        amount: note.amount,
+        status: "PREVISTO",
+        method: "",
+        proof: "",
+        noteId: note.id,
+        paidAt: ""
+      });
+      saveState();
+      render();
+      toast("Recebimento gerado a partir da nota.");
+    }
+
+    render();
+  </script>
+</body>
+</html>

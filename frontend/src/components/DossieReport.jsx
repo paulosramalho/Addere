@@ -13,21 +13,51 @@ export default function DossieReport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleGenerate = async (clienteId, contratoId) => {
+  const handleGenerate = async (clienteId, contratoIds) => {
     setLoading(true);
     setError(null);
-    
+
+    // Aceita string única (compatibilidade) ou array de ids (multi-seleção)
+    const ids = Array.isArray(contratoIds)
+      ? contratoIds.map(String)
+      : [String(contratoIds)];
+
     try {
-      console.log('🔍 Gerando dossiê:', { clienteId, contratoId });
-      
-      // Usando apiFetch do sistema
-      const data = await apiFetch(
-        `/historico/dossie-dados?clienteId=${clienteId}&contratoId=${contratoId}`
+      console.log('🔍 Gerando dossiê:', { clienteId, ids });
+
+      const responses = await Promise.all(
+        ids.map((cid) =>
+          apiFetch(`/historico/dossie-dados?clienteId=${clienteId}&contratoId=${cid}`)
+        )
       );
-      
-      console.log('✅ Dados do dossiê recebidos:', data);
-      setDossieData(data);
-      
+
+      let merged;
+      if (responses.length === 1) {
+        merged = responses[0];
+      } else {
+        // Modo multi: mesmo cliente, vários contratos. Adiciona campo `grupos`
+        // (cada grupo é { contratoBase, cadeia } de um contrato).
+        const totalContratosSomados = responses.reduce(
+          (s, r) => s + (r?.metadata?.totalContratos ?? r?.cadeia?.length ?? 1),
+          0
+        );
+        merged = {
+          cliente: responses[0].cliente,
+          contratoBase: responses[0].contratoBase,
+          cadeia: [],
+          grupos: responses.map((r) => ({
+            contratoBase: r.contratoBase,
+            cadeia: r.cadeia || [],
+          })),
+          metadata: {
+            ...responses[0].metadata,
+            totalContratos: totalContratosSomados,
+          },
+        };
+      }
+
+      console.log('✅ Dados do dossiê recebidos:', merged);
+      setDossieData(merged);
     } catch (err) {
       console.error('❌ Erro ao gerar dossiê:', err);
       setError(err.message || 'Erro ao buscar dados do dossiê');

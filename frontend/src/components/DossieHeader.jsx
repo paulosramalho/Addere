@@ -4,6 +4,7 @@
 
 import React from 'react';
 import logoSrc from '../assets/logo.png';
+import { formatCpfCnpj } from '../lib/formatters';
 
 export default function DossieHeader({ cliente, contrato, metadata }) {
   // Formatar data+hora (UTC-safe: evita D-1 com datas em UTC midnight)
@@ -41,7 +42,7 @@ export default function DossieHeader({ cliente, contrato, metadata }) {
       {/* Info do Cliente e Contrato */}
       <div style={{fontSize:'10px', marginBottom:'10px'}}>
         <div><strong>Cliente:</strong> {cliente?.nome || '—'}</div>
-        <div><strong>CPF/CNPJ:</strong> {cliente?.cpfCnpj || '—'}</div>
+        <div><strong>CPF/CNPJ:</strong> {cliente?.cpfCnpj ? formatCpfCnpj(cliente.cpfCnpj) : '—'}</div>
         <div><strong>Contrato:</strong> {contrato?.numero || '—'}</div>
       </div>
 

@@ -4,6 +4,7 @@
 
 import React, { useState } from 'react';
 import { useToast } from './Toast';
+import { formatCpfCnpj } from '../lib/formatters';
 // import jsPDF from 'jspdf'; // npm install jspdf
 // import html2canvas from 'html2canvas'; // npm install html2canvas
 // import * as XLSX from 'xlsx'; // npm install xlsx
@@ -102,12 +103,17 @@ export default function DossieExport({ data }) {
 
       const wb = XLSX.utils.book_new();
 
+      // Em modo multi, achatamos todos os contratos de todos os grupos numa lista única
+      const cadeiaFlat = Array.isArray(data.grupos) && data.grupos.length > 0
+        ? data.grupos.flatMap((g) => g.cadeia || [])
+        : (data.cadeia || []);
+
       // Sheet 1: Resumo Geral
       const resumoData = [
         ['DOSSIÊ DE PAGAMENTOS'],
         [''],
         ['Cliente:', data.cliente.nome],
-        ['CPF/CNPJ:', data.cliente.cpfCnpj],
+        ['CPF/CNPJ:', formatCpfCnpj(data.cliente.cpfCnpj)],
         ['Tipo:', data.contratoBase.tipo],
         ['Total de Contratos:', data.metadata.totalContratos],
         ['Gerado em:', new Date(data.metadata.geradoEm).toLocaleString('pt-BR')],
@@ -118,7 +124,7 @@ export default function DossieExport({ data }) {
       XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
 
       // Sheet para cada contrato
-      data.cadeia.forEach((contrato, idx) => {
+      cadeiaFlat.forEach((contrato, idx) => {
         const sheetName = `Contrato_${idx + 1}`;
         
         // Cabeçalho do contrato

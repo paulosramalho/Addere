@@ -1,5 +1,5 @@
 // ============================================================
-// DossieForm.jsx - FORMULÁRIO DE SELEÇÃO (CAMINHO CORRETO)
+// DossieForm.jsx - FORMULÁRIO DE SELEÇÃO (multi-contrato)
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
@@ -11,22 +11,20 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
   const [clientes, setClientes] = useState([]);
   const [contratos, setContratos] = useState([]);
   const [clienteId, setClienteId] = useState('');
-  const [contratoId, setContratoId] = useState('');
+  const [contratoIds, setContratoIds] = useState([]); // multi-seleção
   const [loadingClientes, setLoadingClientes] = useState(false);
   const [loadingContratos, setLoadingContratos] = useState(false);
 
-  // Buscar clientes ao montar
   useEffect(() => {
     loadClientes();
   }, []);
 
-  // Buscar contratos quando selecionar cliente
   useEffect(() => {
     if (clienteId) {
       loadContratos(clienteId);
     } else {
       setContratos([]);
-      setContratoId('');
+      setContratoIds([]);
     }
   }, [clienteId]);
 
@@ -34,10 +32,8 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
     setLoadingClientes(true);
     try {
       const data = await apiFetch('/clients?tipo=C,A');
-      console.log('📋 Clientes carregados:', data);
       setClientes(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('❌ Erro ao carregar clientes:', err);
       addToast('Erro ao carregar clientes: ' + err.message, 'error');
     } finally {
       setLoadingClientes(false);
@@ -48,17 +44,11 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
     setLoadingContratos(true);
     try {
       const data = await apiFetch('/contratos');
-      console.log('📋 Contratos carregados:', data);
-      
-      // Filtra contratos do cliente selecionado
-      const contratosFiltrados = Array.isArray(data) 
-        ? data.filter(c => Number(c?.cliente?.id) === Number(cid))
+      const contratosFiltrados = Array.isArray(data)
+        ? data.filter((c) => Number(c?.cliente?.id) === Number(cid))
         : [];
-      
-      console.log(`📋 Contratos do cliente ${cid}:`, contratosFiltrados);
       setContratos(contratosFiltrados);
     } catch (err) {
-      console.error('❌ Erro ao carregar contratos:', err);
       addToast('Erro ao carregar contratos: ' + err.message, 'error');
     } finally {
       setLoadingContratos(false);
@@ -67,21 +57,36 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (clienteId && contratoId) {
-      onGenerate(clienteId, contratoId);
+    if (clienteId && contratoIds.length > 0) {
+      onGenerate(clienteId, contratoIds);
     }
   };
 
   const handleResetForm = () => {
     setClienteId('');
-    setContratoId('');
+    setContratoIds([]);
     setContratos([]);
     if (onReset) onReset();
   };
 
+  const toggleContrato = (id) => {
+    const sid = String(id);
+    setContratoIds((prev) =>
+      prev.includes(sid) ? prev.filter((x) => x !== sid) : [...prev, sid]
+    );
+  };
+
+  const toggleAll = () => {
+    if (contratoIds.length === contratos.length) {
+      setContratoIds([]);
+    } else {
+      setContratoIds(contratos.map((c) => String(c.id)));
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      
+
       {/* Cliente */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -91,7 +96,7 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
           value={clienteId}
           onChange={(e) => {
             setClienteId(e.target.value);
-            setContratoId('');
+            setContratoIds([]);
           }}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           disabled={loadingClientes || loading}
@@ -100,7 +105,7 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
           <option value="">
             {loadingClientes ? 'Carregando...' : 'Selecione um cliente'}
           </option>
-          {clientes.map(c => (
+          {clientes.map((c) => (
             <option key={c.id} value={c.id}>
               {c.nomeRazaoSocial || c.nome}
             </option>
@@ -118,40 +123,73 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
         )}
       </div>
 
-      {/* Contrato */}
+      {/* Contrato(s) — multi-seleção */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Contrato/Pagamento *
-        </label>
-        <select
-          value={contratoId}
-          onChange={(e) => setContratoId(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
-          disabled={!clienteId || loadingContratos || loading}
-          required
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Contrato(s)/Pagamento(s) *
+          </label>
+          {contratos.length > 1 && !loadingContratos && (
+            <button
+              type="button"
+              onClick={toggleAll}
+              className="text-xs text-blue-600 hover:text-blue-800 underline"
+              disabled={loading}
+            >
+              {contratoIds.length === contratos.length ? 'Desmarcar todos' : 'Marcar todos'}
+            </button>
+          )}
+        </div>
+
+        <div
+          className={`border border-gray-300 rounded-lg max-h-72 overflow-y-auto ${
+            !clienteId || loadingContratos || loading ? 'bg-gray-100 opacity-60' : 'bg-white'
+          }`}
         >
-          <option value="">
-            {loadingContratos 
-              ? 'Carregando...' 
-              : !clienteId
-              ? 'Selecione um cliente primeiro'
-              : 'Selecione um contrato'}
-          </option>
-          {contratos.map(c => (
-            <option key={c.id} value={c.id}>
-              {c.numeroContrato || c.numero} 
-              {c.valorTotal && ` - R$ ${(Number(c.valorTotal) || 0).toFixed(2)}`}
-            </option>
-          ))}
-        </select>
-        {clienteId && contratos.length === 0 && !loadingContratos && (
-          <p className="text-xs text-red-500 mt-1">
-            ⚠️ Nenhum contrato encontrado para este cliente
-          </p>
-        )}
+          {loadingContratos && (
+            <p className="px-3 py-2 text-sm text-gray-500">Carregando...</p>
+          )}
+          {!loadingContratos && !clienteId && (
+            <p className="px-3 py-2 text-sm text-gray-500">Selecione um cliente primeiro</p>
+          )}
+          {!loadingContratos && clienteId && contratos.length === 0 && (
+            <p className="px-3 py-2 text-sm text-red-500">
+              ⚠️ Nenhum contrato encontrado para este cliente
+            </p>
+          )}
+          {!loadingContratos && contratos.map((c) => {
+            const sid = String(c.id);
+            const checked = contratoIds.includes(sid);
+            return (
+              <label
+                key={c.id}
+                className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-b-0 text-sm ${
+                  checked ? 'bg-blue-50' : ''
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleContrato(c.id)}
+                  disabled={loading}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="flex-1 truncate">
+                  <span className="font-medium">{c.numeroContrato || c.numero}</span>
+                  {c.valorTotal != null && (
+                    <span className="text-gray-500 ml-2">
+                      — R$ {(Number(c.valorTotal) || 0).toFixed(2)}
+                    </span>
+                  )}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
         {clienteId && contratos.length > 0 && !loadingContratos && (
           <p className="text-xs text-gray-500 mt-1">
-            {contratos.length} contrato(s) disponível(is)
+            {contratoIds.length} de {contratos.length} contrato(s) selecionado(s)
           </p>
         )}
       </div>
@@ -160,7 +198,7 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
       <div className="space-y-2">
         <button
           type="submit"
-          disabled={loading || !clienteId || !contratoId}
+          disabled={loading || !clienteId || contratoIds.length === 0}
           className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (
@@ -173,12 +211,12 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">
-              🔍 Gerar Dossiê
+              🔍 {contratoIds.length > 1 ? `Gerar Dossiê (${contratoIds.length} contratos)` : 'Gerar Dossiê'}
             </span>
           )}
         </button>
 
-        {(clienteId || contratoId) && (
+        {(clienteId || contratoIds.length > 0) && (
           <button
             type="button"
             onClick={handleResetForm}
@@ -194,7 +232,8 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900">
         <p className="font-semibold mb-1">💡 Dica</p>
         <p>
-          O dossiê inclui o contrato selecionado e todas as suas renegociações.
+          O dossiê inclui cada contrato selecionado e todas as suas renegociações. Marque mais
+          de um contrato do mesmo cliente para gerar um único dossiê consolidado.
         </p>
       </div>
 
@@ -204,7 +243,7 @@ export default function DossieForm({ onGenerate, loading, onReset }) {
           <div>Clientes: {clientes.length}</div>
           <div>Contratos: {contratos.length}</div>
           <div>Cliente selecionado: {clienteId || 'nenhum'}</div>
-          <div>Contrato selecionado: {contratoId || 'nenhum'}</div>
+          <div>Contratos selecionados: {contratoIds.length > 0 ? contratoIds.join(', ') : 'nenhum'}</div>
         </div>
       )}
 

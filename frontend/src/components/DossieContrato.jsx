@@ -100,43 +100,58 @@ export default function DossieContrato({ contrato, index, isFirst, isLast }) {
       </div>
 
       {/* Resumo Financeiro */}
-      <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-6 mb-6">
-        <h4 className="text-lg font-bold text-blue-900 mb-4">
+      <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-200 rounded-lg p-4 mb-6">
+        <h4 className="text-lg font-bold text-blue-900 mb-3">
           💰 Resumo Financeiro
         </h4>
-        
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+        {/* Grid responsivo: 3 cols quando 3 cards (sem cancelado), 4 cols quando 4. */}
+        <div
+          className={
+            resumo.totalCancelado > 0
+              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+              : "grid grid-cols-1 sm:grid-cols-3 gap-3"
+          }
+        >
           {/* Total do Contrato */}
-          <div className="bg-white rounded-lg p-4 border border-blue-200">
-            <p className="text-xs text-gray-600 mb-1">Total do Contrato</p>
-            <p className="text-xl font-bold text-gray-900">{fmt(resumo.totalContrato)}</p>
-            <p className="text-xs text-gray-500 mt-1">{resumo.qtdParcelas} parcelas</p>
+          <div className="bg-white rounded-lg p-3 border border-blue-200 min-w-0">
+            <p className="text-[11px] text-gray-600 mb-1">Total do Contrato</p>
+            <p className="text-lg font-bold text-gray-900 tabular-nums leading-tight">
+              {fmt(resumo.totalContrato)}
+            </p>
+            <p className="text-[11px] text-gray-500 mt-1">{resumo.qtdParcelas} parcelas</p>
           </div>
 
           {/* Total Pago */}
-          <div className="bg-white rounded-lg p-4 border border-green-200">
-            <p className="text-xs text-gray-600 mb-1">Total Pago</p>
-            <p className="text-xl font-bold text-green-700">{fmt(resumo.totalPago)}</p>
-            <p className="text-xs text-gray-500 mt-1">
+          <div className="bg-white rounded-lg p-3 border border-green-200 min-w-0">
+            <p className="text-[11px] text-gray-600 mb-1">Total Pago</p>
+            <p className="text-lg font-bold text-green-700 tabular-nums leading-tight">
+              {fmt(resumo.totalPago)}
+            </p>
+            <p className="text-[11px] text-gray-500 mt-1">
               {resumo.qtdParcelasPagas} parcelas ({resumo.percPago}%)
             </p>
           </div>
 
           {/* Em Aberto */}
-          <div className="bg-white rounded-lg p-4 border border-yellow-200">
-            <p className="text-xs text-gray-600 mb-1">Em Aberto</p>
-            <p className="text-xl font-bold text-yellow-700">{fmt(resumo.totalEmAberto)}</p>
-            <p className="text-xs text-gray-500 mt-1">
+          <div className="bg-white rounded-lg p-3 border border-yellow-200 min-w-0">
+            <p className="text-[11px] text-gray-600 mb-1">Em Aberto</p>
+            <p className="text-lg font-bold text-yellow-700 tabular-nums leading-tight">
+              {fmt(resumo.totalEmAberto)}
+            </p>
+            <p className="text-[11px] text-gray-500 mt-1">
               {resumo.qtdParcelasEmAberto} parcelas ({resumo.percEmAberto}%)
             </p>
           </div>
 
           {/* Cancelado */}
           {resumo.totalCancelado > 0 && (
-            <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <p className="text-xs text-gray-600 mb-1">Cancelado</p>
-              <p className="text-xl font-bold text-gray-700">{fmt(resumo.totalCancelado)}</p>
-              <p className="text-xs text-gray-500 mt-1">
+            <div className="bg-white rounded-lg p-3 border border-gray-200 min-w-0">
+              <p className="text-[11px] text-gray-600 mb-1">Cancelado</p>
+              <p className="text-lg font-bold text-gray-700 tabular-nums leading-tight">
+                {fmt(resumo.totalCancelado)}
+              </p>
+              <p className="text-[11px] text-gray-500 mt-1">
                 {resumo.qtdParcelasCanceladas} parcelas
               </p>
             </div>
