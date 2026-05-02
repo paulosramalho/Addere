@@ -1180,6 +1180,11 @@ function Shell({ user, onLogout }) {
   const [igUnread, setIgUnread] = useState(0);
   const [processosNovos, setProcessosNovos] = useState(0);
   const [intimacoesCount, setIntimacoesCount] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("addere_sidebar_collapsed") === "1");
+
+  useEffect(() => {
+    localStorage.setItem("addere_sidebar_collapsed", sidebarCollapsed ? "1" : "0");
+  }, [sidebarCollapsed]);
 
   // Polling badge Vencidos em Aberto (a cada 5 min, só para não-secretaria)
   const fetchVencidosCount = React.useCallback(async () => {
@@ -1438,14 +1443,14 @@ function Shell({ user, onLogout }) {
 
   const menu = useMemo(() => {
     return [
-      { to: "/noticeboard", label: "Notice Board", icon: "NB" },
-      { to: "/agenda", label: "Agenda", icon: "AG", badge: agendaCount || null },
-      { to: "/dashboard", label: "Dashboard", icon: "DB" },
-      { to: "/recebimentos", label: "Recebimentos", icon: "RC" },
+      { to: "/noticeboard", label: "Notice Board", icon: "📋" },
+      { to: "/agenda", label: "Agenda", icon: "🗓️", badge: agendaCount || null },
+      { to: "/dashboard", label: "Dashboard", icon: "📊" },
+      { to: "/recebimentos", label: "Recebimentos", icon: "💰" },
       {
         type: "group",
         label: "Livro Caixa",
-        icon: "LC",
+        icon: "📖",
         badge: vencidosTotal || null,
         children: [
           { to: "/livro-caixa/lancamentos", label: "Lançamentos" },
@@ -1456,7 +1461,7 @@ function Shell({ user, onLogout }) {
       {
         type: "group",
         label: "Configurações",
-        icon: "CF",
+        icon: "⚙️",
         children: [
           { to: "/clientes", label: "Clientes" },
           { to: "/usuarios", label: "Usuários" },
@@ -1467,7 +1472,7 @@ function Shell({ user, onLogout }) {
       {
         type: "group",
         label: "Utilitários",
-        icon: "UT",
+        icon: "🧰",
         children: [
           { to: "/utilitarios/importacao-pdf", label: "Importação PDF Livro Caixa" },
           { to: "/utilitarios/nota-fiscal", label: "Emissão de Nota Fiscal" },
@@ -1477,11 +1482,17 @@ function Shell({ user, onLogout }) {
   }, [agendaCount, vencidosTotal]);
 
   const navClass = ({ isActive }) =>
-    `group relative block rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
+    `group relative block rounded-xl text-sm font-medium transition-all duration-200 ${
+      sidebarCollapsed ? "px-2 py-3" : "px-4 py-2.5"
+    } ${
       isActive
         ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30"
         : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
     }`;
+
+  const sidebarWidthClass = sidebarCollapsed ? "w-20" : "w-72";
+  const mainOffsetClass = sidebarCollapsed ? "ml-20" : "ml-72";
+  const iconBoxClass = "inline-flex h-7 w-7 shrink-0 items-center justify-center text-xl leading-none";
 
   // Simular loading ao trocar de rota
   useEffect(() => {
@@ -1496,14 +1507,16 @@ function Shell({ user, onLogout }) {
       
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         {/* Sidebar Moderna */}
-        <aside className="fixed left-0 top-0 w-72 h-screen bg-white border-r border-slate-200 flex flex-col shadow-xl">
+        <aside className={`fixed left-0 top-0 ${sidebarWidthClass} h-screen bg-white border-r border-slate-200 flex flex-col shadow-xl transition-all duration-300`}>
           {/* Logo Header - Compacto */}
-          <div
-            className="px-4 py-3 border-b border-slate-200 bg-gradient-to-br from-slate-50 to-white cursor-pointer hover:bg-slate-100 transition-colors"
-            onClick={() => navigate("/configuracao-empresa")}
-            title="Dados da Empresa"
-          >
-            <div className="text-center">
+          <div className={`${sidebarCollapsed ? "px-2 py-3" : "px-4 py-3"} border-b border-slate-200 bg-gradient-to-br from-slate-50 to-white transition-colors`}>
+            <div className={`flex ${sidebarCollapsed ? "flex-col gap-2" : "items-start justify-between gap-2"}`}>
+              <button
+                type="button"
+                className={`min-w-0 text-center ${sidebarCollapsed ? "w-full" : "flex-1"} cursor-pointer rounded-lg hover:bg-slate-100 transition-colors`}
+                onClick={() => navigate("/configuracao-empresa")}
+                title="Dados da Empresa"
+              >
               <div className="inline-block p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-md mb-2">
                 <img
                   src={logoSrc}
@@ -1512,12 +1525,26 @@ function Shell({ user, onLogout }) {
                   style={{ filter: 'brightness(0) invert(1) contrast(1.2)' }}
                 />
               </div>
-              <div className="font-bold text-slate-900 text-xs leading-tight">Addere - Gestão Financeira</div>
+              {!sidebarCollapsed && (
+                <div className="font-bold text-slate-900 text-xs leading-tight">Addere - Gestão Financeira</div>
+              )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((v) => !v)}
+                className="h-9 w-9 shrink-0 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors flex items-center justify-center"
+                title={sidebarCollapsed ? "Expandir sidebar" : "Retrair sidebar"}
+                aria-label={sidebarCollapsed ? "Expandir sidebar" : "Retrair sidebar"}
+              >
+                <svg className={`w-4 h-4 transition-transform ${sidebarCollapsed ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
             </div>
           </div>
 
           {/* Menu */}
-          <nav className="p-4 space-y-2 flex-1 overflow-auto custom-scrollbar">
+          <nav className={`${sidebarCollapsed ? "p-3" : "p-4"} space-y-2 flex-1 overflow-auto custom-scrollbar`}>
             {menu.map((item) => {
               if (item.type === "group") {
                 const opened =
@@ -1545,13 +1572,23 @@ function Shell({ user, onLogout }) {
                 return (
                   <div key={item.label}>
                     <button
-                      onClick={() => toggle((v) => !v)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition-all duration-200 group"
+                      onClick={() => {
+                        if (sidebarCollapsed) {
+                          setSidebarCollapsed(false);
+                          toggle(true);
+                          return;
+                        }
+                        toggle((v) => !v);
+                      }}
+                      className={`relative w-full flex items-center ${sidebarCollapsed ? "justify-center px-2 py-3" : "justify-between px-4 py-2.5"} text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition-all duration-200 group`}
+                      title={item.label}
+                      aria-label={item.label}
                     >
-                      <span className="flex items-center gap-2">
-                        <span className="text-lg">{item.icon}</span>
-                        <span>{item.label}</span>
+                      <span className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-2"}`}>
+                        <span className={iconBoxClass}>{item.icon}</span>
+                        {!sidebarCollapsed && <span>{item.label}</span>}
                       </span>
+                      {!sidebarCollapsed && (
                       <span className="flex items-center gap-1.5">
                         {!opened && item.badge > 0 && (
                           <span style={{
@@ -1564,9 +1601,15 @@ function Shell({ user, onLogout }) {
                         )}
                         <Chevron open={opened} />
                       </span>
+                      )}
+                      {sidebarCollapsed && item.badge > 0 && (
+                        <span className="absolute right-1 top-1 min-w-[18px] rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-[18px] text-white">
+                          {item.badge}
+                        </span>
+                      )}
                     </button>
 
-                    {opened && (
+                    {opened && !sidebarCollapsed && (
                       <div className="mt-1 ml-8 space-y-1 border-l-2 border-slate-200 pl-3">
                         {item.children.map((ch, idx) =>
                           ch.type === "divider" ? (
@@ -1597,14 +1640,19 @@ function Shell({ user, onLogout }) {
               }
 
               return (
-                <NavLink key={item.to} to={item.to} end className={navClass}>
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
-                    <span className="flex items-center gap-2">
-                      <span className="text-lg">{item.icon}</span>
-                      <span>{item.label}</span>
+                <NavLink key={item.to} to={item.to} end className={navClass} title={item.label} aria-label={item.label}>
+                  <span style={{ display: "flex", alignItems: "center", justifyContent: sidebarCollapsed ? "center" : "space-between", width: "100%" }}>
+                    <span className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-2"}`}>
+                      <span className={iconBoxClass}>{item.icon}</span>
+                      {!sidebarCollapsed && <span>{item.label}</span>}
                     </span>
-                    {item.badge > 0 && (
+                    {!sidebarCollapsed && item.badge > 0 && (
                       <span style={{ background: "#dc2626", color: "#fff", borderRadius: 10, padding: "1px 6px", fontSize: 11, fontWeight: 700, lineHeight: 1.4 }}>
+                        {item.badge}
+                      </span>
+                    )}
+                    {sidebarCollapsed && item.badge > 0 && (
+                      <span className="absolute right-1 top-1 min-w-[18px] rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-[18px] text-white">
                         {item.badge}
                       </span>
                     )}
@@ -1617,20 +1665,22 @@ function Shell({ user, onLogout }) {
           {/* Footer com usuário */}
           <div className="p-2 border-t border-slate-200 bg-gradient-to-br from-slate-50 to-white space-y-3">
             {/* Relógio - AJUSTADO: Maior */}
+            {!sidebarCollapsed && (
             <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
               <div className="text-base flex justify-between font-bold text-slate-250 tracking-wide">
                 <span>{clock.date}</span>
                 <span>{clock.time}</span>
               </div>
             </div>
+            )}
 
             {/* Card do Usuário - Compacto e Clicável */}
             <button
               onClick={() => setShowAvatarModal(true)}
-              className="w-full bg-gradient-to-br from-blue-600 to-blue-700 text-white px-3 py-2 rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all text-left"
+              className={`w-full bg-gradient-to-br from-blue-600 to-blue-700 text-white ${sidebarCollapsed ? "px-2 py-2" : "px-3 py-2"} rounded-xl shadow-lg hover:from-blue-700 hover:to-blue-800 transition-all text-left`}
               title="Clique para alterar avatar"
             >
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-2"}`}>
                 {currentUser?.avatarUrl ? (
                   <img
                     src={currentUser.avatarUrl}
@@ -1642,6 +1692,7 @@ function Shell({ user, onLogout }) {
                     {userInitials}
                   </div>
                 )}
+                {!sidebarCollapsed && (
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-xs truncate leading-tight">
                     {currentUser?.nome || user?.nome || "Usuário"}
@@ -1650,22 +1701,25 @@ function Shell({ user, onLogout }) {
                     {userLabel}
                   </div>
                 </div>
+                )}
+                {!sidebarCollapsed && (
                 <svg className="w-4 h-4 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
+                )}
               </div>
             </button>
 
             {/* Botão Bloquear Tela */}
             <button
               onClick={handleLock}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-600 text-white px-4 py-2 font-semibold hover:bg-slate-700 transition-all duration-200 text-sm"
+              className={`w-full flex items-center justify-center ${sidebarCollapsed ? "px-2" : "gap-2 px-4"} rounded-xl bg-slate-600 text-white py-2 font-semibold hover:bg-slate-700 transition-all duration-200 text-sm`}
               title="Bloquear tela — exige senha para retornar"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              Bloquear Tela
+              {!sidebarCollapsed && "Bloquear Tela"}
             </button>
 
             {/* Botão Sair */}
@@ -1678,18 +1732,19 @@ function Shell({ user, onLogout }) {
                   navigate("/");
                 }, 500);
               }}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-600 text-white px-4 py-2.5 font-semibold hover:bg-red-700 transition-all duration-200 shadow-lg hover:shadow-red-500/50 transform hover:scale-[1.02]"
+              className={`w-full flex items-center justify-center ${sidebarCollapsed ? "px-2" : "gap-2 px-4"} rounded-xl bg-red-600 text-white py-2.5 font-semibold hover:bg-red-700 transition-all duration-200 shadow-lg hover:shadow-red-500/50 transform hover:scale-[1.02]`}
+              title="Sair do Sistema"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              Sair do Sistema
+              {!sidebarCollapsed && "Sair do Sistema"}
             </button>
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="ml-72 min-h-screen">
+        <main className={`${mainOffsetClass} min-h-screen transition-all duration-300`}>
           <Breadcrumbs />
           <Suspense fallback={<LoadingScreen />}>
           <Routes>
