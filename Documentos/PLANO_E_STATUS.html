@@ -51,7 +51,7 @@
     <b>Stack:</b> Node.js / Express / Prisma / Postgres (Neon) + React / Vite / Tailwind<br>
     <b>Origem:</b> Réplica de C:\Controles-AMR (escritório de advocacia)<br>
     <b>Documento:</b> Documentos/PLANO_E_STATUS.pdf<br>
-    <b>Última atualização:</b> <span id="updatedAt">2026-05-02 — Fase 0 concluída · aguardando aprovação para Fase 1</span><br>
+    <b>Última atualização:</b> <span id="updatedAt">2026-05-02 — Fases 0, 1 e 2 concluídas · aguardando decisão sobre Fase 3</span><br>
     <b>Responsável:</b> Paulo Soares Ramalho
   </div>
   <div class="legend">
@@ -131,9 +131,9 @@
   <table>
     <thead><tr><th style="width: 7%;">#</th><th>Tarefa</th><th style="width: 18%;">Status</th></tr></thead>
     <tbody>
-      <tr class="todo"><td>1.1</td><td>Remover páginas: <code>Aliquotas.jsx</code>, <code>Processos.jsx</code>, <code>ProcessoDetalhe.jsx</code>, <code>Intimacoes.jsx</code>, <code>ImportacaoProcessos.jsx</code>, <code>RelatorioInadimplencia.jsx</code>, <code>EmprestimosSocios.jsx</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
-      <tr class="todo"><td>1.2</td><td>Remover rotas e imports correspondentes em <code>App.jsx</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
-      <tr class="todo"><td>1.3</td><td>Validar build limpo + testar navegação no menu</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="done"><td>1.1</td><td>Remover páginas: <code>Aliquotas.jsx</code>, <code>Processos.jsx</code>, <code>ProcessoDetalhe.jsx</code>, <code>Intimacoes.jsx</code>, <code>ImportacaoProcessos.jsx</code>, <code>RelatorioInadimplencia.jsx</code>, <code>EmprestimosSocios.jsx</code></td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>1.2</td><td>Remover rotas e imports correspondentes em <code>App.jsx</code></td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>1.3</td><td>Validar build limpo + testar navegação no menu</td><td><span class="badge done">PRONTO</span></td></tr>
     </tbody>
   </table>
 
@@ -141,10 +141,10 @@
   <table>
     <thead><tr><th style="width: 7%;">#</th><th>Tarefa</th><th style="width: 18%;">Status</th></tr></thead>
     <tbody>
-      <tr class="todo"><td>2.1</td><td>Remover routes <code>processos.js</code>, <code>intimacoes.js</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
-      <tr class="todo"><td>2.2</td><td>Remover schedulers <code>processos.js</code>, <code>intimacoes.js</code> + parar <code>start*Scheduler()</code> em <code>server.js</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
-      <tr class="todo"><td>2.3</td><td>Remover libs auxiliares (<code>scraperDJe</code> se não for usada por outro módulo)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
-      <tr class="todo"><td>2.4</td><td>Validar boot do servidor + smoke test no Render</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="done"><td>2.1</td><td>Remover routes <code>processos.js</code>, <code>intimacoes.js</code></td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>2.2</td><td>Remover schedulers <code>processos.js</code>, <code>intimacoes.js</code> + parar <code>start*Scheduler()</code> em <code>server.js</code></td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>2.3</td><td>Remover libs auxiliares (<code>scraperDJe</code> se não for usada por outro módulo)</td><td><span class="badge done">PRONTO</span></td></tr>
+      <tr class="done"><td>2.4</td><td>Validar boot do servidor + smoke test no Render</td><td><span class="badge done">PRONTO</span></td></tr>
     </tbody>
   </table>
 
@@ -177,6 +177,8 @@
     <tbody>
       <tr><td>2026-05-02</td><td>Documento criado. Análise inicial concluída comparando Addere vs Controles-AMR. Plano em 4 fases. Fase 0.1 iniciada.</td></tr>
       <tr><td>2026-05-02</td><td>Fase 0 concluída — Histórico (Dossiê) sincronizado com as melhorias recentes do Controles-AMR. Aplicado: <code>formatCpfCnpj</code> em <code>formatters.js</code>; máscara em <code>DossieHeader</code>, <code>DossiePreview</code> e Excel; grid responsivo dinâmico em <code>DossieContrato</code> (3 cols quando 3 cards, 4 cols quando 4); multi-contrato no <code>DossieForm</code> (checkboxes + "Marcar todos"), <code>DossieReport</code> (Promise.all + merge em <code>grupos[]</code>), <code>DossiePreview</code> (renderiza grupos com separador azul "PRÓXIMO CONTRATO"), <code>DossieExport</code> (Excel itera <code>cadeiaFlat</code>). Branding "Addere" preservado em todos os arquivos. <b>Build limpo.</b> Aguardando aprovação para Fase 1.</td></tr>
+      <tr><td>2026-05-02</td><td>Fase 1 concluída — 7 páginas jurídicas removidas do frontend (<code>Aliquotas</code>, <code>Processos</code>, <code>ProcessoDetalhe</code>, <code>Intimacoes</code>, <code>ImportacaoProcessos</code>, <code>RelatorioInadimplencia</code>, <code>EmprestimosSocios</code>). Em <code>App.jsx</code> removidos 6 imports lazy, 2 useState órfãos (<code>processosNovos</code>/<code>intimacoesCount</code>), 2 useEffect de polling (rotas <code>/processos/novos-andamentos</code> e <code>/intimacoes/count</code>) e 6 rotas. <b>Build limpo</b> (8.97 s).</td></tr>
+      <tr><td>2026-05-02</td><td>Fase 2 concluída — backend limpo. Removidos: <code>routes/processos.js</code>, <code>routes/intimacoes.js</code>, <code>schedulers/processos.js</code>, <code>schedulers/intimacoes.js</code>, <code>lib/scraperDJe.js</code>. Em <code>server.js</code>: 2 imports de routers, 2 imports de scheduler starters, 2 <code>app.use(...)</code> e 2 chamadas <code>start*Scheduler()</code>. <b>Smoke test:</b> servidor importa sem erro de módulo (falha esperada por env vars locais ausentes). Aguardando decisão sobre Fase 3 (limpeza do schema Prisma — destrutivo no Neon).</td></tr>
     </tbody>
   </table>
 </section>

@@ -17,7 +17,6 @@ const SantanderPagarBoleto          = lazy(() => import("./pages/SantanderPagarB
 const InterPagarBoleto              = lazy(() => import("./pages/InterPagarBoleto"));
 const ClientesPage                  = lazy(() => import("./pages/Clientes"));
 const UsuariosPage                  = lazy(() => import("./pages/Usuarios"));
-const AliquotasPage                 = lazy(() => import("./pages/Aliquotas"));
 const LivroCaixaContas              = lazy(() => import("./pages/LivroCaixaContas"));
 const LivroCaixaLancamentos         = lazy(() => import("./pages/LivroCaixaLancamentos"));
 const LivroCaixaVisualizacao        = lazy(() => import("./pages/LivroCaixaVisualizacao"));
@@ -35,7 +34,6 @@ const RelatorioFluxoCaixaComparativo= lazy(() => import("./pages/RelatorioFluxoC
 const RelatorioFluxoCaixaDesempenho = lazy(() => import("./pages/RelatorioFluxoCaixaDesempenho"));
 const RelatorioSaudeFinanceira      = lazy(() => import("./pages/RelatorioSaudeFinanceira"));
 const RelatorioClientesFornecedores = lazy(() => import("./pages/RelatorioClientesFornecedores"));
-const RelatorioInadimplencia        = lazy(() => import("./pages/RelatorioInadimplencia"));
 const FluxodeCaixa                  = lazy(() => import("./pages/FluxodeCaixa"));
 const NoticeBoard                   = lazy(() => import("./pages/NoticeBoard"));
 const Auditoria                     = lazy(() => import("./pages/Auditoria"));
@@ -49,11 +47,7 @@ const WhatsAppInbox                 = lazy(() => import("./pages/WhatsAppInbox")
 const InstagramInbox                = lazy(() => import("./pages/InstagramInbox"));
 const DossieReport                  = lazy(() => import("./components/DossieReport"));
 const Seguranca2FA                  = lazy(() => import("./pages/Seguranca2FA"));
-const ProcessosPage                 = lazy(() => import("./pages/Processos"));
-const ProcessoDetalhePage           = lazy(() => import("./pages/ProcessoDetalhe"));
-const ImportacaoProcessos           = lazy(() => import("./pages/ImportacaoProcessos"));
 const UIShowcase                    = lazy(() => import("./pages/UIShowcase"));
-const IntimacoesPage                = lazy(() => import("./pages/Intimacoes"));
 
 import { Breadcrumbs } from "./components/Breadcrumbs";
 import { ToastProvider, useToast } from "./components/Toast";
@@ -1178,8 +1172,6 @@ function Shell({ user, onLogout }) {
   const [agendaCount, setAgendaCount] = useState(0);
   const [waUnread, setWaUnread] = useState(0);
   const [igUnread, setIgUnread] = useState(0);
-  const [processosNovos, setProcessosNovos] = useState(0);
-  const [intimacoesCount, setIntimacoesCount] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("addere_sidebar_collapsed") === "1");
 
   useEffect(() => {
@@ -1233,24 +1225,6 @@ function Shell({ user, onLogout }) {
     const fetchIg = () => apiFetch("/instagram/unread").then(d => setIgUnread(d.count || 0)).catch(() => {});
     fetchWa(); fetchIg();
     const t = setInterval(() => { fetchWa(); fetchIg(); }, 30000);
-    return () => clearInterval(t);
-  }, [user]);
-
-  // Polling badge Processos — novos andamentos (a cada 5 min)
-  useEffect(() => {
-    if (!user) return;
-    const poll = () => apiFetch("/processos/novos-andamentos").then(d => setProcessosNovos(d.total || 0)).catch(() => {});
-    poll();
-    const t = setInterval(poll, 5 * 60 * 1000);
-    return () => clearInterval(t);
-  }, [user]);
-
-  // Polling badge Intimações — não lidas (a cada 5 min)
-  useEffect(() => {
-    if (!user) return;
-    const poll = () => apiFetch("/intimacoes/count").then(d => setIntimacoesCount(d.total || 0)).catch(() => {});
-    poll();
-    const t = setInterval(poll, 5 * 60 * 1000);
     return () => clearInterval(t);
   }, [user]);
 
@@ -1773,10 +1747,8 @@ function Shell({ user, onLogout }) {
             <Route path="/historico" element={<DossieReport />} />
             <Route path="/clientes" element={<ClientesPage user={user} />} />
             <Route path="/usuarios" element={<UsuariosPage user={user} />} />
-            <Route path="/aliquotas" element={<AliquotasPage user={user} />} />
             <Route path="/auditoria" element={<Auditoria user={user} />} />
             <Route path="/utilitarios/importacao-pdf" element={<ImportacaoLivroCaixaPdf user={user} />} />
-            <Route path="/utilitarios/importacao-processos" element={<ImportacaoProcessos user={user} />} />
             <Route path="/utilitarios/disparo-email" element={<UtilitariosDisparoEmail user={user} />} />
             <Route path="/utilitarios/comprovantes" element={<ComprovantesRecebidos user={user} />} />
             <Route path="/utilitarios/log-operacoes" element={<LogOperacoes user={user} />} />
@@ -1796,12 +1768,8 @@ function Shell({ user, onLogout }) {
             <Route path="/relatorios/fluxo-caixa/desempenho" element={<RelatorioFluxoCaixaDesempenho />} />
             <Route path="/relatorios/fluxo-caixa/saude" element={<RelatorioSaudeFinanceira />} />
             <Route path="/relatorios/clientes-fornecedores" element={<RelatorioClientesFornecedores />} />
-            <Route path="/relatorios/inadimplencia" element={<RelatorioInadimplencia user={user} />} />
             <Route path="/seguranca" element={<Seguranca2FA user={user} />} />
-            <Route path="/processos" element={<ProcessosPage user={user} />} />
             <Route path="/ui-showcase" element={<UIShowcase />} />
-            <Route path="/processos/:processoId" element={<ProcessoDetalhePage user={user} />} />
-            <Route path="/intimacoes" element={<IntimacoesPage user={user} />} />
 
             <Route path="*" element={<Placeholder title="Página não encontrada" />} />
           </Routes>
