@@ -23,56 +23,91 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
     const dtFimAno = new Date(Date.UTC(ano, 11, 31, 23, 59, 59, 999));
     const dtIniMes = anoCompleto ? dtIniAno : new Date(Date.UTC(ano, mes - 1, 1));
     const dtFimMes = anoCompleto ? dtFimAno : new Date(Date.UTC(ano, mes, 0, 23, 59, 59, 999));
+    const competenciaFimMes = anoCompleto ? 12 : mes;
+    const fimPeriodoExclusivo = new Date(Date.UTC(ano, competenciaFimMes, 1));
+    const competenciaAtePeriodoWhere = {
+      OR: [
+        { competenciaAno: { lt: ano } },
+        { competenciaAno: ano, competenciaMes: { lte: competenciaFimMes } },
+      ],
+    };
+    const competenciaPeriodoWhere = anoCompleto
+      ? { competenciaAno: ano }
+      : { competenciaAno: ano, competenciaMes: mes };
 
     // 1) SALDO DO PERÍODO (saldos iniciais de contas abertas até fim do período + lançamentos efetivados até fim do período)
     const todasContasAtivas = await prisma.livroCaixaConta.findMany({
       where: { ativa: true },
       select: { id: true, nome: true, tipo: true, saldoInicialCent: true, dataInicial: true },
+      orderBy: { ordem: "asc" },
     });
     const contasAtivasIds = new Set(todasContasAtivas.map((conta) => conta.id));
+    const contaAtivaWhere = { contaId: { in: todasContasAtivas.map((conta) => conta.id) } };
     const saldoInicialTotal = todasContasAtivas
-      .filter(c => !c.dataInicial || new Date(c.dataInicial) <= dtFimMes)
+      .filter(c => c.saldoInicialCent && c.dataInicial && new Date(c.dataInicial) < fimPeriodoExclusivo)
       .reduce((acc, c) => acc + (c.saldoInicialCent || 0), 0);
 
-    const todosLancamentos = await prisma.livroCaixaLancamento.findMany({
-      where: { statusFluxo: "EFETIVADO", es: { in: ["E", "S"] }, data: { lte: dtFimMes } },
-      select: { es: true, valorCentavos: true, contaId: true },
+    const lancamentosAtePeriodo = await prisma.livroCaixaLancamento.findMany({
+      where: {
+        statusFluxo: "EFETIVADO",
+        es: { in: ["E", "S"] },
+        ...competenciaAtePeriodoWhere,
+      },
+      select: { es: true, valorCentavos: true, contaId: true, status: true },
     });
 
     const movimentosPorConta = new Map();
     const semConta = { count: 0, entradasCentavos: 0, saidasCentavos: 0 };
     const foraContasAtivas = { count: 0, entradasCentavos: 0, saidasCentavos: 0 };
+    const statusDiferenteOk = { count: 0, entradasCentavos: 0, saidasCentavos: 0, porStatus: {} };
     let entradasSaldoCentavos = 0;
     let saidasSaldoCentavos = 0;
+    let lancamentosConsideradosCount = 0;
 
-    for (const l of todosLancamentos) {
+    for (const l of lancamentosAtePeriodo) {
       const v = Number(l.valorCentavos || 0);
-      const resumoConta = l.contaId
-        ? (movimentosPorConta.get(l.contaId) || { count: 0, entradasCentavos: 0, saidasCentavos: 0 })
-        : null;
 
+      if (l.status !== "OK") {
+        statusDiferenteOk.count += 1;
+        const porStatus = statusDiferenteOk.porStatus[l.status] || { count: 0, entradasCentavos: 0, saidasCentavos: 0 };
+        porStatus.count += 1;
+        if (l.es === "E") {
+          statusDiferenteOk.entradasCentavos += v;
+          porStatus.entradasCentavos += v;
+        } else if (l.es === "S") {
+          statusDiferenteOk.saidasCentavos += v;
+          porStatus.saidasCentavos += v;
+        }
+        statusDiferenteOk.porStatus[l.status] = porStatus;
+        continue;
+      }
+
+      if (!l.contaId) {
+        semConta.count += 1;
+        if (l.es === "E") semConta.entradasCentavos += v;
+        else if (l.es === "S") semConta.saidasCentavos += v;
+        continue;
+      }
+
+      if (!contasAtivasIds.has(l.contaId)) {
+        foraContasAtivas.count += 1;
+        if (l.es === "E") foraContasAtivas.entradasCentavos += v;
+        else if (l.es === "S") foraContasAtivas.saidasCentavos += v;
+        continue;
+      }
+
+      const resumoConta = movimentosPorConta.get(l.contaId) || { count: 0, entradasCentavos: 0, saidasCentavos: 0 };
       if (l.es === "E") {
         entradasSaldoCentavos += v;
-        if (resumoConta) resumoConta.entradasCentavos += v;
-        if (!l.contaId) semConta.entradasCentavos += v;
-        if (l.contaId && !contasAtivasIds.has(l.contaId)) foraContasAtivas.entradasCentavos += v;
+        resumoConta.entradasCentavos += v;
       } else if (l.es === "S") {
         saidasSaldoCentavos += v;
-        if (resumoConta) resumoConta.saidasCentavos += v;
-        if (!l.contaId) semConta.saidasCentavos += v;
-        if (l.contaId && !contasAtivasIds.has(l.contaId)) foraContasAtivas.saidasCentavos += v;
+        resumoConta.saidasCentavos += v;
       }
 
-      if (resumoConta) {
-        resumoConta.count += 1;
-        movimentosPorConta.set(l.contaId, resumoConta);
-      } else {
-        semConta.count += 1;
-      }
-
-      if (l.contaId && !contasAtivasIds.has(l.contaId)) {
-        foraContasAtivas.count += 1;
-      }
+      resumoConta.count += 1;
+      movimentosPorConta.set(l.contaId, resumoConta);
+      lancamentosConsideradosCount += 1;
     }
 
     const saldoAtualCentavos = saldoInicialTotal + entradasSaldoCentavos - saidasSaldoCentavos;
@@ -80,9 +115,11 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
     // 2) TOTAIS DO MÊS (entradas e saídas — exclui transferências entre contas)
     const lancamentosMes = await prisma.livroCaixaLancamento.findMany({
       where: {
+        ...competenciaPeriodoWhere,
+        ...contaAtivaWhere,
+        status: "OK",
         statusFluxo: "EFETIVADO",
         es: { in: ["E", "S"] },
-        data: { gte: dtIniMes, lte: dtFimMes },
       },
       select: { es: true, valorCentavos: true, historico: true, clienteFornecedor: true, origem: true },
     });
@@ -93,9 +130,11 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
     // 3) TOTAIS DO ANO (entradas e saídas — exclui transferências entre contas)
     const lancamentosAno = await prisma.livroCaixaLancamento.findMany({
       where: {
+        competenciaAno: ano,
+        ...contaAtivaWhere,
+        status: "OK",
         statusFluxo: "EFETIVADO",
         es: { in: ["E", "S"] },
-        data: { gte: dtIniAno, lte: dtFimAno },
       },
       select: { es: true, valorCentavos: true },
     });
@@ -106,9 +145,11 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
     // 4) TOP 5 ENTRADAS DO MÊS (por cliente/fornecedor)
     const entradasMesDetalhado = await prisma.livroCaixaLancamento.findMany({
       where: {
+        ...competenciaPeriodoWhere,
+        ...contaAtivaWhere,
+        status: "OK",
         statusFluxo: "EFETIVADO",
         es: "E",
-        data: { gte: dtIniMes, lte: dtFimMes },
       },
       orderBy: { valorCentavos: "desc" },
       take: 5,
@@ -126,9 +167,11 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
     // 5) TOP 5 SAÍDAS DO MÊS
     const saidasMesDetalhado = await prisma.livroCaixaLancamento.findMany({
       where: {
+        ...competenciaPeriodoWhere,
+        ...contaAtivaWhere,
+        status: "OK",
         statusFluxo: "EFETIVADO",
         es: "S",
-        data: { gte: dtIniMes, lte: dtFimMes },
       },
       orderBy: { valorCentavos: "desc" },
       take: 5,
@@ -190,9 +233,12 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
 
       const lancsDoMes = await prisma.livroCaixaLancamento.findMany({
         where: {
+          competenciaAno: m.getFullYear(),
+          competenciaMes: m.getMonth() + 1,
+          ...contaAtivaWhere,
+          status: "OK",
           statusFluxo: "EFETIVADO",
           es: { in: ["E", "S"] },
-          data: { gte: m, lte: mFim },
         },
         select: { es: true, valorCentavos: true },
       });
@@ -253,7 +299,7 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
 
     // 14) SALDO POR CONTA (até fim do período selecionado)
     const saldoPorConta = todasContasAtivas.map((conta) => {
-      const saldoInicial = (!conta.dataInicial || new Date(conta.dataInicial) <= dtFimMes)
+      const saldoInicial = (conta.saldoInicialCent && conta.dataInicial && new Date(conta.dataInicial) < fimPeriodoExclusivo)
         ? (conta.saldoInicialCent || 0)
         : 0;
       const movimentos = movimentosPorConta.get(conta.id) || { count: 0, entradasCentavos: 0, saidasCentavos: 0 };
@@ -274,11 +320,13 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
 
     const saldoAtualComposicao = {
       dataFinal: dtFimMes.toISOString(),
+      regra: "Somente status OK, fluxo EFETIVADO e contas ativas do Livro Caixa.",
       saldoInicialCentavos: saldoInicialTotal,
       entradasCentavos: entradasSaldoCentavos,
       saidasCentavos: saidasSaldoCentavos,
       totalCentavos: saldoAtualCentavos,
-      lancamentosCount: todosLancamentos.length,
+      lancamentosCount: lancamentosConsideradosCount,
+      lancamentosAuditadosCount: lancamentosAtePeriodo.length,
       saldoContasAtivasCentavos,
       diferencaSaldoContasCentavos: saldoAtualCentavos - saldoContasAtivasCentavos,
       semConta: {
@@ -288,6 +336,15 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
       foraContasAtivas: {
         ...foraContasAtivas,
         liquidoCentavos: foraContasAtivas.entradasCentavos - foraContasAtivas.saidasCentavos,
+      },
+      statusDiferenteOk: {
+        ...statusDiferenteOk,
+        liquidoCentavos: statusDiferenteOk.entradasCentavos - statusDiferenteOk.saidasCentavos,
+        porStatus: Object.entries(statusDiferenteOk.porStatus).map(([status, v]) => ({
+          status,
+          ...v,
+          liquidoCentavos: v.entradasCentavos - v.saidasCentavos,
+        })),
       },
     };
 

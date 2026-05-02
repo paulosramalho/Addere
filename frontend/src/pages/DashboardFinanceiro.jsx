@@ -233,6 +233,10 @@ export default function DashboardFinanceiro({ user }) {
     saldoCentavos: acc.saldoCentavos + (conta.saldoCentavos || 0),
   }), { saldoInicialCentavos: 0, entradasCentavos: 0, saidasCentavos: 0, saldoCentavos: 0 });
   const diferencaSaldoContas = saldoComposicao?.diferencaSaldoContasCentavos ?? (data.saldoAtualCentavos - saldoPorContaTotais.saldoCentavos);
+  const statusDiferenteOk = saldoComposicao?.statusDiferenteOk;
+  const totalExcluidosSaldo = (saldoComposicao?.semConta?.count || 0)
+    + (saldoComposicao?.foraContasAtivas?.count || 0)
+    + (statusDiferenteOk?.count || 0);
 
   return (
     <div style={{ padding: 24, background: "#f8fafc", minHeight: "100vh" }}>
@@ -385,7 +389,7 @@ export default function DashboardFinanceiro({ user }) {
                   <IconWallet /> Composição do Saldo Atual
                 </h3>
                 <div style={{ marginTop: 4, fontSize: 13, color: "#64748b" }}>
-                  Até {formatDate(saldoComposicao.dataFinal)} | {saldoComposicao.lancamentosCount || 0} lançamentos efetivados
+                  Até {formatDate(saldoComposicao.dataFinal)} | {saldoComposicao.lancamentosCount || 0} lançamentos considerados
                 </div>
               </div>
               <div style={{ fontSize: 20, fontWeight: 800, color: data.saldoAtualCentavos >= 0 ? "#16a34a" : "#dc2626" }}>
@@ -409,21 +413,32 @@ export default function DashboardFinanceiro({ user }) {
             </div>
             <div style={{ padding: 16, display: "grid", gap: 8, fontSize: 13, color: "#334155" }}>
               <div>
+                Regra: {saldoComposicao.regra || "Somente lançamentos efetivados do Livro Caixa."}
+              </div>
+              <div>
                 Fórmula: {centsToBRL(saldoComposicao.saldoInicialCentavos)} + {centsToBRL(saldoComposicao.entradasCentavos)} - {centsToBRL(saldoComposicao.saidasCentavos)} = <strong>{centsToBRL(saldoComposicao.totalCentavos)}</strong>
               </div>
               <div>
                 Total da tabela Saldo por Conta: <strong>{centsToBRL(saldoPorContaTotais.saldoCentavos)}</strong>. Diferença para o card: <strong style={{ color: diferencaSaldoContas === 0 ? "#16a34a" : "#dc2626" }}>{centsToBRL(diferencaSaldoContas)}</strong>.
               </div>
-              {(saldoComposicao.semConta?.count > 0 || saldoComposicao.foraContasAtivas?.count > 0) && (
+              {totalExcluidosSaldo > 0 && (
                 <div style={{ marginTop: 4, padding: 12, borderRadius: 8, background: "#fffbeb", color: "#92400e", border: "1px solid #fde68a" }}>
+                  {statusDiferenteOk?.count > 0 && (
+                    <div>
+                      Ignorados por status diferente de OK: {centsToBRL(statusDiferenteOk.liquidoCentavos)} ({statusDiferenteOk.count} lançamento(s)).
+                      {Array.isArray(statusDiferenteOk.porStatus) && statusDiferenteOk.porStatus.length > 0 && (
+                        <span> {statusDiferenteOk.porStatus.map((s) => `${s.status}: ${centsToBRL(s.liquidoCentavos)}`).join(" | ")}</span>
+                      )}
+                    </div>
+                  )}
                   {saldoComposicao.semConta?.count > 0 && (
                     <div>
-                      Lançamentos sem conta: {centsToBRL(saldoComposicao.semConta.liquidoCentavos)} ({saldoComposicao.semConta.count} lançamento(s)).
+                      Ignorados sem conta: {centsToBRL(saldoComposicao.semConta.liquidoCentavos)} ({saldoComposicao.semConta.count} lançamento(s)).
                     </div>
                   )}
                   {saldoComposicao.foraContasAtivas?.count > 0 && (
                     <div>
-                      Lançamentos em contas inativas ou fora da lista: {centsToBRL(saldoComposicao.foraContasAtivas.liquidoCentavos)} ({saldoComposicao.foraContasAtivas.count} lançamento(s)).
+                      Ignorados em contas inativas ou fora da lista: {centsToBRL(saldoComposicao.foraContasAtivas.liquidoCentavos)} ({saldoComposicao.foraContasAtivas.count} lançamento(s)).
                     </div>
                   )}
                 </div>
