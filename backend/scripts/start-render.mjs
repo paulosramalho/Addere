@@ -75,6 +75,10 @@ function runBackground(command, args) {
 
 runBackground("npx", ["playwright", "install", "chromium"]);
 
-await run("npx", ["prisma", "db", "push", "--skip-generate"]);
+// --accept-data-loss permite drops de tabelas/colunas que sumiram do schema.
+// Necessário desde a Fase 3.A da limpeza Addere (remoção de 13 models jurídicos
+// herdados do Controles-AMR, alguns com dados de seed). Em dev local, prefira
+// rodar `prisma migrate dev` para criar migrations explícitas.
+await run("npx", ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"]);
 await run("npx", ["prisma", "db", "seed"]);
 await import("../src/server.js");
