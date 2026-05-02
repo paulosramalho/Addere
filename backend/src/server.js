@@ -35,7 +35,6 @@ import livroCaixaRouter from "./routes/livroCaixa.js";
 import noticeboardRouter from "./routes/noticeboard.js";
 import agendaRouter from "./routes/agenda.js";
 import whatsappRouter from "./routes/whatsapp.js";
-import instagramRouter from "./routes/instagram.js";
 import documentosRouter from "./routes/documentos.js";
 import indicadoresRouter from "./routes/indicadores.js";
 import { getOrCreatePessoaByNomeETipo } from "./routes/livroCaixa.js";
@@ -60,6 +59,7 @@ import googleCalendarRouter           from "./routes/googleCalendar.js";
 import boletosRouter                 from "./routes/boletos.js";
 import pixRouter                     from "./routes/pix.js";
 import interPagamentosRouter         from "./routes/interPagamentos.js";
+import c6Router                      from "./routes/c6.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -214,7 +214,6 @@ app.use(noticeboardRouter);
 app.use(agendaRouter);
 app.use(googleCalendarRouter);
 app.use(whatsappRouter);
-app.use(instagramRouter);
 app.use(documentosRouter);
 app.use(indicadoresRouter);
 app.use(siteRouter);
@@ -222,6 +221,7 @@ app.use(mercadoRouter);
 app.use("/api", boletosRouter);
 app.use(pixRouter);
 app.use(interPagamentosRouter);
+app.use(c6Router);
 
 // ── Multer buffer cleanup (libera buffers após resposta para garantir GC imediato #21) ──
 app.use((req, res, next) => {

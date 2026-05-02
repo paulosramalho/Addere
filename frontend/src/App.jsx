@@ -13,8 +13,8 @@ const ContratoPage                  = lazy(() => import("./pages/Contrato"));
 const PagamentosPage                = lazy(() => import("./pages/Pagamentos"));
 const Boletos                       = lazy(() => import("./pages/Boletos"));
 const PixManager                    = lazy(() => import("./pages/PixManager"));
-const SantanderPagarBoleto          = lazy(() => import("./pages/SantanderPagarBoleto"));
 const InterPagarBoleto              = lazy(() => import("./pages/InterPagarBoleto"));
+const C6Operacoes                   = lazy(() => import("./pages/C6Operacoes"));
 const ClientesPage                  = lazy(() => import("./pages/Clientes"));
 const UsuariosPage                  = lazy(() => import("./pages/Usuarios"));
 const LivroCaixaContas              = lazy(() => import("./pages/LivroCaixaContas"));
@@ -44,7 +44,6 @@ const EmissaoNotaFiscal             = lazy(() => import("./pages/EmissaoNotaFisc
 const DocumentosCliente             = lazy(() => import("./pages/DocumentosCliente"));
 const ConfiguracaoEmpresa           = lazy(() => import("./pages/ConfiguracaoEmpresa"));
 const WhatsAppInbox                 = lazy(() => import("./pages/WhatsAppInbox"));
-const InstagramInbox                = lazy(() => import("./pages/InstagramInbox"));
 const DossieReport                  = lazy(() => import("./components/DossieReport"));
 const Seguranca2FA                  = lazy(() => import("./pages/Seguranca2FA"));
 const UIShowcase                    = lazy(() => import("./pages/UIShowcase"));
@@ -1160,7 +1159,7 @@ function Shell({ user, onLogout }) {
   const [openUtilitarios, setOpenUtilitarios] = useState(false);
   const [openJuridico, setOpenJuridico] = useState(false);
   const [openInterOps, setOpenInterOps] = useState(false);
-  const [openSantanderOps, setOpenSantanderOps] = useState(false);
+  const [openC6Ops, setOpenC6Ops] = useState(false);
   const lastMsgIdRef = React.useRef(null);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -1171,7 +1170,6 @@ function Shell({ user, onLogout }) {
   const [vencidosTotal, setVencidosTotal] = useState(0);
   const [agendaCount, setAgendaCount] = useState(0);
   const [waUnread, setWaUnread] = useState(0);
-  const [igUnread, setIgUnread] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("addere_sidebar_collapsed") === "1");
 
   useEffect(() => {
@@ -1217,14 +1215,13 @@ function Shell({ user, onLogout }) {
     return () => clearInterval(t);
   }, [fetchAgendaCount]);
 
-  // Polling badge WhatsApp e Instagram (a cada 30s, só admin/secretária)
+  // Polling badge WhatsApp (a cada 30s, só admin/secretária)
   useEffect(() => {
     const r = String(user?.role || "").toUpperCase();
     if (!user || !["ADMIN", "SECRETARIA_VIRTUAL"].includes(r)) return;
     const fetchWa = () => apiFetch("/whatsapp/unread").then(d => setWaUnread(d.count || 0)).catch(() => {});
-    const fetchIg = () => apiFetch("/instagram/unread").then(d => setIgUnread(d.count || 0)).catch(() => {});
-    fetchWa(); fetchIg();
-    const t = setInterval(() => { fetchWa(); fetchIg(); }, 30000);
+    fetchWa();
+    const t = setInterval(fetchWa, 30000);
     return () => clearInterval(t);
   }, [user]);
 
@@ -1529,7 +1526,7 @@ function Shell({ user, onLogout }) {
                   item.label === "Utilitários" ? openUtilitarios :
                   item.label === "Jurídico" ? openJuridico :
                   item.label === "Operações Bco. Inter" ? openInterOps :
-                  item.label === "Operações Bco. Santander" ? openSantanderOps :
+                  item.label === "Operações Bco. C6 Bank" ? openC6Ops :
                   false;
 
                 const toggle =
@@ -1540,7 +1537,7 @@ function Shell({ user, onLogout }) {
                   item.label === "Utilitários" ? setOpenUtilitarios :
                   item.label === "Jurídico" ? setOpenJuridico :
                   item.label === "Operações Bco. Inter" ? setOpenInterOps :
-                  item.label === "Operações Bco. Santander" ? setOpenSantanderOps :
+                  item.label === "Operações Bco. C6 Bank" ? setOpenC6Ops :
                   () => {};
 
                 return (
@@ -1731,12 +1728,11 @@ function Shell({ user, onLogout }) {
             <Route path="/boletos" element={<Boletos user={user} bank="inter" />} />
             <Route path="/pix" element={<PixManager user={user} bank="inter" />} />
             <Route path="/inter/pagar-boleto" element={<InterPagarBoleto user={user} />} />
+            <Route path="/c6/operacoes" element={<C6Operacoes user={user} />} />
             <Route path="/santander/operacoes" element={<Boletos user={user} bank="santander" />} />
             <Route path="/santander/operacoes/emitir-boleto" element={<Boletos user={user} bank="santander" />} />
             <Route path="/santander/operacoes/enviar-pix" element={<PixManager user={user} bank="santander" />} />
             <Route path="/santander/operacoes/receber-pix" element={<PixManager user={user} bank="santander" />} />
-            <Route path="/santander/operacoes/pagar-boletos" element={<SantanderPagarBoleto user={user} />} />
-            <Route path="/santander/operacoes/pagar-boleto" element={<SantanderPagarBoleto user={user} />} />
             <Route path="/livro-caixa/contas" element={<LivroCaixaContas user={user} />} />
             <Route path="/contas-contabeis" element={<LivroCaixaContas user={user} />} />
             <Route path="/livro-caixa/lancamentos" element={<LivroCaixaLancamentos user={user} />} />
@@ -1758,7 +1754,6 @@ function Shell({ user, onLogout }) {
             <Route path="/configuracao-empresa" element={<ConfiguracaoEmpresa user={user} />} />
             <Route path="/configuracao-escritorio" element={<Navigate to="/configuracao-empresa" replace />} />
             <Route path="/whatsapp-inbox" element={<WhatsAppInbox user={user} />} />
-            <Route path="/instagram-inbox" element={<InstagramInbox user={user} />} />
             <Route path="/relatorios/fluxo-caixa/consolidado" element={<RelatorioFluxoCaixaConsolidado />} />
             <Route path="/relatorios/fluxo-caixa/diario" element={<RelatorioFluxoCaixaDiario />} />
             <Route path="/relatorios/fluxo-caixa/grafico" element={<RelatorioFluxoCaixaGrafico />} />
