@@ -3,6 +3,23 @@ import { useState } from "react";
 const CNPJ = "48.744.127/0001-41";
 const CODIGO_ACESSO = "tweet352413";
 
+function CopyIcon({ checked = false }) {
+  if (checked) {
+    return (
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 10h8a2 2 0 012 2v6a2 2 0 01-2 2h-8a2 2 0 01-2-2v-6a2 2 0 012-2z" />
+    </svg>
+  );
+}
+
 export default function EmissaoNotaFiscal() {
   const [copiado, setCopiado] = useState("");
 
@@ -41,9 +58,13 @@ export default function EmissaoNotaFiscal() {
             <button
               type="button"
               onClick={() => copiar(CNPJ, "cnpj")}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className={`h-8 w-8 inline-flex items-center justify-center rounded-lg border text-slate-700 hover:bg-slate-50 ${
+                copiado === "cnpj" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white"
+              }`}
+              title={copiado === "cnpj" ? "CNPJ copiado" : "Copiar CNPJ"}
+              aria-label={copiado === "cnpj" ? "CNPJ copiado" : "Copiar CNPJ"}
             >
-              {copiado === "cnpj" ? "Copiado" : "Copiar"}
+              <CopyIcon checked={copiado === "cnpj"} />
             </button>
           </div>
         </div>
@@ -55,9 +76,13 @@ export default function EmissaoNotaFiscal() {
             <button
               type="button"
               onClick={() => copiar(CODIGO_ACESSO, "codigo")}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              className={`h-8 w-8 inline-flex items-center justify-center rounded-lg border text-slate-700 hover:bg-slate-50 ${
+                copiado === "codigo" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 bg-white"
+              }`}
+              title={copiado === "codigo" ? "Codigo copiado" : "Copiar codigo de acesso"}
+              aria-label={copiado === "codigo" ? "Codigo copiado" : "Copiar codigo de acesso"}
             >
-              {copiado === "codigo" ? "Copiado" : "Copiar"}
+              <CopyIcon checked={copiado === "codigo"} />
             </button>
           </div>
         </div>
