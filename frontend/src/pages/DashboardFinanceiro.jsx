@@ -224,6 +224,15 @@ export default function DashboardFinanceiro({ user }) {
 
   const resultadoMes = data.mesSumario?.resultadoCentavos || 0;
   const resultadoAno = data.anoSumario?.resultadoCentavos || 0;
+  const saldoComposicao = data.saldoAtualComposicao || null;
+  const saldoPorConta = data.saldoPorConta || [];
+  const saldoPorContaTotais = saldoPorConta.reduce((acc, conta) => ({
+    saldoInicialCentavos: acc.saldoInicialCentavos + (conta.saldoInicialCentavos || 0),
+    entradasCentavos: acc.entradasCentavos + (conta.entradasCentavos || 0),
+    saidasCentavos: acc.saidasCentavos + (conta.saidasCentavos || 0),
+    saldoCentavos: acc.saldoCentavos + (conta.saldoCentavos || 0),
+  }), { saldoInicialCentavos: 0, entradasCentavos: 0, saidasCentavos: 0, saldoCentavos: 0 });
+  const diferencaSaldoContas = saldoComposicao?.diferencaSaldoContasCentavos ?? (data.saldoAtualCentavos - saldoPorContaTotais.saldoCentavos);
 
   return (
     <div style={{ padding: 24, background: "#f8fafc", minHeight: "100vh" }}>
@@ -367,6 +376,61 @@ export default function DashboardFinanceiro({ user }) {
             />
           </Tooltip>
         </div>
+
+        {saldoComposicao && (
+          <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e2e8f0", overflow: "hidden", marginBottom: 24 }}>
+            <div style={{ padding: 16, borderBottom: "1px solid #e2e8f0", background: "#f8fafc", display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: 8 }}>
+                  <IconWallet /> Composição do Saldo Atual
+                </h3>
+                <div style={{ marginTop: 4, fontSize: 13, color: "#64748b" }}>
+                  Até {formatDate(saldoComposicao.dataFinal)} | {saldoComposicao.lancamentosCount || 0} lançamentos efetivados
+                </div>
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: data.saldoAtualCentavos >= 0 ? "#16a34a" : "#dc2626" }}>
+                {centsToBRL(data.saldoAtualCentavos)}
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 0, borderBottom: "1px solid #e2e8f0" }}>
+              {[
+                { label: "Saldo inicial", value: saldoComposicao.saldoInicialCentavos, color: "#0f172a" },
+                { label: "Entradas efetivadas", value: saldoComposicao.entradasCentavos, color: "#16a34a", prefix: "+" },
+                { label: "Saídas efetivadas", value: saldoComposicao.saidasCentavos, color: "#dc2626", prefix: "-" },
+                { label: "Saldo calculado", value: saldoComposicao.totalCentavos, color: saldoComposicao.totalCentavos >= 0 ? "#16a34a" : "#dc2626" },
+              ].map((item, idx) => (
+                <div key={item.label} style={{ padding: 16, borderRight: idx < 3 ? "1px solid #e2e8f0" : "none" }}>
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700, textTransform: "uppercase" }}>{item.label}</div>
+                  <div style={{ marginTop: 6, fontSize: 18, fontWeight: 800, color: item.color }}>
+                    {item.prefix || ""}{centsToBRL(item.value)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: 16, display: "grid", gap: 8, fontSize: 13, color: "#334155" }}>
+              <div>
+                Fórmula: {centsToBRL(saldoComposicao.saldoInicialCentavos)} + {centsToBRL(saldoComposicao.entradasCentavos)} - {centsToBRL(saldoComposicao.saidasCentavos)} = <strong>{centsToBRL(saldoComposicao.totalCentavos)}</strong>
+              </div>
+              <div>
+                Total da tabela Saldo por Conta: <strong>{centsToBRL(saldoPorContaTotais.saldoCentavos)}</strong>. Diferença para o card: <strong style={{ color: diferencaSaldoContas === 0 ? "#16a34a" : "#dc2626" }}>{centsToBRL(diferencaSaldoContas)}</strong>.
+              </div>
+              {(saldoComposicao.semConta?.count > 0 || saldoComposicao.foraContasAtivas?.count > 0) && (
+                <div style={{ marginTop: 4, padding: 12, borderRadius: 8, background: "#fffbeb", color: "#92400e", border: "1px solid #fde68a" }}>
+                  {saldoComposicao.semConta?.count > 0 && (
+                    <div>
+                      Lançamentos sem conta: {centsToBRL(saldoComposicao.semConta.liquidoCentavos)} ({saldoComposicao.semConta.count} lançamento(s)).
+                    </div>
+                  )}
+                  {saldoComposicao.foraContasAtivas?.count > 0 && (
+                    <div>
+                      Lançamentos em contas inativas ou fora da lista: {centsToBRL(saldoComposicao.foraContasAtivas.liquidoCentavos)} ({saldoComposicao.foraContasAtivas.count} lançamento(s)).
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Segunda linha de cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 24 }}>
@@ -638,21 +702,23 @@ export default function DashboardFinanceiro({ user }) {
                 <IconWallet /> Saldo por Conta
               </h3>
             </div>
-            <div style={{ padding: 0 }}>
-              {data.saldoPorConta?.length > 0 ? (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div style={{ padding: 0, overflowX: "auto" }}>
+              {saldoPorConta.length > 0 ? (
+                <table style={{ width: "100%", minWidth: 680, borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ background: "#f8fafc" }}>
                       <th style={{ padding: "10px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Conta</th>
-                      <th style={{ padding: "10px 16px", textAlign: "left", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Tipo</th>
+                      <th style={{ padding: "10px 16px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Saldo inicial</th>
+                      <th style={{ padding: "10px 16px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "#16a34a" }}>Entradas</th>
+                      <th style={{ padding: "10px 16px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "#dc2626" }}>Saídas</th>
                       <th style={{ padding: "10px 16px", textAlign: "right", fontSize: 12, fontWeight: 600, color: "#64748b" }}>Saldo</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.saldoPorConta.map((conta, idx) => (
-                      <tr key={conta.id} style={{ borderBottom: idx < data.saldoPorConta.length - 1 ? "1px solid #f1f5f9" : "none" }}>
-                        <td style={{ padding: "12px 16px", fontWeight: 500, color: "#0f172a" }}>{conta.nome}</td>
-                        <td style={{ padding: "12px 16px" }}>
+                    {saldoPorConta.map((conta, idx) => (
+                      <tr key={conta.id} style={{ borderBottom: idx < saldoPorConta.length - 1 ? "1px solid #f1f5f9" : "none" }}>
+                        <td style={{ padding: "12px 16px", fontWeight: 500, color: "#0f172a" }}>
+                          <div>{conta.nome}</div>
                           {(() => {
                             const t = TIPO_CONTA_LABELS[conta.tipo] || { label: conta.tipo, bg: "#f3f4f6", color: "#374151" };
                             return (
@@ -662,23 +728,36 @@ export default function DashboardFinanceiro({ user }) {
                             );
                           })()}
                         </td>
+                        <td style={{ padding: "12px 16px", textAlign: "right", color: "#334155", fontWeight: 500 }}>
+                          {centsToBRL(conta.saldoInicialCentavos)}
+                        </td>
+                        <td style={{ padding: "12px 16px", textAlign: "right", color: "#16a34a", fontWeight: 500 }}>
+                          {conta.entradasCentavos > 0 ? centsToBRL(conta.entradasCentavos) : "-"}
+                        </td>
+                        <td style={{ padding: "12px 16px", textAlign: "right", color: "#dc2626", fontWeight: 500 }}>
+                          {conta.saidasCentavos > 0 ? centsToBRL(conta.saidasCentavos) : "-"}
+                        </td>
                         <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: conta.saldoCentavos >= 0 ? "#16a34a" : "#dc2626" }}>
                           {centsToBRL(conta.saldoCentavos)}
                         </td>
                       </tr>
                     ))}
                     {/* Total — soma dos saldos das contas (exclui lançamentos sem conta) */}
-                    {(() => {
-                      const totalContas = (data.saldoPorConta || []).reduce((acc, c) => acc + (c.saldoCentavos || 0), 0);
-                      return (
-                        <tr style={{ background: "#f8fafc", borderTop: "2px solid #e2e8f0" }}>
-                          <td colSpan={2} style={{ padding: "12px 16px", fontWeight: 700, color: "#0f172a" }}>Total</td>
-                          <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, fontSize: 16, color: totalContas >= 0 ? "#16a34a" : "#dc2626" }}>
-                            {centsToBRL(totalContas)}
-                          </td>
-                        </tr>
-                      );
-                    })()}
+                    <tr style={{ background: "#f8fafc", borderTop: "2px solid #e2e8f0" }}>
+                      <td style={{ padding: "12px 16px", fontWeight: 700, color: "#0f172a" }}>Total</td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#334155" }}>
+                        {centsToBRL(saldoPorContaTotais.saldoInicialCentavos)}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#16a34a" }}>
+                        {centsToBRL(saldoPorContaTotais.entradasCentavos)}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 700, color: "#dc2626" }}>
+                        {centsToBRL(saldoPorContaTotais.saidasCentavos)}
+                      </td>
+                      <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800, fontSize: 16, color: saldoPorContaTotais.saldoCentavos >= 0 ? "#16a34a" : "#dc2626" }}>
+                        {centsToBRL(saldoPorContaTotais.saldoCentavos)}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               ) : (

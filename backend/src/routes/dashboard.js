@@ -27,20 +27,55 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
     // 1) SALDO DO PERÍODO (saldos iniciais de contas abertas até fim do período + lançamentos efetivados até fim do período)
     const todasContasAtivas = await prisma.livroCaixaConta.findMany({
       where: { ativa: true },
-      select: { saldoInicialCent: true, dataInicial: true },
+      select: { id: true, nome: true, tipo: true, saldoInicialCent: true, dataInicial: true },
     });
+    const contasAtivasIds = new Set(todasContasAtivas.map((conta) => conta.id));
     const saldoInicialTotal = todasContasAtivas
       .filter(c => !c.dataInicial || new Date(c.dataInicial) <= dtFimMes)
       .reduce((acc, c) => acc + (c.saldoInicialCent || 0), 0);
 
     const todosLancamentos = await prisma.livroCaixaLancamento.findMany({
       where: { statusFluxo: "EFETIVADO", es: { in: ["E", "S"] }, data: { lte: dtFimMes } },
-      select: { es: true, valorCentavos: true },
+      select: { es: true, valorCentavos: true, contaId: true },
     });
-    const saldoAtualCentavos = saldoInicialTotal + todosLancamentos.reduce((acc, l) => {
+
+    const movimentosPorConta = new Map();
+    const semConta = { count: 0, entradasCentavos: 0, saidasCentavos: 0 };
+    const foraContasAtivas = { count: 0, entradasCentavos: 0, saidasCentavos: 0 };
+    let entradasSaldoCentavos = 0;
+    let saidasSaldoCentavos = 0;
+
+    for (const l of todosLancamentos) {
       const v = Number(l.valorCentavos || 0);
-      return l.es === "E" ? acc + v : acc - v;
-    }, 0);
+      const resumoConta = l.contaId
+        ? (movimentosPorConta.get(l.contaId) || { count: 0, entradasCentavos: 0, saidasCentavos: 0 })
+        : null;
+
+      if (l.es === "E") {
+        entradasSaldoCentavos += v;
+        if (resumoConta) resumoConta.entradasCentavos += v;
+        if (!l.contaId) semConta.entradasCentavos += v;
+        if (l.contaId && !contasAtivasIds.has(l.contaId)) foraContasAtivas.entradasCentavos += v;
+      } else if (l.es === "S") {
+        saidasSaldoCentavos += v;
+        if (resumoConta) resumoConta.saidasCentavos += v;
+        if (!l.contaId) semConta.saidasCentavos += v;
+        if (l.contaId && !contasAtivasIds.has(l.contaId)) foraContasAtivas.saidasCentavos += v;
+      }
+
+      if (resumoConta) {
+        resumoConta.count += 1;
+        movimentosPorConta.set(l.contaId, resumoConta);
+      } else {
+        semConta.count += 1;
+      }
+
+      if (l.contaId && !contasAtivasIds.has(l.contaId)) {
+        foraContasAtivas.count += 1;
+      }
+    }
+
+    const saldoAtualCentavos = saldoInicialTotal + entradasSaldoCentavos - saidasSaldoCentavos;
 
     // 2) TOTAIS DO MÊS (entradas e saídas — exclui transferências entre contas)
     const lancamentosMes = await prisma.livroCaixaLancamento.findMany({
@@ -217,31 +252,44 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
     });
 
     // 14) SALDO POR CONTA (até fim do período selecionado)
-    const contas = await prisma.livroCaixaConta.findMany({
-      where: { ativa: true },
-      select: { id: true, nome: true, tipo: true, saldoInicialCent: true, dataInicial: true },
-    });
-
-    const saldoPorConta = await Promise.all(contas.map(async (conta) => {
-      const lancsConta = await prisma.livroCaixaLancamento.findMany({
-        where: { contaId: conta.id, statusFluxo: "EFETIVADO", es: { in: ["E", "S"] }, data: { lte: dtFimMes } },
-        select: { es: true, valorCentavos: true },
-      });
-      // Only include saldoInicialCent if the account was opened on or before the end of the period
+    const saldoPorConta = todasContasAtivas.map((conta) => {
       const saldoInicial = (!conta.dataInicial || new Date(conta.dataInicial) <= dtFimMes)
         ? (conta.saldoInicialCent || 0)
         : 0;
-      const saldo = lancsConta.reduce((acc, l) => {
-        const v = Number(l.valorCentavos || 0);
-        return l.es === "E" ? acc + v : acc - v;
-      }, saldoInicial);
+      const movimentos = movimentosPorConta.get(conta.id) || { count: 0, entradasCentavos: 0, saidasCentavos: 0 };
+      const saldo = saldoInicial + movimentos.entradasCentavos - movimentos.saidasCentavos;
       return {
         id: conta.id,
         nome: conta.nome,
         tipo: conta.tipo,
+        dataInicial: conta.dataInicial,
+        saldoInicialCentavos: saldoInicial,
+        entradasCentavos: movimentos.entradasCentavos,
+        saidasCentavos: movimentos.saidasCentavos,
+        lancamentosCount: movimentos.count,
         saldoCentavos: saldo,
       };
-    }));
+    });
+    const saldoContasAtivasCentavos = saldoPorConta.reduce((acc, conta) => acc + conta.saldoCentavos, 0);
+
+    const saldoAtualComposicao = {
+      dataFinal: dtFimMes.toISOString(),
+      saldoInicialCentavos: saldoInicialTotal,
+      entradasCentavos: entradasSaldoCentavos,
+      saidasCentavos: saidasSaldoCentavos,
+      totalCentavos: saldoAtualCentavos,
+      lancamentosCount: todosLancamentos.length,
+      saldoContasAtivasCentavos,
+      diferencaSaldoContasCentavos: saldoAtualCentavos - saldoContasAtivasCentavos,
+      semConta: {
+        ...semConta,
+        liquidoCentavos: semConta.entradasCentavos - semConta.saidasCentavos,
+      },
+      foraContasAtivas: {
+        ...foraContasAtivas,
+        liquidoCentavos: foraContasAtivas.entradasCentavos - foraContasAtivas.saidasCentavos,
+      },
+    };
 
     res.json({
       periodo: {
@@ -253,6 +301,7 @@ router.get("/api/dashboard/financeiro", authenticate, async (req, res) => {
 
       // Saldos
       saldoAtualCentavos,
+      saldoAtualComposicao,
       saldoPorConta,
 
       // Período selecionado (mês ou ano)
