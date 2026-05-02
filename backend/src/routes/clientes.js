@@ -402,15 +402,14 @@ router.get("/api/busca-global", authenticate, async (req, res) => {
 router.get("/api/clients/:id/vinculos", authenticate, requireAdmin, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const [contratos, lancamentos, contaCorrente, adiantamentos, comprovantes] = await Promise.all([
+    const [contratos, lancamentos, contaCorrente, comprovantes] = await Promise.all([
       prisma.contratoPagamento.count({ where: { clienteId: id } }),
       prisma.livroCaixaLancamento.count({ where: { clienteContaId: id } }),
       prisma.contaCorrenteCliente.count({ where: { clienteId: id } }),
-      prisma.adiantamentoSocio.count({ where: { clienteId: id } }),
       prisma.comprovanteRespostaCliente.count({ where: { clienteId: id } }),
     ]);
-    res.json({ contratos, lancamentos, contaCorrente, adiantamentos, comprovantes,
-      total: contratos + lancamentos + contaCorrente + adiantamentos + comprovantes });
+    res.json({ contratos, lancamentos, contaCorrente, comprovantes,
+      total: contratos + lancamentos + contaCorrente + comprovantes });
   } catch (error) {
     console.error("Erro ao buscar vínculos:", error);
     res.status(500).json({ message: "Erro ao buscar vínculos." });
@@ -449,7 +448,6 @@ router.post("/api/clients/:id/merge-into/:targetId", authenticate, requireAdmin,
       prisma.contratoPagamento.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } }),
       prisma.livroCaixaLancamento.updateMany({ where: { clienteContaId: fromId }, data: { clienteContaId: toId } }),
       prisma.contaCorrenteCliente.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } }),
-      prisma.adiantamentoSocio.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } }),
       prisma.repasseManualLancamento.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } }),
       prisma.comprovanteRespostaCliente.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } }),
     ]);

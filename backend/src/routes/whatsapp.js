@@ -194,7 +194,7 @@ async function _waBuildAdvogadoContext(advogadoId) {
   const usuarioId = adv?.usuario?.id;
   const fmtCent = (c) => (c / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, style: "currency", currency: "BRL" });
 
-  const [ultimosRepasses, contas, adiantamentos, emprestimos, agenda, parcelasPendentes] = await Promise.all([
+  const [ultimosRepasses, contas, agenda, parcelasPendentes] = await Promise.all([
     prisma.repasseRealizado.findMany({
       where: { advogadoId },
       orderBy: { dataRepasse: "desc" },
@@ -204,14 +204,6 @@ async function _waBuildAdvogadoContext(advogadoId) {
     prisma.livroCaixaConta.findMany({
       where: { ativa: true },
       select: { nome: true, tipo: true, chavePix1: true, chavePix2: true },
-    }),
-    prisma.adiantamentoSocio.findMany({
-      where: { advogadoId, quitado: false },
-      select: { competenciaAno: true, competenciaMes: true, valorAdiantadoCentavos: true, valorDevolvidoCentavos: true, cliente: { select: { nomeRazaoSocial: true } } },
-    }),
-    prisma.emprestimoSocio.findMany({
-      where: { advogadoId, quitado: false },
-      select: { competenciaAno: true, competenciaMes: true, valorCentavos: true, valorPagoCentavos: true, descricao: true },
     }),
     usuarioId ? prisma.agendaParticipante.findMany({
       where: { usuarioId, evento: { dataInicio: { gte: hoje, lte: em7d } } },
@@ -244,14 +236,6 @@ async function _waBuildAdvogadoContext(advogadoId) {
     return `  • ${c.nome} (${c.tipo})${pix ? ` — PIX: ${pix}` : ""}`;
   }).join("\n") || "  Nenhuma conta cadastrada.";
 
-  const adiantBlock = adiantamentos.length
-    ? adiantamentos.map(a => `  • ${a.cliente.nomeRazaoSocial} (${fmtMes(a.competenciaAno, a.competenciaMes)}): adiantado ${fmtCent(a.valorAdiantadoCentavos)}, devolvido ${fmtCent(a.valorDevolvidoCentavos)}`).join("\n")
-    : "  Nenhum adiantamento em aberto.";
-
-  const emprestBlock = emprestimos.length
-    ? emprestimos.map(e => `  • ${fmtMes(e.competenciaAno, e.competenciaMes)}: ${fmtCent(e.valorCentavos)} (pago: ${fmtCent(e.valorPagoCentavos)}) — ${e.descricao}`).join("\n")
-    : "  Nenhum empréstimo em aberto.";
-
   const agendaBlock = agenda.length
     ? agenda.map(p => `  • ${fmtD(p.evento.dataInicio)} — ${p.evento.titulo} (${p.evento.tipo})`).join("\n")
     : "  Nenhum evento nos próximos 7 dias.";
@@ -270,12 +254,6 @@ ${contasBlock}
 
 Parcelas pendentes dos seus clientes:
 ${parcelasBlock}
-
-Adiantamentos em aberto:
-${adiantBlock}
-
-Empréstimos em aberto:
-${emprestBlock}
 
 Agenda próximos 7 dias:
 ${agendaBlock}`;
@@ -341,7 +319,6 @@ const _MENU_PRINCIPAL = `*Addere — Menu do Advogado* 📋
 1️⃣ Repasses
 2️⃣ Parcelas dos meus clientes
 3️⃣ Minha agenda
-4️⃣ Adiantamentos e empréstimos
 5️⃣ Contas e PIX do escritório
 
 _Digite o número ou faça sua pergunta._`;
@@ -368,14 +345,6 @@ const _MENU_AGENDA = `*Agenda — Opções*
 1️⃣ Hoje
 2️⃣ Próximos 7 dias
 3️⃣ Próximos 30 dias
-
-0️⃣ ↩ Voltar ao menu principal`;
-
-const _MENU_ADIANT = `*Adiantamentos e Empréstimos — Opções*
-
-1️⃣ Adiantamentos em aberto
-2️⃣ Empréstimos em aberto
-3️⃣ Todos em aberto
 
 0️⃣ ↩ Voltar ao menu principal`;
 
@@ -649,7 +618,6 @@ async function _waBotReplyAdvogado(advogadoId, usuarioIdRemetente, phone, textoR
     if (cmd === "1") { _waAdvSetState(phone, "REPASSES"); return { resposta: null, menu: _MENU_REPASSES, escalate: false }; }
     if (cmd === "2") { _waAdvSetState(phone, "PARCELAS"); return { resposta: null, menu: _MENU_PARCELAS, escalate: false }; }
     if (cmd === "3") { _waAdvSetState(phone, "AGENDA");   return { resposta: null, menu: _MENU_AGENDA,   escalate: false }; }
-    if (cmd === "4") { _waAdvSetState(phone, "ADIANT");   return { resposta: null, menu: _MENU_ADIANT,   escalate: false }; }
     if (cmd === "5") {
       const contas = await prisma.livroCaixaConta.findMany({
         where: { ativa: true, OR: [{ chavePix1: { not: null } }, { chavePix2: { not: null } }, { agencia: { not: null } }, { conta: { not: null } }] },
@@ -749,32 +717,8 @@ async function _waBotReplyAdvogado(advogadoId, usuarioIdRemetente, phone, textoR
     if (cmd === "0") { _waAdvSetState(phone, "PRINCIPAL"); return { resposta: null, menu: _MENU_PRINCIPAL, escalate: false }; }
   }
 
-  // ── Menu ADIANT ─────────────────────────────────────────────────────────────
-  if (estado.nivel === "ADIANT") {
-    if (cmd === "1" || cmd === "3") {
-      const adts = await prisma.adiantamentoSocio.findMany({ where: { advogadoId, quitado: false }, select: { competenciaAno: true, competenciaMes: true, valorAdiantadoCentavos: true, valorDevolvidoCentavos: true, cliente: { select: { nomeRazaoSocial: true } } } });
-      const linhas = adts.map(a => `• ${a.cliente.nomeRazaoSocial} (${fmtMes(a.competenciaAno, a.competenciaMes)}): adiantado ${fmtCent(a.valorAdiantadoCentavos)}, devolvido ${fmtCent(a.valorDevolvidoCentavos)}`).join("\n");
-      let resposta = adts.length ? `*Adiantamentos em aberto:*\n${linhas}` : "Nenhum adiantamento em aberto.";
-      if (cmd === "3") {
-        const emps = await prisma.emprestimoSocio.findMany({ where: { advogadoId, quitado: false }, select: { competenciaAno: true, competenciaMes: true, valorCentavos: true, valorPagoCentavos: true, descricao: true } });
-        const linhasE = emps.map(e => `• ${fmtMes(e.competenciaAno, e.competenciaMes)}: ${fmtCent(e.valorCentavos)} (pago: ${fmtCent(e.valorPagoCentavos)}) — ${e.descricao}`).join("\n");
-        resposta += emps.length ? `\n\n*Empréstimos em aberto:*\n${linhasE}` : "\n\nNenhum empréstimo em aberto.";
-      }
-      _waAdvSetState(phone, "ADIANT");
-      return { resposta, menu: _MENU_ADIANT, escalate: false };
-    }
-    if (cmd === "2") {
-      const emps = await prisma.emprestimoSocio.findMany({ where: { advogadoId, quitado: false }, select: { competenciaAno: true, competenciaMes: true, valorCentavos: true, valorPagoCentavos: true, descricao: true } });
-      _waAdvSetState(phone, "ADIANT");
-      if (!emps.length) return { resposta: "Nenhum empréstimo em aberto.", menu: _MENU_ADIANT, escalate: false };
-      const linhas = emps.map(e => `• ${fmtMes(e.competenciaAno, e.competenciaMes)}: ${fmtCent(e.valorCentavos)} (pago: ${fmtCent(e.valorPagoCentavos)}) — ${e.descricao}`).join("\n");
-      return { resposta: `*Empréstimos em aberto:*\n${linhas}`, menu: _MENU_ADIANT, escalate: false };
-    }
-    if (cmd === "0") { _waAdvSetState(phone, "PRINCIPAL"); return { resposta: null, menu: _MENU_PRINCIPAL, escalate: false }; }
-  }
-
   // ── Fallback: não reconheceu o comando — mostra menu atual ──────────────────
-  const menuAtual = { PRINCIPAL: _MENU_PRINCIPAL, REPASSES: _MENU_REPASSES, PARCELAS: _MENU_PARCELAS, AGENDA: _MENU_AGENDA, ADIANT: _MENU_ADIANT }[estado.nivel] || _MENU_PRINCIPAL;
+  const menuAtual = { PRINCIPAL: _MENU_PRINCIPAL, REPASSES: _MENU_REPASSES, PARCELAS: _MENU_PARCELAS, AGENDA: _MENU_AGENDA }[estado.nivel] || _MENU_PRINCIPAL;
   return { resposta: "Opção não reconhecida.", menu: menuAtual, escalate: false };
 }
 

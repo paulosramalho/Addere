@@ -65,8 +65,6 @@ model Advogado {
   repassesPagamento     RepassePagamento[]
   usuario               Usuario?
   repassesRealizados    RepasseRealizado[]
-  emprestimos           EmprestimoSocio[]
-  adiantamentos         AdiantamentoSocio[]
 
   repassesManuais      RepasseManualLancamento[]
   processos            ProcessoJudicial[]
@@ -103,7 +101,6 @@ model Cliente {
   contaCorrente         ContaCorrenteCliente[]
   livroCaixaLancamentos LivroCaixaLancamento[]       @relation("LivroCaixaClienteConta")
   comprovantes          ComprovanteRespostaCliente[]
-  adiantamentos         AdiantamentoSocio[]
   whatsAppMensagens     WhatsAppMensagem[]
   processos             ProcessoJudicial[]
   boletos               BoletInter[]
@@ -290,48 +287,6 @@ model RepasseManualLancamento {
   @@map("repasses_manuais_lancamentos")
 }
 
-model EmprestimoSocio {
-  id                Int       @id @default(autoincrement())
-  advogadoId        Int
-  competenciaAno    Int
-  competenciaMes    Int
-  valorCentavos     Int
-  descricao         String    @default("Empréstimo do sócio para despesas")
-  dataRegistro      DateTime  @default(now())
-  quitado           Boolean   @default(false)
-  dataQuitacao      DateTime?
-  valorPagoCentavos Int       @default(0)
-  referenciaOrigem  String?
-  createdAt         DateTime  @default(now())
-  advogado          Advogado  @relation(fields: [advogadoId], references: [id])
-
-  @@index([advogadoId])
-  @@index([competenciaAno, competenciaMes])
-  @@map("EmprestimoSocio")
-}
-
-model AdiantamentoSocio {
-  id                     Int       @id @default(autoincrement())
-  advogadoId             Int
-  clienteId              Int
-  competenciaAno         Int
-  competenciaMes         Int
-  valorPrevistoCentavos  Int
-  valorAdiantadoCentavos Int
-  valorDevolvidoCentavos Int       @default(0)
-  quitado                Boolean   @default(false)
-  dataRegistro           DateTime
-  dataQuitacao           DateTime?
-  observacoes            String?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-  advogado               Advogado  @relation(fields: [advogadoId], references: [id])
-  cliente                Cliente   @relation(fields: [clienteId], references: [id])
-
-  @@index([advogadoId])
-  @@index([competenciaAno, competenciaMes])
-  @@map("AdiantamentoSocio")
-}
 
 model LivroCaixaConta {
   id               Int                    @id @default(autoincrement())

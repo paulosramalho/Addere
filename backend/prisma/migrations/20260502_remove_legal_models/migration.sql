@@ -21,3 +21,7 @@ DROP TABLE IF EXISTS "SaldoDestinatario" CASCADE;
 DROP TABLE IF EXISTS "ContratoRepasseSplitAdvogado" CASCADE;
 DROP TABLE IF EXISTS "ModeloDistribuicaoItem" CASCADE;
 DROP TABLE IF EXISTS "ModeloDistribuicao" CASCADE;
+
+-- 4. Drop tabelas de Empréstimos / Adiantamentos de sócios (não fazem sentido na Addere)
+DROP TABLE IF EXISTS "AdiantamentoSocio" CASCADE;
+DROP TABLE IF EXISTS "EmprestimoSocio" CASCADE;

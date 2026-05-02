@@ -68,7 +68,6 @@ function ClienteCard({ c, vinculos, loadingVinculos, onDelete, isMergeTarget, is
                   {vinculos.contratos > 0 && <div>{vinculos.contratos} contrato{vinculos.contratos !== 1 ? "s" : ""}</div>}
                   {vinculos.lancamentos > 0 && <div>{vinculos.lancamentos} lançamento{vinculos.lancamentos !== 1 ? "s" : ""}</div>}
                   {vinculos.contaCorrente > 0 && <div>{vinculos.contaCorrente} c. corrente</div>}
-                  {vinculos.adiantamentos > 0 && <div>{vinculos.adiantamentos} adiant.</div>}
                   {vinculos.repassesManuais > 0 && <div>{vinculos.repassesManuais} rep. manual</div>}
                 </div>
               )}
