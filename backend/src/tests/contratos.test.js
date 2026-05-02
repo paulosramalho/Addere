@@ -26,8 +26,6 @@ const mockContrato = {
   updatedAt: new Date().toISOString(),
   cliente: { id: 1, nomeRazaoSocial: "Cliente Teste", cpfCnpj: "111.222.333-44" },
   parcelas: [],
-  splits: [],
-  modeloDistribuicao: null,
 };
 
 describe("GET /api/contratos", () => {

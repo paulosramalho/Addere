@@ -331,12 +331,11 @@ function ModalLancamento({ clienteNome, lancamento, contas, clienteId, clientesL
 }
 
 /* ---------- Modal Honorários ---------- */
-function ModalHonorarios({ clienteNome, saldoDisponCent, contas, modelos, advogados = [], onSave, onClose, loading }) {
+function ModalHonorarios({ clienteNome, saldoDisponCent, contas, advogados = [], onSave, onClose, loading }) {
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState({
     valor: saldoDisponCent > 0 ? maskBRLFromDigits(String(saldoDisponCent)) : "",
     contaId: "",
-    modeloDistribuicaoId: "",
     historico: "Honorários advocatícios",
     dataRecebimento: today,
     isentoTributacao: false,
@@ -346,62 +345,13 @@ function ModalHonorarios({ clienteNome, saldoDisponCent, contas, modelos, advoga
     splits: [],
   });
 
-  const [itensByModeloId, setItensByModeloId] = useState({});
-
   function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
-  useEffect(() => {
-    const id = form.modeloDistribuicaoId ? Number(form.modeloDistribuicaoId) : null;
-    if (!id || itensByModeloId[id]) return;
-    apiFetch(`/modelo-distribuicao/${id}/itens`)
-      .then(itens => setItensByModeloId(m => ({ ...m, [id]: Array.isArray(itens) ? itens : [] })));
-  }, [form.modeloDistribuicaoId]);
-
-  const needsAdvogadoPrincipal = useMemo(() => {
-    if (!form.modeloDistribuicaoId) return true;
-    const itens = itensByModeloId[Number(form.modeloDistribuicaoId)] || [];
-    if (!itens.length) return true;
-    return itens.some(it => {
-      const tipo = String(it?.destinoTipo || "").toUpperCase();
-      const dest = String(it?.destinatario || "").toUpperCase();
-      return tipo === "SOCIO" && dest !== "INDICACAO";
-    });
-  }, [form.modeloDistribuicaoId, itensByModeloId]);
-
-  const indicacaoBp = useMemo(() => {
-    if (!form.modeloDistribuicaoId) return 0;
-    const itens = itensByModeloId[Number(form.modeloDistribuicaoId)] || [];
-    const item = itens.find(it => {
-      const a = String(it.destinoTipo || "").toUpperCase();
-      const b = String(it.destinatario || "").toUpperCase();
-      return a === "INDICACAO" || b === "INDICACAO";
-    });
-    const bp = item ? Number(item.percentualBp) : 0;
-    return Number.isFinite(bp) ? bp : 0;
-  }, [form.modeloDistribuicaoId, itensByModeloId]);
-  const hasIndicacao = indicacaoBp > 0;
-
-  const socioBp = useMemo(() => {
-    if (!form.modeloDistribuicaoId) return 0;
-    const itens = itensByModeloId[Number(form.modeloDistribuicaoId)] || [];
-    const item = itens.find(it => {
-      const a = String(it.destinoTipo || "").toUpperCase();
-      const b = String(it.destinatario || "").toUpperCase();
-      return a === "SOCIO" || b === "SOCIO";
-    });
-    const bp = item ? Number(item.percentualBp) : 0;
-    return Number.isFinite(bp) ? bp : 0;
-  }, [form.modeloDistribuicaoId, itensByModeloId]);
-
-  const somaSplitsBp = useMemo(() => {
-    return (form.splits || []).reduce((acc, s) => {
-      const raw = String(s.percentual || "").replace(/[^0-9,]/g, "").replace(",", ".");
-      const n = Number(raw);
-      return acc + (Number.isFinite(n) ? Math.round(n * 100) : 0);
-    }, 0);
-  }, [form.splits]);
-
-  const splitExcede = form.usaSplitSocio && socioBp > 0 && somaSplitsBp > socioBp;
+  // Defaults após remoção da feature ModeloDistribuicao (sem modelo = caso simples)
+  const needsAdvogadoPrincipal = true;
+  const hasIndicacao = false;
+  const socioBp = 0;
+  const splitExcede = false;
 
   function handleSave() {
     const valorCent = parseCentsFromBRL(form.valor);
@@ -417,7 +367,6 @@ function ModalHonorarios({ clienteNome, saldoDisponCent, contas, modelos, advoga
     onSave({
       valorCent,
       contaId: Number(form.contaId),
-      modeloDistribuicaoId: form.modeloDistribuicaoId ? Number(form.modeloDistribuicaoId) : null,
       historico: form.historico.trim(),
       dataRecebimento: form.dataRecebimento ? form.dataRecebimento + "T12:00:00Z" : null,
       isentoTributacao: form.isentoTributacao,
@@ -469,106 +418,6 @@ function ModalHonorarios({ clienteNome, saldoDisponCent, contas, modelos, advoga
               ))}
             </select>
           </div>
-
-          {/* Modelo de distribuição */}
-          <div>
-            <label style={lb}>Modelo de Distribuição</label>
-            <select style={inp} value={form.modeloDistribuicaoId} onChange={e => {
-              const v = e.target.value;
-              setForm(f => ({ ...f, modeloDistribuicaoId: v, advogadoId: "", indicacaoId: "", usaSplitSocio: false, splits: [] }));
-            }}>
-              <option value="">— sem modelo (honorários brutos) —</option>
-              {modelos.map(m => (
-                <option key={m.id} value={m.id}>{m.codigo ? `${m.codigo} — ${m.descricao || ""}` : (m.descricao || `Modelo #${m.id}`)}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Campos condicionais ao modelo */}
-          {form.modeloDistribuicaoId && (
-            <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 12px", background: "#f8fafc", display: "flex", flexDirection: "column", gap: 10 }}>
-
-              {/* Tributado */}
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input type="checkbox" id="hon_tributado"
-                  checked={!form.isentoTributacao}
-                  onChange={e => set("isentoTributacao", !e.target.checked)}
-                  style={{ width: 15, height: 15, cursor: "pointer", accentColor: "#1e293b" }} />
-                <label htmlFor="hon_tributado" style={{ ...lb, marginBottom: 0, cursor: "pointer", fontWeight: 500 }}>Tributado</label>
-              </div>
-
-              {/* Split toggle — só quando há SOCIO no modelo */}
-              {needsAdvogadoPrincipal && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input type="checkbox" id="hon_split"
-                    checked={form.usaSplitSocio}
-                    onChange={e => {
-                      const v = e.target.checked;
-                      setForm(f => ({ ...f, usaSplitSocio: v, advogadoId: "", splits: v ? [{ advogadoId: "", percentual: "" }] : [] }));
-                    }}
-                    style={{ width: 15, height: 15, cursor: "pointer", accentColor: "#1e293b" }} />
-                  <label htmlFor="hon_split" style={{ ...lb, marginBottom: 0, cursor: "pointer", fontWeight: 500 }}>Split com sócio</label>
-                </div>
-              )}
-
-              {/* Advogado principal (sem split) */}
-              {needsAdvogadoPrincipal && !form.usaSplitSocio && (
-                <div>
-                  <label style={lb}>Advogado *</label>
-                  <select style={inp} value={form.advogadoId} onChange={e => set("advogadoId", e.target.value)}>
-                    <option value="">— selecione —</option>
-                    {advogados.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-                  </select>
-                </div>
-              )}
-
-              {/* Split rows */}
-              {form.usaSplitSocio && (
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <label style={{ ...lb, marginBottom: 0 }}>
-                      Splits{socioBp > 0 ? ` — modelo: ${(socioBp / 100).toFixed(2)}%` : ""}
-                    </label>
-                    {splitExcede && <span style={{ fontSize: 11, color: "#dc2626", fontWeight: 600 }}>Excede o modelo!</span>}
-                  </div>
-                  {(form.splits || []).map((s, idx) => (
-                    <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 90px 28px", gap: 5, marginBottom: 5 }}>
-                      <select style={inp} value={s.advogadoId || ""} onChange={e => setForm(f => ({
-                        ...f, splits: f.splits.map((x, i) => i === idx ? { ...x, advogadoId: e.target.value } : x),
-                      }))}>
-                        <option value="">— advogado —</option>
-                        {advogados.filter(a =>
-                          !((form.splits || []).some((x, i) => i !== idx && String(x.advogadoId) === String(a.id)))
-                        ).map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-                      </select>
-                      <input style={{ ...inp, textAlign: "right" }} value={s.percentual || ""} placeholder="%" onChange={e => setForm(f => ({
-                        ...f, splits: f.splits.map((x, i) => i === idx ? { ...x, percentual: e.target.value } : x),
-                      }))} />
-                      <button type="button" onClick={() => setForm(f => ({ ...f, splits: f.splits.filter((_, i) => i !== idx) }))}
-                        style={{ background: "#fee2e2", border: "none", borderRadius: 4, color: "#dc2626", cursor: "pointer", fontWeight: 700, fontSize: 14 }}>×</button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => setForm(f => ({ ...f, splits: [...(f.splits || []), { advogadoId: "", percentual: "" }] }))}
-                    style={{ fontSize: 12, color: "#1e293b", border: "1px solid #d1d5db", background: "#fff", borderRadius: 4, padding: "3px 10px", cursor: "pointer", marginTop: 2 }}>
-                    + Adicionar advogado
-                  </button>
-                </div>
-              )}
-
-              {/* Indicação */}
-              {hasIndicacao && (
-                <div>
-                  <label style={lb}>Indicação *</label>
-                  <select style={inp} value={form.indicacaoId} onChange={e => set("indicacaoId", e.target.value)}>
-                    <option value="">— selecione —</option>
-                    {advogados.filter(a =>
-                      !form.usaSplitSocio || !((form.splits || []).some(s => String(s.advogadoId) === String(a.id)))
-                    ).map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-                  </select>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Histórico */}
           <div>
@@ -747,13 +596,11 @@ export default function ContaCorrenteClientes({ user }) {
   const [sendingEmail, setSendingEmail] = useState(false);
 
   const [contas,    setContas]    = useState([]);
-  const [modelos,   setModelos]   = useState([]);
   const [advogados, setAdvogados] = useState([]);
   const [modalHonorarios, setModalHonorarios] = useState(null); // { clienteId, clienteNome, saldoCent }
 
   useEffect(() => {
     apiFetch("/livro-caixa/contas").then((data) => setContas(data || [])).catch(() => {});
-    apiFetch("/modelo-distribuicao?ativo=true").then((data) => setModelos(data || [])).catch(() => {});
     apiFetch("/advogados").then((data) => setAdvogados(data || [])).catch(() => {});
   }, []);
 
@@ -1239,7 +1086,7 @@ export default function ContaCorrenteClientes({ user }) {
         {modalHonorarios && <ModalHonorarios
           clienteNome={modalHonorarios.clienteNome}
           saldoDisponCent={modalHonorarios.saldoCent}
-          contas={contas} modelos={modelos} advogados={advogados}
+          contas={contas} advogados={advogados}
           onSave={handleSaveHonorarios} onClose={() => setModalHonorarios(null)} loading={savingModal} />}
       </div>
     );

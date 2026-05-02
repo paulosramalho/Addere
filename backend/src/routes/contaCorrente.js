@@ -537,7 +537,7 @@ router.post("/api/conta-corrente-clientes/enviar-email", authenticate, async (re
 router.post("/api/conta-corrente-clientes/:clienteId/honorarios", authenticate, async (req, res) => {
   try {
     const clienteId = Number(req.params.clienteId);
-    const { valorCent, contaId, modeloDistribuicaoId, historico, dataRecebimento, meioRecebimento,
+    const { valorCent, contaId, historico, dataRecebimento, meioRecebimento,
             isentoTributacao, repasseAdvogadoPrincipalId, repasseIndicacaoAdvogadoId, usaSplitSocio,
             splits } = req.body;
 
@@ -621,7 +621,6 @@ router.post("/api/conta-corrente-clientes/:clienteId/honorarios", authenticate, 
           usaSplitSocio: usaSplitSocio === true || usaSplitSocio === "true",
           repasseAdvogadoPrincipalId: repasseAdvogadoPrincipalId ? Number(repasseAdvogadoPrincipalId) : null,
           repasseIndicacaoAdvogadoId: repasseIndicacaoAdvogadoId ? Number(repasseIndicacaoAdvogadoId) : null,
-          modeloDistribuicaoId: modeloDistribuicaoId ? Number(modeloDistribuicaoId) : null,
           ...(splitsToCreate.length ? { splits: { createMany: { data: splitsToCreate } } } : {}),
           parcelas: {
             create: {

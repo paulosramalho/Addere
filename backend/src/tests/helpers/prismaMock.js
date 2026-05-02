@@ -45,8 +45,6 @@ export const prismaMock = {
   presencaUsuario:                  makeModel(),
   auditoriaLog:                     makeModel(),
   aliquota:                         makeModel(),
-  modeloDistribuicao:               makeModel(),
-  modeloDistribuicaoItem:           makeModel(),
   contaCorrenteCliente:             makeModel(),
   configEscritorio:                 makeModel(),
   whatsAppConversa:                 makeModel(),

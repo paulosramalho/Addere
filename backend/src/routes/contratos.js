@@ -416,7 +416,6 @@ router.post("/api/contratos", authenticate, async (req, res) => {
       valorTotal: valorDecimal,
       formaPagamento,
       observacoes,
-      modeloDistribuicaoId: null,
       usaSplitSocio: false,
       repasseAdvogadoPrincipalId: null,
       repasseIndicacaoAdvogadoId: null,
@@ -432,7 +431,6 @@ router.post("/api/contratos", authenticate, async (req, res) => {
           vencimento: new Date(parcela.vencimento),
           valorPrevisto: convertValueToDecimal(parcela.valorPrevisto),
           status: "PREVISTA",
-          modeloDistribuicaoId: null,
         })),
       };
     }
@@ -581,7 +579,6 @@ router.post("/api/contratos/:id/renegociar", authenticate, async (req, res) => {
       formaPagamento: fp,
       valorTotal: pendenteDecimal,
       observacoes: normalizeRenegObs(observacoes, pai.numeroContrato),
-      modeloDistribuicaoId: null,
       usaSplitSocio: false,
       repasseAdvogadoPrincipalId: null,
       repasseIndicacaoAdvogadoId: null,
@@ -786,7 +783,6 @@ router.put("/api/contratos/:id", authenticate, async (req, res) => {
         valorTotal: valorTotal ? convertValueToDecimal(valorTotal) : undefined,
         formaPagamento,
         observacoes,
-        modeloDistribuicaoId: null,
         usaSplitSocio: false,
         repasseAdvogadoPrincipalId: null,
         repasseIndicacaoAdvogadoId: null,

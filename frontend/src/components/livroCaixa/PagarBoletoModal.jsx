@@ -452,8 +452,6 @@ export default function PagarBoletoModal({ contas, competenciaAno, competenciaMe
         if (!contaIdNum) throw new Error("Selecione a conta bancária para o lançamento avulso.");
         const clienteIdParaAV = wizardClienteId || parsed?.clienteId;
         if (!clienteIdParaAV) throw new Error("Selecione o cliente para o lançamento avulso.");
-        const modeloId = wizardModelo?.id || (wizardModeloAlt ? Number(wizardModeloAlt) : null);
-        if (!modeloId) throw new Error("Selecione o modelo de distribuição.");
         await apiFetch("/pagamentos-avulsos", {
           method: "POST",
           body: {
@@ -462,7 +460,6 @@ export default function PagarBoletoModal({ contas, competenciaAno, competenciaMe
             descricao: historico.trim(),
             dataRecebimento: dataBR,
             valorRecebido: String(valorCentavos), // backend interpreta dígitos como centavos
-            modeloDistribuicaoId: modeloId,
           },
         });
       } else {
