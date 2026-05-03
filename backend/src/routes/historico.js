@@ -201,7 +201,6 @@ router.get("/api/historico/dossie-dados", authenticate, async (req, res) => {
         contratoOrigemId: true,
         repasseAdvogadoPrincipalId: true,
         repasseIndicacaoAdvogadoId: true,
-        splits: { select: { advogadoId: true } },
         cliente: {
           select: {
             id: true,
@@ -227,7 +226,6 @@ router.get("/api/historico/dossie-dados", authenticate, async (req, res) => {
         const advIds = new Set([
           contratoBase.repasseAdvogadoPrincipalId,
           contratoBase.repasseIndicacaoAdvogadoId,
-          ...(contratoBase.splits || []).map(s => s.advogadoId),
         ]);
         if (!advIds.has(myAdvIdDossie)) {
           return res.status(403).json({ message: "Acesso negado." });
