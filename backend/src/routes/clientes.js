@@ -265,6 +265,196 @@ router.delete("/api/clients/:id", authenticate, async (req, res) => {
 // CLIENTES — DEDUPLICAÇÃO
 // ============================================================
 
+async function montarPreviaNormalizacao(fromId, toId) {
+  if (!Number.isInteger(fromId) || !Number.isInteger(toId)) {
+    const err = new Error("IDs inválidos.");
+    err.status = 400;
+    throw err;
+  }
+  if (fromId === toId) {
+    const err = new Error("Origem e destino são o mesmo registro.");
+    err.status = 400;
+    throw err;
+  }
+
+  const [from, to] = await Promise.all([
+    prisma.cliente.findUnique({
+      where: { id: fromId },
+      select: { id: true, nomeRazaoSocial: true, cpfCnpj: true, tipo: true, ativo: true, saldoInicialCent: true },
+    }),
+    prisma.cliente.findUnique({
+      where: { id: toId },
+      select: { id: true, nomeRazaoSocial: true, cpfCnpj: true, tipo: true, ativo: true, saldoInicialCent: true },
+    }),
+  ]);
+
+  if (!from) {
+    const err = new Error("Cliente/fornecedor de origem não encontrado.");
+    err.status = 404;
+    throw err;
+  }
+  if (!to) {
+    const err = new Error("Cliente/fornecedor de destino não encontrado.");
+    err.status = 404;
+    throw err;
+  }
+
+  const [
+    contratos,
+    lancamentosPorVinculo,
+    lancamentosPorNome,
+    contaCorrente,
+    repassesManuais,
+    comprovantes,
+    whatsapp,
+    processosPorVinculo,
+    processosPorNome,
+    boletosPorVinculo,
+    boletosPorNome,
+  ] = await Promise.all([
+    prisma.contratoPagamento.count({ where: { clienteId: fromId } }),
+    prisma.livroCaixaLancamento.count({ where: { clienteContaId: fromId } }),
+    prisma.livroCaixaLancamento.count({
+      where: {
+        clienteFornecedor: { equals: from.nomeRazaoSocial, mode: "insensitive" },
+        OR: [{ clienteContaId: null }, { clienteContaId: { not: fromId } }],
+      },
+    }),
+    prisma.contaCorrenteCliente.count({ where: { clienteId: fromId } }),
+    prisma.repasseManualLancamento.count({ where: { clienteId: fromId } }),
+    prisma.comprovanteRespostaCliente.count({ where: { clienteId: fromId } }),
+    prisma.whatsAppMensagem.count({ where: { clienteId: fromId } }),
+    prisma.processoJudicial.count({ where: { clienteId: fromId } }),
+    prisma.processoJudicial.count({
+      where: {
+        clienteNome: { equals: from.nomeRazaoSocial, mode: "insensitive" },
+        OR: [{ clienteId: null }, { clienteId: { not: fromId } }],
+      },
+    }),
+    prisma.boletInter.count({ where: { clienteId: fromId } }),
+    prisma.boletInter.count({
+      where: {
+        pagadorNome: { equals: from.nomeRazaoSocial, mode: "insensitive" },
+        OR: [{ clienteId: null }, { clienteId: { not: fromId } }],
+      },
+    }),
+  ]);
+
+  const counts = {
+    contratos,
+    lancamentosPorVinculo,
+    lancamentosPorNome,
+    lancamentosTotal: lancamentosPorVinculo + lancamentosPorNome,
+    contaCorrente,
+    repassesManuais,
+    comprovantes,
+    whatsapp,
+    processosPorVinculo,
+    processosPorNome,
+    processosTotal: processosPorVinculo + processosPorNome,
+    boletosPorVinculo,
+    boletosPorNome,
+    boletosTotal: boletosPorVinculo + boletosPorNome,
+    saldoInicialCent: Number(from.saldoInicialCent || 0),
+  };
+
+  counts.total =
+    counts.contratos +
+    counts.lancamentosTotal +
+    counts.contaCorrente +
+    counts.repassesManuais +
+    counts.comprovantes +
+    counts.whatsapp +
+    counts.processosTotal +
+    counts.boletosTotal;
+
+  return { from, to, counts };
+}
+
+async function normalizarClienteFornecedor({ fromId, toId, req }) {
+  const previa = await montarPreviaNormalizacao(fromId, toId);
+  const { from, to } = previa;
+
+  const resultado = await prisma.$transaction(async (tx) => {
+    const lancamentosPorVinculo = await tx.livroCaixaLancamento.updateMany({
+      where: { clienteContaId: fromId },
+      data: { clienteContaId: toId, clienteFornecedor: to.nomeRazaoSocial },
+    });
+    const lancamentosPorNome = await tx.livroCaixaLancamento.updateMany({
+      where: { clienteFornecedor: { equals: from.nomeRazaoSocial, mode: "insensitive" } },
+      data: { clienteFornecedor: to.nomeRazaoSocial },
+    });
+
+    const contratos = await tx.contratoPagamento.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } });
+    const contaCorrente = await tx.contaCorrenteCliente.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } });
+    const repassesManuais = await tx.repasseManualLancamento.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } });
+    const comprovantes = await tx.comprovanteRespostaCliente.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } });
+    const whatsapp = await tx.whatsAppMensagem.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } });
+
+    const processosPorVinculo = await tx.processoJudicial.updateMany({
+      where: { clienteId: fromId },
+      data: { clienteId: toId, clienteNome: to.nomeRazaoSocial },
+    });
+    const processosPorNome = await tx.processoJudicial.updateMany({
+      where: { clienteNome: { equals: from.nomeRazaoSocial, mode: "insensitive" } },
+      data: { clienteNome: to.nomeRazaoSocial },
+    });
+
+    const boletosPorVinculo = await tx.boletInter.updateMany({
+      where: { clienteId: fromId },
+      data: { clienteId: toId, pagadorNome: to.nomeRazaoSocial },
+    });
+    const boletosPorNome = await tx.boletInter.updateMany({
+      where: { pagadorNome: { equals: from.nomeRazaoSocial, mode: "insensitive" } },
+      data: { pagadorNome: to.nomeRazaoSocial },
+    });
+
+    if (from.saldoInicialCent) {
+      await tx.cliente.update({
+        where: { id: toId },
+        data: { saldoInicialCent: { increment: from.saldoInicialCent } },
+      });
+    }
+
+    await tx.cliente.delete({ where: { id: fromId } });
+
+    await tx.auditoriaLog.create({
+      data: {
+        usuarioId: req.user.id,
+        acao: "NORMALIZAR_CLIENTE_FORNECEDOR",
+        entidade: "Cliente",
+        entidadeId: toId,
+        dadosAntes: { fromId, fromNome: from.nomeRazaoSocial, fromCpfCnpj: from.cpfCnpj },
+        dadosDepois: { toId, toNome: to.nomeRazaoSocial, toCpfCnpj: to.cpfCnpj },
+        ip: req.ip,
+      },
+    });
+
+    return {
+      contratos: contratos.count,
+      lancamentosPorVinculo: lancamentosPorVinculo.count,
+      lancamentosPorNome: lancamentosPorNome.count,
+      contaCorrente: contaCorrente.count,
+      repassesManuais: repassesManuais.count,
+      comprovantes: comprovantes.count,
+      whatsapp: whatsapp.count,
+      processosPorVinculo: processosPorVinculo.count,
+      processosPorNome: processosPorNome.count,
+      boletosPorVinculo: boletosPorVinculo.count,
+      boletosPorNome: boletosPorNome.count,
+      saldoInicialCent: Number(from.saldoInicialCent || 0),
+    };
+  });
+
+  return {
+    message: `Registros normalizados com sucesso. "${from.nomeRazaoSocial}" -> "${to.nomeRazaoSocial}".`,
+    from,
+    to,
+    previa: previa.counts,
+    resultado,
+  };
+}
+
 // GET /api/clients/duplicados — detect potential duplicates by name similarity / CPF / email
 router.get("/api/clients/duplicados", authenticate, requireAdmin, async (req, res) => {
   try {
@@ -416,6 +606,19 @@ router.get("/api/clients/:id/vinculos", authenticate, requireAdmin, async (req, 
   }
 });
 
+// GET /api/clients/:id/normalizacao-preview/:targetId — mostra o impacto antes da fusão
+router.get("/api/clients/:id/normalizacao-preview/:targetId", authenticate, requireAdmin, async (req, res) => {
+  try {
+    const fromId = Number(req.params.id);
+    const toId = Number(req.params.targetId);
+    const previa = await montarPreviaNormalizacao(fromId, toId);
+    res.json(previa);
+  } catch (error) {
+    console.error("Erro ao montar prévia de normalização:", error);
+    res.status(error.status || 500).json({ message: error.message || "Erro ao montar prévia de normalização." });
+  }
+});
+
 // GET /api/clients/:id — busca cliente por id
 router.get("/api/clients/:id", authenticate, async (req, res) => {
   try {
@@ -432,49 +635,13 @@ router.get("/api/clients/:id", authenticate, async (req, res) => {
 // POST /api/clients/:id/merge-into/:targetId — move all relations from :id → :targetId, then delete :id
 router.post("/api/clients/:id/merge-into/:targetId", authenticate, requireAdmin, async (req, res) => {
   try {
-    const fromId = parseInt(req.params.id);
-    const toId = parseInt(req.params.targetId);
-    if (fromId === toId) return res.status(400).json({ message: "Origem e destino são o mesmo registro." });
-
-    const [from, to] = await Promise.all([
-      prisma.cliente.findUnique({ where: { id: fromId } }),
-      prisma.cliente.findUnique({ where: { id: toId } }),
-    ]);
-    if (!from) return res.status(404).json({ message: "Cliente origem não encontrado." });
-    if (!to) return res.status(404).json({ message: "Cliente destino não encontrado." });
-
-    // Move all relations
-    await prisma.$transaction([
-      prisma.contratoPagamento.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } }),
-      prisma.livroCaixaLancamento.updateMany({ where: { clienteContaId: fromId }, data: { clienteContaId: toId } }),
-      prisma.contaCorrenteCliente.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } }),
-      prisma.repasseManualLancamento.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } }),
-      prisma.comprovanteRespostaCliente.updateMany({ where: { clienteId: fromId }, data: { clienteId: toId } }),
-    ]);
-
-    // Merge saldoInicialCent from the deleted record into target
-    if (from.saldoInicialCent) {
-      await prisma.cliente.update({ where: { id: toId }, data: { saldoInicialCent: { increment: from.saldoInicialCent } } });
-    }
-
-    // Delete the duplicate
-    await prisma.cliente.delete({ where: { id: fromId } });
-
-    // Audit log
-    await prisma.auditoriaLog.create({
-      data: {
-        usuarioId: req.user.id, acao: "MERGE_CLIENTE",
-        entidade: "Cliente", entidadeId: toId,
-        dadosAntes: { fromId, fromNome: from.nomeRazaoSocial, fromCpfCnpj: from.cpfCnpj },
-        dadosDepois: { toId, toNome: to.nomeRazaoSocial, toCpfCnpj: to.cpfCnpj },
-        ip: req.ip,
-      },
-    });
-
-    res.json({ message: `Registros fundidos com sucesso. "${from.nomeRazaoSocial}" → "${to.nomeRazaoSocial}".` });
+    const fromId = Number(req.params.id);
+    const toId = Number(req.params.targetId);
+    const resultado = await normalizarClienteFornecedor({ fromId, toId, req });
+    res.json(resultado);
   } catch (error) {
     console.error("Erro ao fundir clientes:", error);
-    res.status(500).json({ message: "Erro ao fundir clientes: " + error.message });
+    res.status(error.status || 500).json({ message: "Erro ao fundir clientes: " + error.message });
   }
 });
 

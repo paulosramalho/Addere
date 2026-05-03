@@ -40,6 +40,7 @@ const Auditoria                     = lazy(() => import("./pages/Auditoria"));
 const Agenda                        = lazy(() => import("./pages/Agenda"));
 const LogOperacoes                  = lazy(() => import("./pages/LogOperacoes"));
 const DuplicadosClientes            = lazy(() => import("./pages/DuplicadosClientes"));
+const NormalizacaoClientesFornecedores = lazy(() => import("./pages/NormalizacaoClientesFornecedores"));
 const EmissaoNotaFiscal             = lazy(() => import("./pages/EmissaoNotaFiscal"));
 const DocumentosCliente             = lazy(() => import("./pages/DocumentosCliente"));
 const ConfiguracaoEmpresa           = lazy(() => import("./pages/ConfiguracaoEmpresa"));
@@ -1465,11 +1466,12 @@ function Shell({ user, onLogout }) {
         icon: "🧰",
         children: [
           { to: "/utilitarios/importacao-pdf", label: "Importação PDF Livro Caixa" },
+          ...(isAdmin ? [{ to: "/utilitarios/normalizacao-clientes-fornecedores", label: "Normalização Clientes/Fornecedores" }] : []),
           { to: "/utilitarios/nota-fiscal", label: "Emissão de Nota Fiscal" },
         ],
       },
     ];
-  }, [agendaCount, vencidosTotal]);
+  }, [agendaCount, vencidosTotal, isAdmin]);
 
   const navClass = ({ isActive }) =>
     `group relative block rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -1768,6 +1770,7 @@ function Shell({ user, onLogout }) {
             <Route path="/utilitarios/comprovantes" element={<ComprovantesRecebidos user={user} />} />
             <Route path="/utilitarios/log-operacoes" element={<LogOperacoes user={user} />} />
             <Route path="/utilitarios/duplicados-clientes" element={<DuplicadosClientes user={user} />} />
+            <Route path="/utilitarios/normalizacao-clientes-fornecedores" element={<NormalizacaoClientesFornecedores user={user} />} />
             <Route path="/utilitarios/nota-fiscal" element={<EmissaoNotaFiscal />} />
             <Route path="/clientes/:id/documentos" element={<DocumentosCliente user={user} />} />
             <Route path="/configuracao-empresa" element={<ConfiguracaoEmpresa user={user} />} />
