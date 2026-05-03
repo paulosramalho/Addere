@@ -51,7 +51,7 @@
     <b>Stack:</b> Node.js / Express / Prisma / Postgres (Neon) + React / Vite / Tailwind<br>
     <b>Origem:</b> Réplica de C:\Controles-AMR (escritório de advocacia)<br>
     <b>Documento:</b> Documentos/PLANO_E_STATUS.pdf<br>
-    <b>Última atualização:</b> <span id="updatedAt">2026-05-02 — Fase 3.A concluída (13 models removidos do Neon e do código). Aguardando aprovação para Fase 3.B</span><br>
+    <b>Última atualização:</b> <span id="updatedAt">2026-05-03 — Rebrand Addere On + Histórico na sidebar + Tarefas Agendadas para 08/05 (APIs Inter e C6 Bank)</span><br>
     <b>Responsável:</b> Paulo Soares Ramalho
   </div>
   <div class="legend">
@@ -171,7 +171,44 @@
 </section>
 
 <section>
-  <h2>4. Histórico de Alterações deste Documento</h2>
+  <h2>4. Tarefas Agendadas — Integrações Bancárias</h2>
+  <div class="callout warn"><b>Início agendado: 08/05/2026.</b> Implementação real das integrações com Banco Inter e C6 Bank. Atualmente ambas estão em modo <code>mock</code>: o Inter herdado de Controles-AMR (com fluxo mTLS funcional mas precisando ajustes de domínio Addere); o C6 Bank em <i>scaffold</i> (estrutura criada nas fases anteriores, mas <code>_real*</code> com stubs aguardando contrato corporativo + documentação).</div>
+
+  <h3>5.1 — API C6 Bank</h3>
+  <p><b>Referência:</b> <code>https://www.c6bank.com.br/blog/api-c6-bank</code> (consultar antes de iniciar para confirmar endpoints, autenticação OAuth 2.0 / mTLS, escopos disponíveis e processo de homologação).</p>
+  <table>
+    <thead><tr><th style="width: 7%;">#</th><th>Tarefa</th><th style="width: 18%;">Status</th></tr></thead>
+    <tbody>
+      <tr class="todo"><td>5.1.1</td><td>Solicitar credenciais junto ao C6 Bank (contrato corporativo + escopos cobrança/PIX)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.1.2</td><td>Estudar documentação oficial: estrutura de auth (client_credentials? mTLS?), endpoints reais, formato de payload de cobrança</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.1.3</td><td>Implementar <code>_getToken()</code> em <code>backend/src/lib/c6Bank.js</code> (substituir stub atual)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.1.4</td><td>Implementar <code>_realEmitir()</code>, <code>_realConsultar()</code>, <code>_realCancelar()</code> com chamadas HTTP reais</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.1.5</td><td>Configurar <code>C6_CLIENT_ID</code>, <code>C6_CLIENT_SECRET</code>, <code>C6_CONTA_CORRENTE</code> e certificados (se mTLS) no Render — começar em <code>C6_MODE=sandbox</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.1.6</td><td>Testar emissão/consulta/cancelamento ponta-a-ponta em sandbox via página <code>/c6/operacoes</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.1.7</td><td>Implementar webhook (se C6 oferecer) para baixa automática de boletos pagos — espelhar lógica de <code>routes/boletos.js</code> webhook do Inter</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.1.8</td><td>Promover para <code>C6_MODE=production</code> após validação operacional do sandbox</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.2 — API Banco Inter (verificar Controles-AMR e ajustar para Addere)</h3>
+  <p><b>Status atual:</b> a integração foi herdada de Controles-AMR durante a réplica e está fisicamente presente em <code>backend/src/lib/interBoleto.js</code>, <code>interPagamentos.js</code>, <code>interPix.js</code>; rotas em <code>routes/boletos.js</code>, <code>routes/interPagamentos.js</code>, <code>routes/pix.js</code>; schedulers <code>boletosSincronizador</code>, <code>interPagamentosConfirmar</code>, <code>pixSincronizador</code>, <code>boletosAgendados</code>. Funciona em modo mock por padrão (<code>INTER_MODE=mock</code>); para produção exige credenciais e certificados mTLS no Render.</p>
+  <table>
+    <thead><tr><th style="width: 7%;">#</th><th>Tarefa</th><th style="width: 18%;">Status</th></tr></thead>
+    <tbody>
+      <tr class="todo"><td>5.2.1</td><td>Auditar <code>backend/src/lib/interBoleto.js</code> em Controles-AMR vs Addere — confirmar paridade (sem deriva acidental durante a réplica) e listar funcionalidades em uso lá</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.2.2</td><td>Auditar <code>routes/boletos.js</code>, <code>routes/interPagamentos.js</code>, <code>routes/pix.js</code> — verificar se algum endpoint depende de campos que sumiram da Addere na Fase 3.A (advogado, repasse) e ajustar</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.2.3</td><td>Auditar schedulers (<code>boletosSincronizador</code>, <code>interPagamentosConfirmar</code>, <code>pixSincronizador</code>, <code>boletosAgendados</code>) — confirmar que rodam sem erro no Render Addere</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.2.4</td><td>Configurar credenciais Inter no Render Addere: <code>INTER_CLIENT_ID</code>, <code>INTER_CLIENT_SECRET</code>, <code>INTER_CONTA_CORRENTE</code>, certificado mTLS via <code>INTER_CERT_B64</code>+<code>INTER_KEY_B64</code></td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.2.5</td><td>Trocar <code>INTER_MODE=mock</code> → <code>sandbox</code> no Render e testar emissão de boleto via UI</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.2.6</td><td>Adaptar copy/branding nos templates de e-mail de boleto: trocar referências residuais a "AMR Advogados" ou "honorários" por linguagem genérica de prestação de serviço</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.2.7</td><td>Configurar webhook do Inter para apontar para <code>https://addere.onrender.com/api/boletos/webhook</code> (endpoint já existe; só precisa ser registrado no painel Inter)</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+      <tr class="todo"><td>5.2.8</td><td>Promover para <code>INTER_MODE=production</code> após validação em sandbox</td><td><span class="badge todo">A EXECUTAR</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>5. Histórico de Alterações deste Documento</h2>
   <table id="changelog">
     <thead><tr><th style="width: 22%;">Data/Hora</th><th>Evento</th></tr></thead>
     <tbody>
@@ -186,6 +223,8 @@
       <tr><td>2026-05-02</td><td>Fase 3.A — limpeza do schema Prisma: 11 models removidos (<code>ModeloDistribuicao</code>, <code>ModeloDistribuicaoItem</code>, <code>RepasseCompetencia</code>?? mantida pq RepassePagamento depende, então 11 são: <code>ContratoRepasseSplitAdvogado</code>, <code>ParcelaRepasseOverride</code>, <code>RepasseLinha</code>, <code>RepasseLinhaAdvogado</code>, <code>SaldoDestinatario</code>, <code>RepasseSaldo</code>, <code>RepasseLancamento</code>, <code>Intimacao</code>, <code>ModeloDistribuicao</code>, <code>ModeloDistribuicaoItem</code>) + 2 colunas (<code>modeloDistribuicaoId</code> em <code>ContratoPagamento</code> e <code>ParcelaContrato</code>) + relações inversas em <code>Advogado</code>, <code>ContratoPagamento</code>, <code>ParcelaContrato</code>, <code>ProcessoJudicial</code>, <code>RepasseRealizado</code>, <code>RepasseCompetencia</code>. Cleanup de código: <code>routes/contratos.js</code> (4 lines), <code>routes/contaCorrente.js</code> (campo + payload), <code>frontend/pages/ContaCorrenteClientes.jsx</code> (state + fetch + select + bloco condicional + prop), <code>frontend/components/livroCaixa/PagarBoletoModal.jsx</code> (validação obrigatória + payload). Schema validado com <code>prisma validate</code>; client regenerado; build do frontend limpo.</td></tr>
       <tr><td>2026-05-02</td><td>Fase 3.A — adendo: <code>EmprestimoSocio</code> e <code>AdiantamentoSocio</code> também eliminados (autorizado pelo usuário). Total: <b>13 models removidos</b>. Cleanup adicional em <code>routes/clientes.js</code>, <code>routes/whatsapp.js</code> (relatórios + menu ADIANT) e <code>DuplicadosClientes.jsx</code>.</td></tr>
       <tr><td>2026-05-02</td><td>Fase 3.A — deploy. Migration manual <code>20260502_remove_legal_models</code> tinha <code>DROP TABLE IF EXISTS ... CASCADE</code>. No Render Shell foi necessário primeiro <code>migrate resolve --applied</code> para 2 migrations travadas (<code>20260305_add_emprestimo_valor_pago</code>, <code>20260307_add_adiantamento_socio</code>), seguido de <code>migrate deploy</code> para aplicar 3 migrations idempotentes pendentes (<code>20260310_agenda_participante_status</code>, <code>20260317_catchup</code>, <code>20260321_add_intimacoes</code>). Primeiro <code>db push</code> automático no startup falhou por falta de <code>--accept-data-loss</code> (drops com dados em <code>ModeloDistribuicao</code>+<code>Item</code> = 29 reg). Fix em <code>scripts/start-render.mjs</code> adicionando o flag (commit <code>e172da8</code>) — redeploy completou com sucesso. <b>Fase 3.A fechada.</b></td></tr>
+      <tr><td>2026-05-03</td><td>Rebrand: 27 ocorrências de "Addere Control" substituídas por <b>"Addere On"</b> em 21 arquivos (templates de e-mail, schedulers, rotas, <code>index.html</code>, <code>Login.jsx</code>, comentários do <code>server.js</code>, label do TOTP no 2FA, assuntos de e-mail). Histórico (Dossiê) adicionado à sidebar: item entre Recebimentos e Livro Caixa, com ícone 🕐 e rota <code>/historico</code> (a rota e o componente <code>DossieReport</code> já existiam — só faltava registrar no array <code>menu</code>). Build limpo. Commit <code>4bd506b</code>.</td></tr>
+      <tr><td>2026-05-03</td><td>Adicionada <b>Seção 4 (Tarefas Agendadas — Integrações Bancárias)</b>, com início programado para <b>08/05/2026</b>. Sub-bloco 5.1: 8 tarefas para implementação real da API C6 Bank (consulta da doc oficial em <code>https://www.c6bank.com.br/blog/api-c6-bank</code>, credenciais, <code>_getToken</code>, <code>_real*</code>, env vars, sandbox→production, webhook). Sub-bloco 5.2: 8 tarefas para auditar a API Inter herdada de Controles-AMR (paridade de lib, audit de rotas/schedulers, configurar credenciais e mTLS, ajustar copy/branding, registrar webhook, promover sandbox→production).</td></tr>
     </tbody>
   </table>
 </section>
