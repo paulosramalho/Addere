@@ -1432,6 +1432,24 @@ function Shell({ user, onLogout }) {
       },
       {
         type: "group",
+        label: "Relatórios",
+        icon: "📈",
+        children: [
+          { type: "divider", label: "Fluxo de Caixa" },
+          { to: "/relatorios/fluxo-caixa/consolidado", label: "Consolidado" },
+          { to: "/relatorios/fluxo-caixa/diario", label: "Diário" },
+          { to: "/relatorios/fluxo-caixa/grafico", label: "Gráfico" },
+          { to: "/relatorios/fluxo-caixa/por-conta", label: "Por Conta" },
+          { to: "/relatorios/fluxo-caixa/projetado", label: "Projetado" },
+          { to: "/relatorios/fluxo-caixa/comparativo", label: "Efetivo x Projetado" },
+          { to: "/relatorios/fluxo-caixa/desempenho", label: "Desempenho (Gráfico)" },
+          { type: "divider", label: "Outros" },
+          { to: "/relatorios/fluxo-caixa/saude", label: "Saúde Financeira" },
+          { to: "/relatorios/clientes-fornecedores", label: "Clientes e Fornecedores" },
+        ],
+      },
+      {
+        type: "group",
         label: "Configurações",
         icon: "⚙️",
         children: [
