@@ -327,7 +327,7 @@ async function _notificarPixEnviado(pix) {
     </table>
   </div>
   <div style="padding:12px 24px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8">
-    Addere Control — notificação automática
+    Addere On — notificação automática
   </div>
 </div></body></html>`;
 
@@ -370,7 +370,7 @@ async function _notificarPixRealizado(pix) {
     <p style="font-size:14px;color:#0f172a">Um Pix de <strong>${valor}</strong> foi enviado para a sua chave <strong>${pix.chavePix}</strong>.</p>
     ${pix.descricao ? `<p style="font-size:13px;color:#64748b">${pix.descricao}</p>` : ""}
   </div>
-  <div style="padding:12px 24px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8">Addere Control</div>
+  <div style="padding:12px 24px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8">Addere On</div>
 </div></body></html>`;
           await sendEmail({
             to: advogado.email,

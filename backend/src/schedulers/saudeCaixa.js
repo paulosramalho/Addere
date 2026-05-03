@@ -178,7 +178,7 @@ function _buildEmailAlerta(nomeAdmin, alertas, saldoTotal) {
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:24px 16px">
 <table width="580" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
   <tr><td style="background:#7f1d1d;padding:20px 28px">
-    <div style="color:#fca5a5;font-size:11px;letter-spacing:2px;text-transform:uppercase">Addere Control · Alerta</div>
+    <div style="color:#fca5a5;font-size:11px;letter-spacing:2px;text-transform:uppercase">Addere On · Alerta</div>
     <div style="color:#fff;font-size:18px;font-weight:700;margin-top:4px">🏥 Saúde do Caixa</div>
   </td></tr>
   <tr><td style="padding:20px 28px 0">

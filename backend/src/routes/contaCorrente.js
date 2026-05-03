@@ -510,7 +510,7 @@ router.post("/api/conta-corrente-clientes/enviar-email", authenticate, async (re
     ${sections.join("")}
   </div>
   <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:16px">
-    Enviado pelo sistema Addere Control
+    Enviado pelo sistema Addere On
   </div>
 </div>
 </body></html>`;

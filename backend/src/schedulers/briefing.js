@@ -71,7 +71,7 @@ function buildEmailBriefing(nome, data) {
 
   <!-- Header -->
   <tr><td style="background:#111d35;padding:24px 32px">
-    <div style="color:#b8a06a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Addere Control</div>
+    <div style="color:#b8a06a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Addere On</div>
     <div style="color:#fff;font-size:20px;font-weight:700;margin-top:4px">📊 Briefing Semanal</div>
     <div style="color:#94a3b8;font-size:13px;margin-top:2px">${semanaLabel}</div>
   </td></tr>

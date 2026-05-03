@@ -134,7 +134,7 @@ function _buildEmailFechamento(nomeAdmin, d) {
 
   <!-- Header -->
   <tr><td style="background:#111d35;padding:24px 32px">
-    <div style="color:#b8a06a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Addere Control · Fechamento</div>
+    <div style="color:#b8a06a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Addere On · Fechamento</div>
     <div style="color:#fff;font-size:20px;font-weight:700;margin-top:4px">📅 Fechamento de ${mes} ${ano}</div>
   </td></tr>
 

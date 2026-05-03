@@ -147,7 +147,7 @@ function buildEmailAlertaVencimentos(nome, parcelas1dia, parcelas7dias, saidas1d
 
     </div>
     <div style="padding:16px 28px;background:#f1f5f9;text-align:center;font-size:11px;color:#94a3b8">
-      Addere Control — notificação automática
+      Addere On — notificação automática
     </div>
   </div>
 </body></html>`;

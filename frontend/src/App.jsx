@@ -1418,6 +1418,7 @@ function Shell({ user, onLogout }) {
       { to: "/agenda", label: "Agenda", icon: "🗓️", badge: agendaCount || null },
       { to: "/dashboard", label: "Dashboard", icon: "📊" },
       { to: "/recebimentos", label: "Recebimentos", icon: "💰" },
+      { to: "/historico", label: "Histórico", icon: "🕐" },
       {
         type: "group",
         label: "Livro Caixa",

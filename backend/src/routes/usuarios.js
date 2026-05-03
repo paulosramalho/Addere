@@ -283,7 +283,7 @@ router.patch("/api/usuarios/:id/ativo", authenticate, requireAdmin, async (req, 
     // Envia e-mail de ativação quando conta passa de inativa para ativa
     if (ativo && antes && !antes.ativo) {
       const waSnippet = ADMIN_WHATSAPP
-        ? `<p style="margin-top:15px;">Precisa de ajuda? <a href="${buildWhatsAppLink("Olá, minha conta foi ativada no Addere Control.")}" style="color:#25D366;font-weight:bold;">Entre em contato via WhatsApp</a></p>`
+        ? `<p style="margin-top:15px;">Precisa de ajuda? <a href="${buildWhatsAppLink("Olá, minha conta foi ativada no Addere On.")}" style="color:#25D366;font-weight:bold;">Entre em contato via WhatsApp</a></p>`
         : "";
       sendEmail({
         to: usuario.email,

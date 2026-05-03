@@ -950,7 +950,7 @@ export function startGmailScheduler() {
     </table>
     <p style="margin-top:16px;font-size:13px;color:#6b7280">Acesse <strong>Livro Caixa → Lançamentos</strong> para revisar e confirmar.</p>
   </div>
-  <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">Addere Control — lançamento automático</div>
+  <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">Addere On — lançamento automático</div>
 </div></body></html>`;
 
       const wppMsg = `🔖 *Boleto recebido por e-mail*\n*${esLabel}* | ${vencFmt} | *${valorFmt}*\n${parteLabel}: ${nomeLabel}\nHistórico: ${historico}\n\nRevisar: Livro Caixa → Lançamentos`;
@@ -1247,7 +1247,7 @@ export function startGmailScheduler() {
       ${parsedText ? `<div style="background:#f8fafc;border-radius:8px;padding:14px 16px;margin-top:16px;font-size:13px;color:#374151;white-space:pre-wrap">${parsedText.slice(0, 500)}${parsedText.length > 500 ? "…" : ""}</div>` : ""}
       <p style="margin-top:16px;font-size:13px;color:#6b7280">Acesse o sistema para visualizar e baixar os anexos: <strong>Comprovantes Recebidos</strong>.</p>
     </div>
-    <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">Addere Control — notificação automática</div>
+    <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">Addere On — notificação automática</div>
   </div>
 </body></html>`,
           }).catch(() => {});

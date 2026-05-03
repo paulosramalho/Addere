@@ -261,7 +261,7 @@ router.post("/api/admin/teste-confirmacao-email", authenticate, requireAdmin, as
       </div>
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;font-size:13px;color:#92400e;margin-bottom:22px">
         <strong>⚠️ Este é um e-mail de teste.</strong> Nenhuma ação é necessária. Ele foi disparado manualmente
-        pelo painel de administração do sistema Addere Control para verificar o funcionamento do serviço de envio
+        pelo painel de administração do sistema Addere On para verificar o funcionamento do serviço de envio
         de e-mails após alteração de domínio.
       </div>
       <p style="font-size:13px;color:#64748b;margin:0">
@@ -524,7 +524,7 @@ router.post(["/api/config-escritorio/enviar", "/api/config-empresa/enviar"], aut
     ${cfg?.whatsapp    ? `<div style="font-size:13px;color:#555;margin-bottom:12px">📱 ${cfg.whatsapp}</div>` : ""}
     ${contas.length ? `<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:.05em;margin-bottom:8px">Dados Bancários</div>${bancoRows}` : ""}
   </div>
-  <p style="font-size:10px;color:#aaa;margin-top:12px;text-align:center">Enviado por Addere Control</p>
+  <p style="font-size:10px;color:#aaa;margin-top:12px;text-align:center">Enviado por Addere On</p>
 </body></html>`;
 
       await sendEmail({

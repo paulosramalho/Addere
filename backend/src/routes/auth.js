@@ -141,7 +141,7 @@ router.post("/api/auth/2fa/setup", authenticate, async (req, res) => {
     if (usuario.totpEnabled) return res.status(400).json({ message: "2FA já está ativado. Desative antes de reconfigurar." });
 
     const secret = totpSecret();
-    const otpAuthUrl = totpKeyUri(usuario.email, "Addere Control", secret);
+    const otpAuthUrl = totpKeyUri(usuario.email, "Addere On", secret);
     const qrCodeUrl = await QRCode.toDataURL(otpAuthUrl);
 
     // Salva secret provisório (não habilitado ainda)
@@ -307,7 +307,7 @@ router.post("/api/auth/forgot-password", async (req, res) => {
     // E-mail para o solicitante confirmando o pedido
     await sendEmail({
       to: usuario.email,
-      subject: "🔑 Recuperação de senha - Addere Control",
+      subject: "🔑 Recuperação de senha - Addere On",
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <h2 style="color:#1e3a5f;">Addere - Recuperação de Senha</h2>
@@ -427,7 +427,7 @@ router.post("/api/auth/register", async (req, res) => {
     // E-mail de confirmação para o solicitante
     await sendEmail({
       to: novoUsuario.email,
-      subject: "👤 Cadastro solicitado - Addere Control",
+      subject: "👤 Cadastro solicitado - Addere On",
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <h2 style="color:#1e3a5f;">Addere - Cadastro Recebido</h2>

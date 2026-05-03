@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-export const EMAIL_FROM = process.env.EMAIL_FROM || "Addere Control <noreply@amr.com.br>";
+export const EMAIL_FROM = process.env.EMAIL_FROM || "Addere On <noreply@amr.com.br>";
 export const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP || null;
 
 // Resend free tier: 2 req/s — pausa de 1100ms a cada 2 envios

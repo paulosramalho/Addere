@@ -161,7 +161,7 @@ export default function Login({ onLoggedIn }) {
               <div className="text-sm text-slate-500">Addere</div>
               <h1 className="text-xl font-semibold text-slate-900">Entrar</h1>
               <p className="text-sm text-slate-600 mt-1">
-                Use seu e-mail e senha para acessar o Addere Control.
+                Use seu e-mail e senha para acessar o Addere On.
               </p>
             </div>
 

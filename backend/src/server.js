@@ -1,5 +1,5 @@
 // =============================================================
-// SERVER.JS — entrada principal do backend Addere Control
+// SERVER.JS — entrada principal do backend Addere On
 // Versão limpa: helpers extraídos para lib/ e schedulers/
 // =============================================================
 

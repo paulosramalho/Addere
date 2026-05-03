@@ -317,7 +317,7 @@ async function deduplicarContasContabeis() {
 }
 
 async function main() {
-  console.log("Iniciando seed do Addere Control...");
+  console.log("Iniciando seed do Addere On...");
 
   await seedAdminInicial();
 

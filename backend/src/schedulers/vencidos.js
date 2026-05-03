@@ -150,7 +150,7 @@ function buildEmailVencidos(nomeDestinatario, enriched) {
       ${secaoPagar}
     </div>
     <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">
-      Addere Control — enviado automaticamente às 8h
+      Addere On — enviado automaticamente às 8h
     </div>
   </div>
 </body></html>`;
@@ -217,7 +217,7 @@ function buildEmailVencidosAdvogado(nomeAdvogado, enriched) {
       ${secaoPagar}
     </div>
     <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e5e7eb;font-size:12px;color:#94a3b8;text-align:center">
-      Addere Control — enviado automaticamente às 8h
+      Addere On — enviado automaticamente às 8h
     </div>
   </div>
 </body></html>`;

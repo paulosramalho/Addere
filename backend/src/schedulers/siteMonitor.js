@@ -340,7 +340,7 @@ function _buildDigestHtml(leads, prev, gsc) {
   // Footer
   html += `
   <div style="background:#1a2a4a;padding:14px 32px;text-align:center">
-    <p style="color:rgba(255,255,255,.3);font-size:10px;margin:0;letter-spacing:.08em">Addere Control · Site Monitor Automático</p>
+    <p style="color:rgba(255,255,255,.3);font-size:10px;margin:0;letter-spacing:.08em">Addere On · Site Monitor Automático</p>
   </div>
 </div>`;
 
@@ -462,7 +462,7 @@ ${pageText}`,
 ${analysis.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
   </div>
   <div style="background:#1a2a4a;padding:14px 32px;text-align:center">
-    <p style="color:rgba(255,255,255,.3);font-size:10px;margin:0">Gerado por Claude Haiku · Addere Control</p>
+    <p style="color:rgba(255,255,255,.3);font-size:10px;margin:0">Gerado por Claude Haiku · Addere On</p>
   </div>
 </div>`;
 
