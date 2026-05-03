@@ -316,6 +316,101 @@ async function deduplicarContasContabeis() {
   }
 }
 
+async function corrigirClienteSilveiraBrito() {
+  const nomeAntigo = "Silveira & Brito";
+  const nomeNovo = "Silveira & Brito Advogados";
+
+  const clientesAntigos = await prisma.cliente.findMany({
+    where: { nomeRazaoSocial: { equals: nomeAntigo, mode: "insensitive" } },
+    orderBy: { id: "asc" },
+    select: { id: true, saldoInicialCent: true },
+  });
+  const clientesNovos = await prisma.cliente.findMany({
+    where: { nomeRazaoSocial: { equals: nomeNovo, mode: "insensitive" } },
+    orderBy: { id: "asc" },
+    select: { id: true },
+  });
+
+  const idsAntigos = clientesAntigos.map((cliente) => cliente.id);
+
+  const resultado = await prisma.$transaction(async (tx) => {
+    let clienteDestino = clientesNovos[0] || null;
+
+    if (!clienteDestino && clientesAntigos[0]) {
+      clienteDestino = await tx.cliente.update({
+        where: { id: clientesAntigos[0].id },
+        data: { nomeRazaoSocial: nomeNovo },
+        select: { id: true },
+      });
+    }
+
+    const lancamentosPorNome = await tx.livroCaixaLancamento.updateMany({
+      where: { clienteFornecedor: { equals: nomeAntigo, mode: "insensitive" } },
+      data: { clienteFornecedor: nomeNovo },
+    });
+
+    const resumo = {
+      lancamentosPorNome: lancamentosPorNome.count,
+      lancamentosPorVinculo: 0,
+      clientesRemovidos: 0,
+      clienteDestinoId: clienteDestino?.id || null,
+    };
+
+    if (!clienteDestino || idsAntigos.length === 0) {
+      return resumo;
+    }
+
+    const idsParaMover = idsAntigos.filter((id) => id !== clienteDestino.id);
+
+    const lancamentosPorVinculo = await tx.livroCaixaLancamento.updateMany({
+      where: { clienteContaId: { in: idsAntigos } },
+      data: { clienteContaId: clienteDestino.id, clienteFornecedor: nomeNovo },
+    });
+    resumo.lancamentosPorVinculo = lancamentosPorVinculo.count;
+
+    if (idsParaMover.length > 0) {
+      await tx.contratoPagamento.updateMany({ where: { clienteId: { in: idsParaMover } }, data: { clienteId: clienteDestino.id } });
+      await tx.contaCorrenteCliente.updateMany({ where: { clienteId: { in: idsParaMover } }, data: { clienteId: clienteDestino.id } });
+      await tx.repasseManualLancamento.updateMany({ where: { clienteId: { in: idsParaMover } }, data: { clienteId: clienteDestino.id } });
+      await tx.comprovanteRespostaCliente.updateMany({ where: { clienteId: { in: idsParaMover } }, data: { clienteId: clienteDestino.id } });
+      await tx.whatsAppMensagem.updateMany({ where: { clienteId: { in: idsParaMover } }, data: { clienteId: clienteDestino.id } });
+      await tx.processoJudicial.updateMany({ where: { clienteId: { in: idsParaMover } }, data: { clienteId: clienteDestino.id } });
+      await tx.boletInter.updateMany({ where: { clienteId: { in: idsParaMover } }, data: { clienteId: clienteDestino.id } });
+
+      const saldoParaMover = clientesAntigos
+        .filter((cliente) => idsParaMover.includes(cliente.id))
+        .reduce((acc, cliente) => acc + Number(cliente.saldoInicialCent || 0), 0);
+
+      if (saldoParaMover !== 0) {
+        await tx.cliente.update({
+          where: { id: clienteDestino.id },
+          data: { saldoInicialCent: { increment: saldoParaMover } },
+        });
+      }
+
+      const removidos = await tx.cliente.deleteMany({ where: { id: { in: idsParaMover } } });
+      resumo.clientesRemovidos = removidos.count;
+    }
+
+    await tx.processoJudicial.updateMany({
+      where: { clienteNome: { equals: nomeAntigo, mode: "insensitive" } },
+      data: { clienteNome: nomeNovo },
+    });
+    await tx.boletInter.updateMany({
+      where: { pagadorNome: { equals: nomeAntigo, mode: "insensitive" } },
+      data: { pagadorNome: nomeNovo },
+    });
+
+    return resumo;
+  });
+
+  console.log(
+    `  Silveira & Brito normalizado: lancamentosPorNome=${resultado.lancamentosPorNome}, ` +
+    `lancamentosPorVinculo=${resultado.lancamentosPorVinculo}, ` +
+    `clientesRemovidos=${resultado.clientesRemovidos}, destino=${resultado.clienteDestinoId || "n/a"}.`
+  );
+}
+
 async function main() {
   console.log("Iniciando seed do Addere On...");
 
@@ -354,6 +449,7 @@ async function main() {
   await corrigirLancamentosC6Bank2024();
   await corrigirLancamentosAplInter2024();
   await corrigirLancamentosInterBanco();
+  await corrigirClienteSilveiraBrito();
 
   const cfg = await prisma.configEscritorio.findFirst();
   const configData = {
